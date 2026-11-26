@@ -318,14 +318,12 @@ int EffectManager::Draw(const Matrix4 &view, const Matrix4 *camera, unsigned cha
     {
         for (i = DAT_1101d820[pass]; i > -1; i = DAT_1115cfe8[i].next)
         {
-            if (DAT_1115cfe8[i].id == -1)
-                fread(0, 1, 1, 0);
-            else
+            if (DAT_1115cfe8[i].id != -1)
             {
                 FUN_1013f070(RENDER_CULL_MODE, CULL_NONE, 0);
                 DrawRecord(i, view, camera, pass);
-                CHECK_RECORD(i);
             }
+            CHECK_RECORD(i);
         }
         if (pass == 0)
         {
@@ -349,16 +347,14 @@ int EffectManager::Draw(const Matrix4 &view, const Matrix4 *camera, unsigned cha
     FUN_1013f070(RENDER_ALPHA_TEST, 1, 0xf);
     FUN_1013f070(RENDER_TEXTURE_FILTER, 1, 0);
     FUN_1013f070(RENDER_CULL_MODE, CULL_NONE, 0);
-    int first = ranges[pass];
-    int end = ranges[pass + 5];
     int sprite;
-    for (sprite = first; sprite < end; sprite++)
+    for (sprite = ranges[pass]; sprite < ranges[pass + 5]; sprite++)
     {
         if (DAT_11134cc8[sprite].type != -1)
             DrawSpriteA(sprite, view, camera);
     }
     FUN_1013f070(RENDER_CULL_MODE, CULL_NONE, 0);
-    for (sprite = first; sprite < end; sprite++)
+    for (sprite = ranges[pass]; sprite < ranges[pass + 5]; sprite++)
     {
         if (DAT_118a8888[sprite].type != -1)
             DrawSpriteB(sprite, view, camera);

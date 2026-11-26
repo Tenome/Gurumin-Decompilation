@@ -15,11 +15,12 @@ extern "C" int __stdcall FUN_10194a10(const double *a, const double *b, int unus
     double d2 = pow(dx, 2.0) + pow(dy, 2.0);
     if (d2 < 1e-15)
         return -1;
+    double diff = rb2 - ra2;
     double sum = rb2 + ra2;
-    double disc = sum * d2 + sum * d2 - pow(d2, 2.0) - pow((rb2 - ra2), 2.0);
+    double disc = sum * d2 + sum * d2 - pow(d2, 2.0) - pow(diff, 2.0);
     if (disc < -1e-15)
         return -1;
-    double t = 0.5 - 0.5 / d2 * (rb2 - ra2);
+    double t = 0.5 - 0.5 / d2 * diff;
     double px = t * dx + a[0];
     double py = t * dy + a[1];
     if (disc < 1e-15)

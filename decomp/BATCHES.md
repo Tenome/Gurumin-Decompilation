@@ -449,3 +449,4 @@ Each finished batch adds two new ones, taken from the medium-function section of
 | 385 | 38 | notes | permutation of near misses and large walls: none matched; 889 matched |
 | 386 | 38 | match | cpp_permuter on near misses (3 matched); 892 matched |
 | 387 | 38 | match | cpp_permuter over 99 small walls (14 matched, all order/tail rewrites); 906 matched |
+| 388 | 38 | match | permuter frontier + large walls (1 matched, 6 improved); 907 matched |

@@ -20,12 +20,13 @@ struct Matrix4;
 
 #include "game.h"
 
+#include "doppler_loops.h"
+
 #include "char_vars.h"
 #include "game_vars.h"
 #include "map_vars.h"
 #include "ui_vars.h"
 
-extern "C" int FUN_1003ad20(int sound, const Vec4 &position, float volume);  // Sound_PlayEffect
 extern "C" int FUN_1013f880(void);                                          // the game's random number
 extern "C" int FUN_100119d0(int index, int damage, int a);                  // EventSlots_Add: shows the damage
 extern "C" void FUN_1000e750(void);                                         // AntiTamper_Store
@@ -64,14 +65,14 @@ extern "C" int FUN_1005dbf0(int damage)
             damage = 1;
         if (DAT_104c033a == 0)
         {
-            const Vec4 &position = DAT_10db6ee8[0].matrix.GetTranslation();
+            const Vec4 *position = &(const Vec4 &)DAT_10db6ee8[0].matrix.GetTranslation();
             int voice = FUN_1013f880() % 13 + 0x76;
             if (DAT_104c0332 == 0)
                 FUN_1003ad20(voice, position, 1.0f);
         }
         else
         {
-            const Vec4 &position = DAT_10db6ee8[0].matrix.GetTranslation();
+            const Vec4 *position = &(const Vec4 &)DAT_10db6ee8[0].matrix.GetTranslation();
             int voice = FUN_1013f880() % 5 + 0x8d + DAT_104c033a * 15;
             if (DAT_104c0332 == 0)
                 FUN_1003ad20(voice, position, 1.0f);
@@ -86,9 +87,9 @@ extern "C" int FUN_1005dbf0(int damage)
     if (damage != 0)
         DAT_10f08008.Rumble(1.0f, 100);
     FUN_100119d0(0, damage, 2);
+    int gauge = DAT_10c64ad8;
     DAT_10daaae8[0].stats[STAT_HEALTH] -= damage;
     int maxHealth = DAT_10daaae8[0].stats[STAT_MAX_HEALTH];
-    int gauge = DAT_10c64ad8;
     if (DAT_10c66d00 == 0 && damage != 0)
     {
         int loss = damage * 100 / (maxHealth / (DAT_10c64ad4 + 1));
@@ -111,7 +112,7 @@ extern "C" int FUN_1005dbf0(int damage)
         {
             DAT_10f08ab0.Open(FUN_1013f8a0("gameover.mmv", 0));
             DAT_10f08ab0.DrawToTexture(&DAT_118d0ba8[DAT_10202478]);
-            FUN_1003ad20(0x335, DAT_10db6ee8[0].matrix.GetTranslation(), 1.0f);
+            FUN_1003ad20(0x335, &(const Vec4 &)DAT_10db6ee8[0].matrix.GetTranslation(), 1.0f);
             DAT_10f08ab0.state = MMV_PLAYING;
             DAT_10f08ab0.loop = 0;
             DAT_104bfe78 = 1;

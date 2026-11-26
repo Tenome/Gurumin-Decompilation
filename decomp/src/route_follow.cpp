@@ -83,9 +83,9 @@ extern "C" int FUN_1002f050(int walker, int route, int point, int *outPoint, flo
                             int *outParam, int *outValue)
 {
     int x = DAT_10210fc0[route].points[point].x / 10000;
-    int result = 0;
     if (x > 5000)
         x -= 10000;
+    int result = 0;
     float fx = (float)x;
     int y = DAT_10210fc0[route].points[point].x % 10000;
     if (y > 5000)
@@ -149,13 +149,14 @@ extern "C" int FUN_1002f050(int walker, int route, int point, int *outPoint, flo
             point++;
             break;
         }
-        fx = (float)FUN_100286b0(DAT_10210fc0[route].points[point].x / 10000);
-        fy = (float)FUN_100286b0(DAT_10210fc0[route].points[point].x % 10000);
+        int packed = DAT_10210fc0[route].points[point].x;
+        fx = (float)FUN_100286b0(packed / 10000);
+        fy = (float)FUN_100286b0(packed % 10000);
         fz = (float)FUN_100286b0(DAT_10210fc0[route].points[point].y / 10000);
     }
     *outPoint = point;
     position[0] = fx;
-    position[2] = fz;
     position[1] = fy;
+    position[2] = fz;
     return result;
 }

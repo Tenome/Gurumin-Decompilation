@@ -69,7 +69,7 @@ extern "C" int DAT_104c013c;
 extern "C" int DAT_104c02c8;                              // face settings of the worn helmet (Helmet_FaceSettings)
 extern "C" char DAT_104c0319;                             // set to 1 when a helmet is attached
 extern "C" char DAT_104c0332;                             // when set, sounds requested with `optional` are skipped; non-zero = voices off
-extern "C" char DAT_104c033a;                             // face variant: from the costume and the helmet worn with it; face variant (char_attach.cpp)
+extern "C" unsigned char DAT_104c033a;                             // face variant: from the costume and the helmet worn with it; face variant (char_attach.cpp)
 extern "C" int DAT_104c0378;                              // frames before the voice is cleared after walking away
 extern "C" unsigned short DAT_104c0380;                   // frame counter
 extern "C" int DAT_104c0384;                              // the object it rests on (0 = none yet)

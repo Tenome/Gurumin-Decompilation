@@ -217,7 +217,6 @@ address	status	reason
 100211a0	open	Region_WaveVertex: logic identical; ebx/ebp swapped for the flip counter and the point address, and the original rounds each sine result to float twice (helper and caller locals tried)
 10001cb0	open	Bgm_CheckHeader: store order identical; the spills of the name characters and the registers of key[16]..key[24] differ (register allocation)
 1000beb0	open	TestDat_Load: logic identical; ecx/edx swapped for the word slot (operand orders tried)
-10012220	open	Model_ApplyCommands: logic identical; index/model registers swapped (ebp/ebx) and argument loads scheduled differently; two parameter orders tried
 10014d30	open	Helmet_FaceSettings: values and branches identical; the result is kept in esi (eax in the original) and the inline ScriptFlag uses other registers. An unused char buffer reproduces the original /GS cookie
 1003ab40	open	Pickup_Collect: logic identical; the bank limit and the banked count use eax/ecx the other way round (compare orders, limit and bank locals tried)
 10199380	open	Node::FindBone: logic identical; the original keeps 0 in ebx (zero compares, trylevel store, then the loop counter) and frame in edx, ours tests against 0 and keeps frame in ebx; a counter declared at the top and the clamp spellings tried

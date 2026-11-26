@@ -23,50 +23,50 @@ extern "C" int FUN_1015c9e0(int mode);               // Screen_StartTransition
 extern "C" int FUN_1016b050(int id)
 {
     if (id == -1)
-    {
         DAT_1101d890 = 0;
-        return 0;
-    }
-    int previous = DAT_1101d8a4;
-    for (int i = 0; i < DAT_1101d89c; i++)
+    else
     {
-        if (DAT_10f8d938[i] == id)
+        int previous = DAT_1101d8a4;
+        for (int i = 0; i < DAT_1101d89c; i++)
         {
-            DAT_1101d8a4 = i;
-            break;
+            if (DAT_10f8d938[i] == id)
+            {
+                DAT_1101d8a4 = i;
+                break;
+            }
         }
-    }
-    if (DAT_1101d890 != 0)
-    {
-        if (DAT_1101d8a4 == previous)
-            return 0;
-        FUN_1015c9e0(0xf);
-    }
-    int path = DAT_1101d8a4;
-    float nearest = 0.0f;
-    Vec4 point;
-    Vec4 target;
-    target.Copy(DAT_1101d884->world.GetTranslation());
-    float length = (float)DAT_118e69f8[path].frames[DAT_118e69f8[path].count - 1];
-    float bestFrame;
-    int bestPath;
-    int frame = 0;
-    for (float f = 0.0f; f < length; f = (float)++frame)
-    {
-        DAT_118e69f8[path].Sample(frame, &point.x, &point.y, &point.z, &point.w, 0);
-        float distance = point.DistanceZWeighted(target);
-        if (nearest >= distance || frame == 0)
+        if (DAT_1101d890 != 0)
         {
-            nearest = distance;
-            bestFrame = f;
-            bestPath = path;
+            if (DAT_1101d8a4 == previous)
+                return 0;
+            FUN_1015c9e0(0xf);
         }
+        int path = DAT_1101d8a4;
+        float nearest = 0.0f;
+        Vec4 point;
+        Vec4 target;
+        target.Copy(DAT_1101d884->world.GetTranslation());
+        float length = (float)DAT_118e69f8[path].frames[DAT_118e69f8[path].count - 1];
+        float bestFrame;
+        int bestPath;
+        int frame = 0;
+        for (float f = 0.0f; f < length; f = (float)++frame)
+        {
+            DAT_118e69f8[path].Sample(frame, &point.x, &point.y, &point.z, &point.w, 0);
+            float distance = point.DistanceZWeighted(target);
+            if (nearest >= distance || frame == 0)
+            {
+                nearest = distance;
+                bestFrame = f;
+                bestPath = path;
+            }
+        }
+        DAT_1101d8a0 = 1;
+        DAT_1101d8a4 = bestPath;
+        DAT_1101c800 = bestFrame;
+        DAT_1101d890 = 1;
+        DAT_10faa678 = 1;
     }
-    DAT_1101d8a0 = 1;
-    DAT_1101d8a4 = bestPath;
-    DAT_1101c800 = bestFrame;
-    DAT_1101d890 = 1;
-    DAT_10faa678 = 1;
     return 0;
 }
 
