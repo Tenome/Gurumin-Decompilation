@@ -1,6 +1,6 @@
 {
  "measures": {
-  "fuzzy_match_percent": 50.8496,
+  "fuzzy_match_percent": 50.8651,
   "total_code": "1720206",
   "matched_code": "368660",
   "matched_code_percent": 21.4312,
@@ -10819,7 +10819,7 @@
   {
    "name": "app/game_panels",
    "measures": {
-    "fuzzy_match_percent": 80.7627,
+    "fuzzy_match_percent": 88.9562,
     "total_code": "3254",
     "matched_code": "2069",
     "matched_code_percent": 63.5833,
@@ -10844,7 +10844,7 @@
     {
      "name": ".text",
      "size": "3254",
-     "fuzzy_match_percent": 80.7627
+     "fuzzy_match_percent": 88.9562
     }
    ],
    "functions": [
@@ -10915,7 +10915,7 @@
     {
      "name": "?MoveCursor@Game@@QAEHXZ",
      "size": "375",
-     "fuzzy_match_percent": 26.9022,
+     "fuzzy_match_percent": 98.0,
      "metadata": {
       "virtual_address": "268472400"
      }

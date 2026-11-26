@@ -158,7 +158,9 @@ int Game::DrawDebugText(const char *text, int x, int y)
 Vec4 Normalize3(const Vec4 &v);      // 0x101b1180: v scaled to unit length (x/y/z)
 
 // 0x10009050. Moves the menu cursor towards its target: 160 pixels a frame when more than 256 away, 80 when more
-// than 128, 20 when more than 20, and onto the target otherwise. Returns 1.
+// than 128, 20 when more than 20, and onto the target otherwise. Each speed is a literal scale of the step, so the
+// float arguments are compiler temporaries that share the slot of the dead distance. Returns 1.
+// Not byte-identical yet: the shared `step.Copy(step * speed)` tail loads its `this` before pushing the product.
 int Game::MoveCursor()
 {
     Vec4 step;
@@ -166,29 +168,27 @@ int Game::MoveCursor()
     step.y = (float)(m_7634 - m_763c);
     step.z = 0;
     float distance = step.Length();
-    float speed;
     if (distance > 256.0f)
     {
         step.Copy(Normalize3(step));
-        speed = 160.0f;
+        step.Copy(step * 160.0f);
     }
     else if (distance > 128.0f)
     {
         step.Copy(Normalize3(step));
-        speed = 80.0f;
+        step.Copy(step * 80.0f);
     }
     else if (distance > 20.0f)
     {
         step.Copy(Normalize3(step));
-        speed = 20.0f;
+        step.Copy(step * 20.0f);
     }
     else
     {
-        m_763c = m_7634;
         m_7638 = m_7630;
+        m_763c = m_7634;
         return 1;
     }
-    step.Copy(step * speed);
     m_7638 += (int)step.x;
     m_763c += (int)step.y;
     return 1;

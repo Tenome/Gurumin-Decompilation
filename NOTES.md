@@ -637,3 +637,25 @@ other huge drafts (Bs00x_Update, DrawLit, RunScriptFrames) for the same gap.
 - So a diff that is only a swapped SIB pair (same registers, same length) is register/schedule residue. Do not use
   `i[p]`, yoda forms or fake temps for it; only a closer whole-function shape (variables shared or split as in the
   original) can move it. Walls: DrawQuad 0x1014c080, BuildMesh 0x101a82d0, Menu_DrawScene 0x10022830.
+
+## Stack-slot sharing is lifetime based; literal float arguments are temporaries (batch 392)
+- Slot groups, not single slots: a dead local's slot is reused by later locals and temporaries with a disjoint
+  lifetime (Enemy_StarVolley: dy, the atan2 result temp, the reused turn and motion all sit in one slot in the original).
+  Declaration position (function top, block top, inline) of such locals changes nothing (verified: byte-identical
+  objects), so "declare later/earlier" is useless for them; only reference counts and lifetimes decide.
+- Which group a new local joins: the lowest group whose occupant is dead at the new local's definition. `motion = cond ? 0 : 2`
+  stores the 0 before the `fcomp` that reads the compared float, yet cl still shares the compared float's slot
+  (AimedShots/StarVolley baseline). Rewriting it `int motion = 0; if (!(x > c)) motion = 2;` changes registers
+  (edi as zero) and the frame, so it is not a free spelling.
+- Game::MoveCursor (0x10009050) A/B: `float speed; ... speed = 160.0f; ... step.Copy(step * speed);` gives the speed its own slot
+  (frame 0x28, 269 diff lines). Writing the literal in each branch, `step.Copy(step * 160.0f);`, makes the float argument a
+  compiler temporary: it lands in the slot of the dead `distance`/int-to-float temporaries (frame 0x24 = original), pushes
+  and the const store sit in each branch before the jump to the shared tail, as the original. 269 -> 5 diff lines.
+  Rule of thumb: an original with `push &tmp` and `mov [tmp], const` inside each branch and a shared call after the
+  label is a literal argument per branch, not a named variable. Named block-scope floats compile to the same code.
+- /Od (src_od) frame layout is not declaration order either: Names_Expand puts `best` and `matches` low whatever the
+  declaration order, and of two scalars (p, found) the later-declared one gets the higher address (-4); the original has
+  p lowest although it has fewer references than best, so /Od ordering is not plain reference count.
+- The compared `dx`/`dy` pair of an inline atan2 with float parameters comes out mirrored (first-computed in the low slot)
+  when written through an `Atan2(float y, float x)` helper versus named locals (first-computed in the high slot, as the
+  original AimedShots): named dy then dx matches the original's dy/dx slots; the helper form does not.

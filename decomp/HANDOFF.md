@@ -294,6 +294,9 @@ function) and node_world.cpp (0) still break rule 2.
   RenderTarget_Probe matched (failure arms return the failed result; 911). Input::Update's only match was a
   redundant `flag = (found == 0)`, rejected as steering. SIB-order-only walls are register numbering, not a
   source spelling at the site.
+- Batch 392: zero-register sweep (no honest uses found in ~25 walls; most are a different zero register) and
+  stack-slot sweep (NOTES "Stack-slot sharing is lifetime based"). Game::MoveCursor 269 -> 5 diff lines with a
+  literal scale per branch. No new matches; 911. The remaining walls are mostly whole-function register allocation.
 - **enemy_barrage.cpp + barrage_enemy.h** (new, rule-clean, C++ linkage because the originals have EH frames):
   Enemy_CallBarrage 0x100a77f0 (behaviour 15), Enemy_SpinFire 0x100a7db0 (14) and Enemy_CallBursts 0x100a8370
   (16/17, variant argument) match. Enemy_SpinFire's lesson (NOTES): a node pointer with a fallback (`fire`, else the

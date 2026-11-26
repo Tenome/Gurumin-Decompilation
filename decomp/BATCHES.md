@@ -453,3 +453,4 @@ Each finished batch adds two new ones, taken from the medium-function section of
 | 389 | 38 | match | collide_query tails (2 matched), 2 improved; 909 matched |
 | 390 | 38 | match | permuter over 900-3000-byte walls (1 matched, 3 improved), 11 names; 910 matched |
 | 391 | 38 | notes | zero-register and SIB-order studies; RenderTarget_Probe matched; 911 matched |
+| 392 | 38 | notes | zero-register and stack-slot sweeps; MoveCursor 5 lines; 911 matched |
