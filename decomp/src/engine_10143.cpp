@@ -200,15 +200,15 @@ extern "C" int FUN_10143e00(int left, int top, int right, int bottom, unsigned i
 // (stage 0 passes the vertex colour through), then sets 2D blend mode 6. Returns 1.
 extern "C" int FUN_10144040(void)
 {
-    ColourVertex quad[4];
     FUN_10143b50();
     // The corners (-1, -1), (33, -1), (-1, 33), (33, 33) with texture coordinates 0.001..1; the shared values are
     // set with chained assignments.
+    ColourVertex quad[4];
+    quad[3].y = quad[3].x = quad[2].y = quad[1].x = 33.0f;
+    quad[3].v = quad[3].u = quad[2].v = quad[1].u = 1.0f;
     quad[2].x = quad[1].y = quad[0].y = quad[0].x = -1.0f;
     quad[2].u = quad[1].v = quad[0].v = quad[0].u = 0.001f;
-    quad[3].y = quad[3].x = quad[2].y = quad[1].x = 33.0f;
     quad[0].diffuse = quad[1].diffuse = quad[2].diffuse = quad[3].diffuse = 0xff0000ff;
-    quad[3].v = quad[3].u = quad[2].v = quad[1].u = 1.0f;
     quad[0].specular = quad[1].specular = quad[2].specular = quad[3].specular = 0xff000000;
     quad[0].z = quad[1].z = quad[2].z = quad[3].z = 0;
     quad[0].rhw = quad[1].rhw = quad[2].rhw = quad[3].rhw = 1.0f;
@@ -232,15 +232,15 @@ extern "C" int FUN_10144040(void)
 // save thumbnail (both are called by FUN_10017d30). Returns 1.
 extern "C" int FUN_101441b0(void)
 {
-    ColourVertex quad[4];
     FUN_10143b50();
     // The corners (-1, -1), (256, -1), (-1, 256), (256, 256) with texture coordinates 0.001..1; the shared values are
     // set with chained assignments.
+    ColourVertex quad[4];
+    quad[3].y = quad[3].x = quad[2].y = quad[1].x = 256.0f;
+    quad[3].v = quad[3].u = quad[2].v = quad[1].u = 1.0f;
     quad[2].x = quad[1].y = quad[0].y = quad[0].x = -1.0f;
     quad[2].u = quad[1].v = quad[0].v = quad[0].u = 0.001f;
-    quad[3].y = quad[3].x = quad[2].y = quad[1].x = 256.0f;
     quad[0].diffuse = quad[1].diffuse = quad[2].diffuse = quad[3].diffuse = 0xff000000;
-    quad[3].v = quad[3].u = quad[2].v = quad[1].u = 1.0f;
     quad[0].specular = quad[1].specular = quad[2].specular = quad[3].specular = 0xff0000ff;
     quad[0].z = quad[1].z = quad[2].z = quad[3].z = 0;
     quad[0].rhw = quad[1].rhw = quad[2].rhw = quad[3].rhw = 1.0f;

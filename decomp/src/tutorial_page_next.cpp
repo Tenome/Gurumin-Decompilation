@@ -308,13 +308,14 @@ extern "C" int FUN_1004f250(void)
             {
                 left = FUN_1001e1a0(DAT_102028e8[i], 0);
                 DAT_1030b870[i] = left;
+                found = 1;
             }
             else
             {
                 left = FUN_1001e1a0(DAT_10202a48, 0);
                 DAT_1030b870[0x16] = left;
+                found = 1;
             }
-            found = 1;
         }
         else
         {

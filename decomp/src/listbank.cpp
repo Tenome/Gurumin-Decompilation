@@ -894,7 +894,6 @@ int ListBank::FirstIndexValue(const char *name, int *value)
 {
     int values[8];
     char part[256];
-    char copy[256];
     *value = 0;
     int bracket = 0;
     for (int i = (int)strlen(name) - 1; i > 0; i--)
@@ -902,10 +901,11 @@ int ListBank::FirstIndexValue(const char *name, int *value)
         if (name[i] == '[')
             bracket = 1;
     }
+    char copy[256];
     if (bracket != 0)
     {
-        strcpy(copy, name);
         int n = 0;
+        strcpy(copy, name);
         while (GetIndexPart(copy, part, n) != 0)
         {
             Evaluate(part, 0);

@@ -452,32 +452,35 @@ int TextureObject::BeginRenderTo(int width, int height, int offset)
     DAT_10f1fcf0->SetTexture(3, 0);
     if (DAT_10f654cc == 0)
         return 0;
-    long result = DAT_10f1fcf0->SetRenderTarget(0, surface);
-    DAT_10f1fcf0->SetDepthStencilSurface(DAT_10f08d38);
-    if (result != 0)
-        return 0;
-    if (DAT_10202b24 <= width)
-        width = DAT_10202b24;
-    if (DAT_10202b28 <= height)
-        height = DAT_10202b28;
-    memset(&DAT_10f1fd48, 0, sizeof(DAT_10f1fd48));
-    DAT_10f1fd48.Width = width - offset;
-    DAT_10f1fd48.X = offset;
-    DAT_10f1fd48.Y = offset;
-    DAT_10f1fd48.Height = height - offset;
-    DAT_10f1fd48.MinZ = 0;
-    DAT_10f1fd48.MaxZ = 1.0f;
-    DAT_10202b34 = width;
-    DAT_10202b38 = height;
-    if (DAT_10f65478 == 0)
+    else
     {
-        DAT_10f0d540 = DAT_10f08d38;
-        DAT_10f60d30 = surface;
-        DAT_10f0ece0 = DAT_10f1fd30;
-        DAT_10f65470 = width;
-        DAT_10f65474 = height;
+        long result = DAT_10f1fcf0->SetRenderTarget(0, surface);
+        DAT_10f1fcf0->SetDepthStencilSurface(DAT_10f08d38);
+        if (result != 0)
+            return 0;
+        if (DAT_10202b24 <= width)
+            width = DAT_10202b24;
+        if (DAT_10202b28 <= height)
+            height = DAT_10202b28;
+        memset(&DAT_10f1fd48, 0, sizeof(DAT_10f1fd48));
+        DAT_10f1fd48.Width = width - offset;
+        DAT_10f1fd48.X = offset;
+        DAT_10f1fd48.Y = offset;
+        DAT_10f1fd48.Height = height - offset;
+        DAT_10f1fd48.MinZ = 0;
+        DAT_10f1fd48.MaxZ = 1.0f;
+        DAT_10202b34 = width;
+        DAT_10202b38 = height;
+        if (DAT_10f65478 == 0)
+        {
+            DAT_10f60d30 = surface;
+            DAT_10f0d540 = DAT_10f08d38;
+            DAT_10f0ece0 = DAT_10f1fd30;
+            DAT_10f65470 = width;
+            DAT_10f65474 = height;
+        }
+        return DAT_10f1fcf0->SetViewport(&DAT_10f1fd48) == 0;
     }
-    return DAT_10f1fcf0->SetViewport(&DAT_10f1fd48) == 0;
 }
 
 // 0x10144ee0. Halves a 24-bit image in place: every 2x2 block of `pixels` (width x height) becomes the average of

@@ -58,10 +58,8 @@ extern "C" int FUN_1016af50(int value)
 }
 
 // Sets the scene effect mode; mode 0 also turns the colour effect off and resets both effect scales to 1.
-// Not byte-identical yet (see open.tsv).
 extern "C" int FUN_1016b010(int mode)
 {
-    DAT_1101de24 = mode;
     if (mode == 0)
     {
         DAT_10ff1df0 = 0;
@@ -70,6 +68,7 @@ extern "C" int FUN_1016b010(int mode)
         DAT_1101d894 = 0;
         DAT_1101ddec = 0;
     }
+    DAT_1101de24 = mode;
     return 0;
 }
 

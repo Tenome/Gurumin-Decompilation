@@ -18,8 +18,8 @@ reading it, then `AGENTS.md`.
 | Measure | Value |
 |---|---|
 | Fully linked | 0.00% of code (151 of 264 units complete) |
-| Matched | 20.97% of code, 892 of 1212 functions |
-| Matched under the rules | 20.93% of code, 891 of the 892 matched functions |
+| Matched | 21.25% of code, 906 of 1212 functions |
+| Matched under the rules | 21.21% of code, 905 of the 906 matched functions |
 | Fuzzy match | 50.68% |
 
 "Matched under the rules": a matched function counts only when its file declares no struct/class/union and no
@@ -274,6 +274,11 @@ function) and node_world.cpp (0) still break rule 2.
   BoxSphere_Overlap, DrawDebugText, StatusPanel_UpdateText (each rewritten as plain source). Zero-register walls
   do not move with it. Next: run it on more near misses when the machine is quiet (Render_FillRect, Menu_DrawScene,
   AntiTamper_Check), then over the walls of section 1 sorted by size.
+- Batch 387: permuter over 99 small walls (600 random iterations each, 1500 on 13 near misses) matched 14
+  (892 -> 906). Every honest fix was statement or declaration order, a duplicated tail (soundarc code-5 call,
+  TutorialBook_Close found = 1), or return-else nesting (BeginRenderTo). Reading the permuter diff and testing each
+  hunk alone found the honest spelling in most cases. Steering-only states not applied: DrawWindowMarks (one yoda
+  compare), Plane::Distance (redundant parentheses). Next: the 41 walls with base score > 40, by size.
 - **enemy_barrage.cpp + barrage_enemy.h** (new, rule-clean, C++ linkage because the originals have EH frames):
   Enemy_CallBarrage 0x100a77f0 (behaviour 15), Enemy_SpinFire 0x100a7db0 (14) and Enemy_CallBursts 0x100a8370
   (16/17, variant argument) match. Enemy_SpinFire's lesson (NOTES): a node pointer with a fallback (`fire`, else the

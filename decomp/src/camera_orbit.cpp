@@ -65,7 +65,7 @@ extern "C" int FUN_1016b400(float *outX, float *outY, float x, float y)
         *outX = 0;
         *outY = 0;
         float blend = frames / 60.0f;
-        float before = 1.0f - blend;
+        float before = 1.0f - frames / 60.0f;
         float angle = -(float)atan2(DAT_11af3f18.x - DAT_11af3f08.x, DAT_11af3f18.y - DAT_11af3f08.y);
         *outX = ((float)cos(angle) * x - (float)sin(angle) * y) * before + *outX;
         *outY = ((float)cos(angle) * y + (float)sin(angle) * x) * before + *outY;

@@ -25,11 +25,10 @@ extern "C" int FUN_10056260(int slot, const char *line1, const char *line2, cons
     DAT_104bfb08[slot] = 1;
     DAT_104481d8[slot] = 0;
     DAT_10467c20[slot] = 0;
-    char *text1 = DAT_10453208[slot].lines[0];
     if (line1 != 0)
-        FUN_1013e790(text1, line1);
+        FUN_1013e790(DAT_10453208[slot].lines[0], line1);
     else
-        text1[0] = 0;
+        DAT_10453208[slot].lines[0][0] = 0;
     char *text2 = DAT_10453208[slot].lines[1];
     if (line2 != 0)
         FUN_1013e790(text2, line2);
@@ -57,6 +56,7 @@ extern "C" int FUN_10056260(int slot, const char *line1, const char *line2, cons
     FUN_1000c020(DAT_10453208[slot].speaker, text);
     if (line1 != 0)
     {
+        char *text1 = DAT_10453208[slot].lines[0];
         FUN_1000c020(text, text1);
         strcpy(text1, text);
     }

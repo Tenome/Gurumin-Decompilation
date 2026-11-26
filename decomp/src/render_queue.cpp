@@ -14,13 +14,12 @@ struct Node;
 
 // RenderQueue_Push: appends `node` with its parameters. The extra data and matrix are copied into their pools
 // and the entry stores their index (0xff = none). Full queues keep overwriting the last entry.
-// Not byte-identical yet (see open.tsv).
 extern "C" int FUN_10199880(Node *node, const void *extra, const Matrix4 *matrix, const Vec4 *a, const Vec4 *b, char flags)
 {
     DAT_11b00070[DAT_11b044d0] = node;
     char option = (char)DAT_10f65520;
-    DAT_11b00270[DAT_11b044d0] = option;
     DAT_11b00030[DAT_11b044d0] = flags;
+    DAT_11b00270[DAT_11b044d0] = option;
     DAT_11af3f68[DAT_11b044d0] = (char)0xff;
     DAT_11afffa8[DAT_11b044d0] = (char)0xff;
     DAT_11b04518[DAT_11b044d0].Copy(*a);

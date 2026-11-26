@@ -104,8 +104,7 @@ extern "C" int FUN_10001f30(void)
 
 // Plays sound file `file` once (command 0x203): argument 0 = `channel`, 1..3 = the position (*x, *y, *z, or 0 for a
 // sound without position), 4 = `pan`, 5 = `volume`; the file name goes over as WM_COPYDATA (0x100 bytes).
-// Returns 0. Not byte-identical yet: the original shares only the code-5 call between the two branches, ours also
-// the code-4 call (see open.tsv).
+// Returns 0.
 extern "C" int FUN_100016c0(const char *file, const LPARAM *x, const LPARAM *y, const LPARAM *z, LPARAM pan,
                             LPARAM channel, LPARAM volume)
 {
@@ -121,6 +120,7 @@ extern "C" int FUN_100016c0(const char *file, const LPARAM *x, const LPARAM *y, 
             SendMessageA(wnd, 0x400, 2, *y);
             SendMessageA(wnd, 0x400, 3, *z);
             SendMessageA(wnd, 0x400, 4, pan);
+            SendMessageA(wnd, 0x400, 5, volume);
         }
         else
         {
@@ -128,8 +128,8 @@ extern "C" int FUN_100016c0(const char *file, const LPARAM *x, const LPARAM *y, 
             SendMessageA(wnd, 0x400, 2, 0);
             SendMessageA(wnd, 0x400, 3, 0);
             SendMessageA(wnd, 0x400, 4, pan);
+            SendMessageA(wnd, 0x400, 5, volume);
         }
-        SendMessageA(wnd, 0x400, 5, volume);
         COPYDATASTRUCT data;
         data.dwData = 0;
         data.lpData = (void *)file;
@@ -141,7 +141,6 @@ extern "C" int FUN_100016c0(const char *file, const LPARAM *x, const LPARAM *y, 
 }
 
 // Same as FUN_100016c0 for a looping sound (command 0x204); returns soundarc's answer to the play command.
-// Not byte-identical yet: same cross-jumping difference as FUN_100016c0.
 extern "C" LRESULT FUN_10001980(const char *file, const LPARAM *x, const LPARAM *y, const LPARAM *z, LPARAM pan,
                             LPARAM channel, LPARAM volume)
 {
@@ -157,6 +156,7 @@ extern "C" LRESULT FUN_10001980(const char *file, const LPARAM *x, const LPARAM 
             SendMessageA(wnd, 0x400, 2, *y);
             SendMessageA(wnd, 0x400, 3, *z);
             SendMessageA(wnd, 0x400, 4, pan);
+            SendMessageA(wnd, 0x400, 5, volume);
         }
         else
         {
@@ -164,8 +164,8 @@ extern "C" LRESULT FUN_10001980(const char *file, const LPARAM *x, const LPARAM 
             SendMessageA(wnd, 0x400, 2, 0);
             SendMessageA(wnd, 0x400, 3, 0);
             SendMessageA(wnd, 0x400, 4, pan);
+            SendMessageA(wnd, 0x400, 5, volume);
         }
-        SendMessageA(wnd, 0x400, 5, volume);
         COPYDATASTRUCT data;
         data.dwData = 0;
         data.lpData = (void *)file;
