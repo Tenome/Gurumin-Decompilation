@@ -48,9 +48,7 @@ extern "C" int FUN_10024d00(int index, float distance, float minimumHome, float 
         return 0;
     Vec4 home;
     home.Copy(DAT_10802bf8[index].position - DAT_10db6ee8[index].matrix.GetTranslation());
-    float wanted = Atan2(dirX, dirY);
-    float toHome = Atan2(home.x, home.y);
-    if (AbsFloat(toHome - wanted) < 2.61799f)
+    if (AbsFloat(Atan2(home.x, home.y) - Atan2(dirX, dirY)) < 2.61799f)
         return 1;
     return 0;
 }

@@ -18,8 +18,8 @@ reading it, then `AGENTS.md`.
 | Measure | Value |
 |---|---|
 | Fully linked | 0.00% of code (151 of 264 units complete) |
-| Matched | 21.27% of code, 907 of 1212 functions |
-| Matched under the rules | 21.24% of code, 906 of the 907 matched functions |
+| Matched | 21.33% of code, 909 of 1212 functions |
+| Matched under the rules | 21.29% of code, 908 of the 909 matched functions |
 | Fuzzy match | 50.68% |
 
 "Matched under the rules": a matched function counts only when its file declares no struct/class/union and no
@@ -283,6 +283,9 @@ function) and node_world.cpp (0) still break rule 2.
   Improved, not matched: EffectManager::Draw (8 bytes), Render_DrawGradientQuad (6), 1016b050, 1005dbf0
   (DAT_104c033a is unsigned char), 1002f050, 10194a10. Left unexamined (queues did not finish): 10024d00, 100b5550,
   1001b7b0, 1000f360.
+- Batch 389: Char_ProbeAhead 0x100242c0 and Char_ProbeDirection 0x100244b0 matched (909): testOnly branch
+  `return a && b;`, tail `if (hit.x == -200000.0f) return 0; return 1;`. 10024d00 35 -> 23, 1001b7b0 19 -> 8
+  (the original keeps an `fmul 1.0f` that cl 13 folds). Walls of base > 40 did not move by hand.
 - **enemy_barrage.cpp + barrage_enemy.h** (new, rule-clean, C++ linkage because the originals have EH frames):
   Enemy_CallBarrage 0x100a77f0 (behaviour 15), Enemy_SpinFire 0x100a7db0 (14) and Enemy_CallBursts 0x100a8370
   (16/17, variant argument) match. Enemy_SpinFire's lesson (NOTES): a node pointer with a fallback (`fire`, else the

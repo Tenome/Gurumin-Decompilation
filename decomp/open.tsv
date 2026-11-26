@@ -209,8 +209,6 @@ address	status	reason
 10009050	open	Game::MoveCursor: logic identical; the original shares one stack slot for the int-to-float temporaries, the distance and the speed (frame 4 bytes smaller); shared-variable form tried
 10043cc0	open	Char_ResetState: logic identical; the original stores the byte zeros as immediates and keeps index*0x249c in ebp from the start, ours keeps a zero in ebx (a record reference gets the order but adds the base); Fill(0.0f) and the reference tried
 100084b0	open	Game::OpenWindow: logic identical; this/slot registers swapped (esi/edi) and the x/y/width/height stores come out in address order instead of the original y, x, height ... width
-100242c0	open	Char_ProbeAhead: logic identical; the original keeps the testOnly path's `return 1` block in place and the final test jumps back to it (ours puts it at the end); three return layouts tried
-100244b0	open	Char_ProbeDirection: same return-block layout residue as Char_ProbeAhead 0x100242c0
 10011dd0	open	Npc_StandOnGround: logic identical; register residue (state address in eax and its store before the DAT_102022b8 load in the original, edi and after in ours; the hit result in eax vs our temporaries); state local and store order tried
 1013e790	open	Names_Expand (/Od unit src_od/names_od.cpp): code identical, only the stack slot of `p` differs (the original puts it below found/matches/best); function-scope declaration orders tried
 1013e9d0	open	Screenshot_ReadBackBuffer: identical except the row address in the 32-bit and 16-bit loops (original loads y then multiplies by the pitch, ours loads the pitch first); operand orders and index form tried

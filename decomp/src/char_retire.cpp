@@ -17,12 +17,11 @@ extern "C" int FUN_1001b7b0(int index)
     if (DAT_1020b430[index].state == 0)
     {
         DAT_10db6ee8[index].matrix._41 = -100000.0f - DAT_10db6ee8[index].matrix._41 * 1.0f;
-        int value = DAT_1020b430[index].values[1];
         DAT_1020d540[index] = 0;
-        DAT_1020b430[index].values[3] = value % 10;
+        DAT_1049efb0[DAT_1020b430[index].values[1] / 10 % 10][DAT_1020b430[index].values[1] % 10] = (char)index;
+        DAT_1020b430[index].values[3] = DAT_1020b430[index].values[1] % 10;
         DAT_1020b430[index].state = 1;
         DAT_10c635a8 = 1;
-        DAT_1049efb0[value / 10 % 10][value % 10] = (char)index;
         DAT_10867e18[index].y = -200000.0f;
     }
     return 0;

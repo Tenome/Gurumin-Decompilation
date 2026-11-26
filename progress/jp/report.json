@@ -1,25 +1,25 @@
 {
  "measures": {
-  "fuzzy_match_percent": 50.8205,
+  "fuzzy_match_percent": 50.832,
   "total_code": "1720206",
-  "matched_code": "365937",
-  "matched_code_percent": 21.2729,
+  "matched_code": "366926",
+  "matched_code_percent": 21.3304,
   "total_data": "0",
   "matched_data": "0",
   "matched_data_percent": 0.0,
   "total_functions": 1212,
-  "matched_functions": 907,
-  "matched_functions_percent": 74.835,
+  "matched_functions": 909,
+  "matched_functions_percent": 75.0,
   "complete_code": "0",
   "complete_code_percent": 0.0,
   "complete_data": "0",
   "complete_data_percent": 0.0,
   "total_units": 467,
-  "complete_units": 207,
-  "matched_rules_code": "365310",
-  "matched_rules_code_percent": 21.2364,
-  "matched_rules_functions": 906,
-  "matched_rules_functions_percent": 74.7525
+  "complete_units": 208,
+  "matched_rules_code": "366299",
+  "matched_rules_code_percent": 21.2939,
+  "matched_rules_functions": 908,
+  "matched_rules_functions_percent": 74.9175
  },
  "units": [
   {
@@ -4993,7 +4993,7 @@
   {
    "name": "app/char_retire",
    "measures": {
-    "fuzzy_match_percent": 51.3889,
+    "fuzzy_match_percent": 52.0833,
     "total_code": "138",
     "matched_code": "0",
     "matched_code_percent": 0.0,
@@ -5018,14 +5018,14 @@
     {
      "name": ".text",
      "size": "138",
-     "fuzzy_match_percent": 51.3889
+     "fuzzy_match_percent": 52.0833
     }
    ],
    "functions": [
     {
      "name": "_FUN_1001b7b0",
      "size": "138",
-     "fuzzy_match_percent": 51.3889,
+     "fuzzy_match_percent": 52.0833,
      "metadata": {
       "virtual_address": "268548016"
      }
@@ -5707,32 +5707,32 @@
   {
    "name": "app/collide_query",
    "measures": {
-    "fuzzy_match_percent": 93.1331,
+    "fuzzy_match_percent": 100.0,
     "total_code": "2429",
-    "matched_code": "1440",
-    "matched_code_percent": 59.2837,
+    "matched_code": "2429",
+    "matched_code_percent": 100.0,
     "total_data": "0",
     "matched_data": "0",
     "matched_data_percent": 0.0,
     "total_functions": 8,
-    "matched_functions": 6,
-    "matched_functions_percent": 75.0,
-    "complete_code": "0",
-    "complete_code_percent": 0.0,
+    "matched_functions": 8,
+    "matched_functions_percent": 100.0,
+    "complete_code": "2429",
+    "complete_code_percent": 100.0,
     "complete_data": "0",
     "complete_data_percent": 0.0,
     "total_units": 1,
-    "complete_units": 0,
-    "matched_rules_code": "1440",
-    "matched_rules_code_percent": 59.2837,
-    "matched_rules_functions": 6,
-    "matched_rules_functions_percent": 75.0
+    "complete_units": 1,
+    "matched_rules_code": "2429",
+    "matched_rules_code_percent": 100.0,
+    "matched_rules_functions": 8,
+    "matched_rules_functions_percent": 100.0
    },
    "sections": [
     {
      "name": ".text",
      "size": "2429",
-     "fuzzy_match_percent": 93.1331
+     "fuzzy_match_percent": 100.0
     }
    ],
    "functions": [
@@ -5779,7 +5779,7 @@
     {
      "name": "_FUN_100242c0",
      "size": "487",
-     "fuzzy_match_percent": 83.0645,
+     "fuzzy_match_percent": 100.0,
      "metadata": {
       "virtual_address": "268583616"
      }
@@ -5787,7 +5787,7 @@
     {
      "name": "_FUN_100244b0",
      "size": "502",
-     "fuzzy_match_percent": 83.2031,
+     "fuzzy_match_percent": 100.0,
      "metadata": {
       "virtual_address": "268584112"
      }
@@ -5802,7 +5802,7 @@
     }
    ],
    "metadata": {
-    "complete": false,
+    "complete": true,
     "source_path": "decomp/src/collide_query.cpp"
    }
   },
@@ -8627,7 +8627,7 @@
   {
    "name": "app/enemy_moves",
    "measures": {
-    "fuzzy_match_percent": 93.8851,
+    "fuzzy_match_percent": 95.6156,
     "total_code": "1769",
     "matched_code": "1392",
     "matched_code_percent": 78.6885,
@@ -8652,14 +8652,14 @@
     {
      "name": ".text",
      "size": "1769",
-     "fuzzy_match_percent": 93.8851
+     "fuzzy_match_percent": 95.6156
     }
    ],
    "functions": [
     {
      "name": "_FUN_10024d00",
      "size": "377",
-     "fuzzy_match_percent": 71.3068,
+     "fuzzy_match_percent": 79.4271,
      "metadata": {
       "virtual_address": "268586240"
      }

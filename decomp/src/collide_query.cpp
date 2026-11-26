@@ -158,17 +158,13 @@ extern "C" int FUN_100242c0(int index, Vec4 *ground, float depth, int fromHead, 
     to.RotateZ(-DAT_10db6ee8[index].heading);
     to.Copy(to + from);
     if (testOnly != 0)
-    {
-        if (DAT_10255f08 != 0 && DAT_10255f08->RayCast(0, 4, 0x4000000, &to, &from, &hit, 0) != 0)
-            return 1;
-        return 0;
-    }
+        return DAT_10255f08 != 0 && DAT_10255f08->RayCast(0, 4, 0x4000000, &to, &from, &hit, 0) != 0;
     if (DAT_10255f08 != 0 && DAT_10255f08->RayCast(0, 4, 0x4000000, &to, &from, &hit, 0) != 0)
         float distance = (hit - from).Length();   // computed and not used
     ground->Copy(hit);
-    if (hit.x != -200000.0f)
-        return 1;
-    return 0;
+    if (hit.x == -200000.0f)
+        return 0;
+    return 1;
 }
 
 // 0x100244b0 (Char_ProbeDirection). Char_ProbeAhead with the direction given as `angle` (the drop of `depth` along -y
@@ -205,17 +201,13 @@ extern "C" int FUN_100244b0(int index, float angle, Vec4 *ground, float depth, i
     to.RotateZ(angle);
     to.Copy(to + from);
     if (testOnly != 0)
-    {
-        if (DAT_10255f08 != 0 && DAT_10255f08->RayCast(name, 4, 0x4000000, &to, &from, &hit, 0) != 0)
-            return 1;
-        return 0;
-    }
+        return DAT_10255f08 != 0 && DAT_10255f08->RayCast(name, 4, 0x4000000, &to, &from, &hit, 0) != 0;
     if (DAT_10255f08 != 0 && DAT_10255f08->RayCast(name, 4, 0x4000000, &to, &from, &hit, 0) != 0)
         float distance = (hit - from).Length();   // computed and not used
     ground->Copy(hit);
-    if (hit.x != -200000.0f)
-        return 1;
-    return 0;
+    if (hit.x == -200000.0f)
+        return 0;
+    return 1;
 }
 
 // 0x10024750 (Char_ProbeGround). Casts a ray down `depth` units from character `index` (from its head node when
