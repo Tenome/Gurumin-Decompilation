@@ -1999,9 +1999,9 @@ int Node::BuildCollisionSpheres()
         prefix = 6;
     if (name[0] == 'O' && name[1] == 'v' && name[2] == 'F')
         prefix = 7;
-    if (((name[prefix] == 'C' && name[prefix + 1] == 'A') || (name[prefix] == 'C' && name[prefix + 1] == 'S') ||
-         (name[prefix] == 'C' && name[prefix + 1] == 'T') || (flags & 4) != 0 || (flags & 0xf00) != 0) &&
-        packCount > 0)
+    bool isCollisionNode = (name[prefix] == 'C' && name[prefix + 1] == 'A') || (name[prefix] == 'C' && name[prefix + 1] == 'S') ||
+                           (name[prefix] == 'C' && name[prefix + 1] == 'T') || (flags & 4) != 0 || (flags & 0xf00) != 0;
+    if (isCollisionNode && packCount > 0)
     {
         M_101911e0(triangleSpheres, packCount);
         if (triangleSpheres != 0)

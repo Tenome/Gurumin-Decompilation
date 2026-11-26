@@ -47,12 +47,13 @@ int FUN_100106e0(const char *path)
     if (file.handle != 0)
     {
         unsigned char *body = (unsigned char *)operator new(0x64000);
-        int time = DAT_104c00dc;
         int size = 0;
+        int time = DAT_104c00dc;
         int key = 9999;
         file.Write(&key, 1, 4);
         key = rand();
         file.Write(&key, 1, 4);
+        unsigned int check;
         unsigned char thumbnail[0x30000];
         DAT_118d0ba8[DAT_108360f8].CaptureRgb24(thumbnail);
         memcpy(body, thumbnail, 0x30000);
@@ -63,8 +64,8 @@ int FUN_100106e0(const char *path)
         int z = *(int *)&DAT_108029b8.z;
         int w = *(int *)&DAT_108029b8.w;
         // the state behind the thumbnail, written with a cursor (`size` follows it)
-        unsigned char *p = body + 0x30000;
         size += 0x30000;
+        unsigned char *p = body + 0x30000;
         *(int *)p = map;
         p += 4;
         size += 4;
@@ -116,7 +117,6 @@ int FUN_100106e0(const char *path)
         baseName[4] += (char)key;
         baseName[6] += (char)key;
         int sum;
-        unsigned int check;
         FUN_101614c0(body, size, baseName, &sum, &check);
         file.Write(body, 1, size);
         file.Write(&size, 1, 4);

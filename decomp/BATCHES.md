@@ -451,3 +451,4 @@ Each finished batch adds two new ones, taken from the medium-function section of
 | 387 | 38 | match | cpp_permuter over 99 small walls (14 matched, all order/tail rewrites); 906 matched |
 | 388 | 38 | match | permuter frontier + large walls (1 matched, 6 improved); 907 matched |
 | 389 | 38 | match | collide_query tails (2 matched), 2 improved; 909 matched |
+| 390 | 38 | match | permuter over 900-3000-byte walls (1 matched, 3 improved), 11 names; 910 matched |
