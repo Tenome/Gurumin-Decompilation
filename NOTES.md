@@ -601,6 +601,16 @@ other huge drafts (Bs00x_Update, DrawLit, RunScriptFrames) for the same gap.
 - So an original `cmp eax,ebx` on a dead value points to a second use we have not reconstructed; ours hoisting a
   zero the original lacks means too many zero uses across a call. Tests: scratchpad w382z (z1..z8.cpp).
 
+## Zero register: `cmp reg,zreg` needs a later use (batch 391)
+- Once the zero register exists, `x == 0` on a dead call result is `test eax,eax`. It becomes `cmp eax,zreg` when
+  the value is used again on a path after the compare, including uses that fold to a constant: cl knows `x == 0`
+  inside the taken arm, so `if (r == 0) { ...; return r; }` compiles `return r` as `xor eax,eax` but still counts r
+  as live (cmp); without the return it is test. An `else` arm that reads r counts too.
+- RenderTarget_Probe matched this way: `int updated = ...UpdateImage(0); if (updated == 0) { ...; return updated; }`
+  (the failure arms return the failed result).
+- Do not invent a redundant use (`flag = (found == 0)` inside an arm where it is known true) to get the cmp; that is
+  steering. Look for a real use: the result returned, stored or passed on.
+
 ## Vec4 is block-copyable; 0x101acc20 belongs to a second type (batch 383)
 - Renaming Vec4::Copy (0x101acc20) to a user-declared `void Vec4::operator=(const Vec4 &)` (the original returns w
   in eax, not this) keeps CharSlot::operator= and FUN_1003e710, but every struct holding Vec4 members then copies
@@ -616,3 +626,14 @@ other huge drafts (Bs00x_Update, DrawLit, RunScriptFrames) for the same gap.
   hides them; scratchpad w381d/strict.py keeps them). Levers that worked: a local of its own instead of reusing one
   (Npc_RideBehindMarker), declaration order when counts are equal. When the original needs a reference-count order
   no plausible source gives, record it and move on.
+
+## SIB base/index order (cl 13.00, batch 391 experiments)
+- The source order of base and index is discarded: `p[i]`, `i[p]`, `*(p + i)`, `*(i + p)` and an inline accessor give
+  the same `[eax+esi+N]`. Pointer vs array, signed vs unsigned index, local vs global base, member offset, loop
+  direction and first use change nothing on their own.
+- The order follows the function-wide register allocation: three identical haze loops in Menu_DrawScene come out
+  `[eax+esi]`, `[eax+esi]`, `[esi+eax]`; the same block alone in a function gives `[esi+eax]` three times, and cutting
+  unrelated earlier code changes the pattern.
+- So a diff that is only a swapped SIB pair (same registers, same length) is register/schedule residue. Do not use
+  `i[p]`, yoda forms or fake temps for it; only a closer whole-function shape (variables shared or split as in the
+  original) can move it. Walls: DrawQuad 0x1014c080, BuildMesh 0x101a82d0, Menu_DrawScene 0x10022830.

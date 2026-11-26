@@ -24,6 +24,7 @@ extern "C" void FUN_1014b480(void);              // Render_ResetSwapTarget
 // CaptureRgbRows. Rendering to textures counts as working (DAT_10f654d0 = 1, return 1) only when the texture
 // could be made the target again and the first 32 read-back pixels are bright blue (blue byte over 240).
 // The texture is released and the normal render target restored in every case.
+// A failed UpdateImage result (0) is returned as it is.
 extern "C" int FUN_10017d30(void)
 {
     unsigned char pixels[0xc00];
@@ -61,7 +62,8 @@ extern "C" int FUN_10017d30(void)
     }
     FUN_1013f070(6, 0, 0);
     DAT_10f654cc = 1;
-    if (DAT_118d0ba8[slot].UpdateImage(0) == 0)
+    int updated = DAT_118d0ba8[slot].UpdateImage(0);
+    if (updated == 0)
     {
         DAT_10f654cc = 0;
         DAT_10f654d0 = 0;
@@ -69,11 +71,11 @@ extern "C" int FUN_10017d30(void)
         {
             FUN_101439e0();
             FUN_10174c70(slot, 1);
-            return 0;
+            return updated;
         }
         FUN_1014b480();
         FUN_10174c70(slot, 1);
-        return 0;
+        return updated;
     }
     FUN_10144040();
     DAT_118d0ba8[slot].CaptureRgbRows(pixels);

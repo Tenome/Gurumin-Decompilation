@@ -18,8 +18,8 @@ reading it, then `AGENTS.md`.
 | Measure | Value |
 |---|---|
 | Fully linked | 0.00% of code (151 of 264 units complete) |
-| Matched | 21.40% of code, 910 of 1212 functions |
-| Matched under the rules | 21.37% of code, 909 of the 910 matched functions |
+| Matched | 21.43% of code, 911 of 1212 functions |
+| Matched under the rules | 21.39% of code, 910 of the 911 matched functions |
 | Fuzzy match | 50.68% |
 
 "Matched under the rules": a matched function counts only when its file declares no struct/class/union and no
@@ -290,6 +290,10 @@ function) and node_world.cpp (0) still break rule 2.
   matched (named `bool isCollisionNode`; 910). Enemy_AimedShots 13 -> 5 and Enemy_StarVolley (reuse dx/dy for the
   turn), Save_Write 30 -> 9 (declaration order). 11 matched functions named in symbols.tsv. Remaining walls are
   register choice, SIB operand order, stack-slot order and the zero register; the permuter's honest yield is low.
+- Batch 391: two study lanes (NOTES: "Zero register: cmp needs a later use", "SIB base/index order").
+  RenderTarget_Probe matched (failure arms return the failed result; 911). Input::Update's only match was a
+  redundant `flag = (found == 0)`, rejected as steering. SIB-order-only walls are register numbering, not a
+  source spelling at the site.
 - **enemy_barrage.cpp + barrage_enemy.h** (new, rule-clean, C++ linkage because the originals have EH frames):
   Enemy_CallBarrage 0x100a77f0 (behaviour 15), Enemy_SpinFire 0x100a7db0 (14) and Enemy_CallBursts 0x100a8370
   (16/17, variant argument) match. Enemy_SpinFire's lesson (NOTES): a node pointer with a fallback (`fire`, else the

@@ -1,25 +1,25 @@
 {
  "measures": {
-  "fuzzy_match_percent": 50.849,
+  "fuzzy_match_percent": 50.8496,
   "total_code": "1720206",
-  "matched_code": "368172",
-  "matched_code_percent": 21.4028,
+  "matched_code": "368660",
+  "matched_code_percent": 21.4312,
   "total_data": "0",
   "matched_data": "0",
   "matched_data_percent": 0.0,
   "total_functions": 1212,
-  "matched_functions": 910,
-  "matched_functions_percent": 75.0825,
+  "matched_functions": 911,
+  "matched_functions_percent": 75.165,
   "complete_code": "0",
   "complete_code_percent": 0.0,
   "complete_data": "0",
   "complete_data_percent": 0.0,
   "total_units": 467,
-  "complete_units": 208,
-  "matched_rules_code": "367545",
-  "matched_rules_code_percent": 21.3663,
-  "matched_rules_functions": 909,
-  "matched_rules_functions_percent": 75.0
+  "complete_units": 209,
+  "matched_rules_code": "368033",
+  "matched_rules_code_percent": 21.3947,
+  "matched_rules_functions": 910,
+  "matched_rules_functions_percent": 75.0825
  },
  "units": [
   {
@@ -20463,46 +20463,46 @@
   {
    "name": "app/render_target_probe",
    "measures": {
-    "fuzzy_match_percent": 98.0,
+    "fuzzy_match_percent": 100.0,
     "total_code": "488",
-    "matched_code": "0",
-    "matched_code_percent": 0.0,
+    "matched_code": "488",
+    "matched_code_percent": 100.0,
     "total_data": "0",
     "matched_data": "0",
     "matched_data_percent": 0.0,
     "total_functions": 1,
-    "matched_functions": 0,
-    "matched_functions_percent": 0.0,
-    "complete_code": "0",
-    "complete_code_percent": 0.0,
+    "matched_functions": 1,
+    "matched_functions_percent": 100.0,
+    "complete_code": "488",
+    "complete_code_percent": 100.0,
     "complete_data": "0",
     "complete_data_percent": 0.0,
     "total_units": 1,
-    "complete_units": 0,
-    "matched_rules_code": "0",
-    "matched_rules_code_percent": 0.0,
-    "matched_rules_functions": 0,
-    "matched_rules_functions_percent": 0.0
+    "complete_units": 1,
+    "matched_rules_code": "488",
+    "matched_rules_code_percent": 100.0,
+    "matched_rules_functions": 1,
+    "matched_rules_functions_percent": 100.0
    },
    "sections": [
     {
      "name": ".text",
      "size": "488",
-     "fuzzy_match_percent": 98.0
+     "fuzzy_match_percent": 100.0
     }
    ],
    "functions": [
     {
      "name": "_FUN_10017d30",
      "size": "488",
-     "fuzzy_match_percent": 98.0,
+     "fuzzy_match_percent": 100.0,
      "metadata": {
       "virtual_address": "268533040"
      }
     }
    ],
    "metadata": {
-    "complete": false,
+    "complete": true,
     "source_path": "decomp/src/render_target_probe.cpp"
    }
   },
