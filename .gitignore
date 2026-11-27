@@ -21,3 +21,6 @@ decomp_packs/triage.tsv
 decomp_soundarc/build/
 decomp_soundarc/triage.tsv
 decomp_soundarc/*.pdb
+decomp_sound3d/build/
+decomp_sound3d/triage.tsv
+decomp_sound3d/*.pdb
