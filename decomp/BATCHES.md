@@ -456,3 +456,4 @@ Each finished batch adds two new ones, taken from the medium-function section of
 | 392 | 38 | notes | zero-register and stack-slot sweeps; MoveCursor 5 lines; 911 matched |
 | 393 | 38 | setup | Packs.dll tree decomp_packs/ (same compiler), lanes A-D: files, ExecPack LZSS, BMPPack, BMPUnpack wavelet; Packs 20 of 51 matched |
 | 394 | 38 | match | SoundArc.dll complete: 11 of 11 (built /Od /ZI, own build.bat); Packs round 2 in progress |
+| 395 | 38 | match | Packs round 2: DecodeJpegRgb, GetBit, AdvanceOverToken, StoreCoefficient; BandStatistics and TransformLevel written; Packs 24 of 51 |

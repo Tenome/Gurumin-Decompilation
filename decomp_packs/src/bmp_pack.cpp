@@ -8,7 +8,7 @@
 
 // Stores one run/level pair: the zero run in the low nibble of the word and the level in the high twelve bits
 // (positive levels as is, negative levels as 0x800 - level, saturated to +-0x7ff). (PackBlocks)
-void StoreCoefficient(short *out, short zeroRun, short value)
+void StoreCoefficient(unsigned short *out, unsigned short zeroRun, short value)
 {
     out[g_rleLength] = zeroRun;
     if (value > COEFFICIENT_LIMIT) {
@@ -25,7 +25,7 @@ void StoreCoefficient(short *out, short zeroRun, short value)
 
 // Scans one sub-band in 16x16 blocks (cells in g_scanColumn/g_scanRow order) and stores a run/level pair for every
 // non-zero cell or full run of fifteen zeros; a trailing run is stored as its length minus one. (PackLevels)
-void PackBlocks(const short *plane, short *out, int width, int height, int stride)
+void PackBlocks(const short *plane, unsigned short *out, int width, int height, int stride)
 {
     int run = 0;
     for (int blockRow = 0; blockRow < height; blockRow += SCAN_BLOCK_SIZE) {
@@ -52,7 +52,7 @@ void PackBlocks(const short *plane, short *out, int width, int height, int strid
 // Run-length codes the three detail sub-bands (right, bottom and diagonal of the previous level's size) of every
 // level, finest level first. widths/heights hold the plane size at each level, level 0 being the full plane.
 // (BMPPack)
-void PackLevels(const short *plane, short *out, const int *widths, const int *heights, int levels)
+void PackLevels(const short *plane, unsigned short *out, const int *widths, const int *heights, int levels)
 {
     g_rleLength = 0;
     int stride = widths[0];
@@ -129,7 +129,7 @@ void EncodeBit(int bit, unsigned short probability, unsigned char *out)
 
 // Codes the same sub-band of the three planes in turn (each plane's coded words continue where its previous band
 // stopped, tracked in g_planeOffset0..2) with its model. length is passed through and unused. (EncodeStream)
-int EncodeBandPlanes(short *plane0, short *plane1, short *plane2, unsigned char *out, int count, int *length,
+int EncodeBandPlanes(unsigned short *plane0, unsigned short *plane1, unsigned short *plane2, unsigned char *out, int count, int *length,
                      BandModel *model)
 {
     g_planeOffset0 += EncodeBand(plane0 + g_planeOffset0, out, count, length, &model->plane[0]);
@@ -140,7 +140,7 @@ int EncodeBandPlanes(short *plane0, short *plane1, short *plane2, unsigned char 
 
 // Sets up the arithmetic coder, then codes every level's right, bottom and diagonal sub-bands (coarsest level
 // first, as PackLevels wrote them) into out; *length receives the number of bytes produced. (BMPPack)
-int EncodeStream(short *plane0, short *plane1, short *plane2, unsigned char *out, const int *widths,
+int EncodeStream(unsigned short *plane0, unsigned short *plane1, unsigned short *plane2, unsigned char *out, const int *widths,
                  const int *heights, int levels, int *length, LevelModelSet *models)
 {
     g_coderQuarter = 1 << (g_coderPrecision - 2);
@@ -228,6 +228,81 @@ void PackPlanesToWords(short *planeA, short *planeB, short *planeC, unsigned cha
             planeC[y * stride + x] = 0;
         }
     }
+}
+
+// ---- wavelet transform ----
+
+// The analysis filter has 23 taps: the centre sample and eleven on each side.
+const int FILTER_REACH = 11;
+const int FILTER_TAPS = 2 * FILTER_REACH + 1;
+const int FILTER_GAIN = 19600;      // response of the low-pass filter to a constant signal
+const int FILTER_ROUNDING = 9799;   // added to a filter sum's magnitude before the division
+
+// Mirrors an index that falls outside 0..length-1 back into range without repeating the edge sample.
+// (TransformLevel)
+static int ReflectIndex(int index, int length)
+{
+    if (index < 0)
+        return -index;
+    if (index >= length)
+        return 2 * (length - 1) - index;
+    return index;
+}
+
+// Low-pass filter of the even positions; taps[FILTER_REACH + k] is the sample k places from the centre.
+// A smooth bell with weights 198 at the centre, then 5741, 82 * 29 and so on, summing to FILTER_GAIN. (TransformLevel)
+static int LowPassSum(const int *taps)
+{
+    const int *centre = taps + FILTER_REACH;
+    return 5 * (14 * (198 * centre[0] - centre[6] - centre[-6]) - 197 * (centre[3] + centre[-3]) + centre[9] + centre[-9]) +
+           2 * (6 * (34 * (centre[4] + centre[-4]) + centre[8] + centre[-8]) - centre[10] - centre[-10]) -
+           29 * (82 * (centre[2] + centre[-2]) + centre[7] + centre[-7]) + 5741 * (centre[1] + centre[-1]) +
+           169 * (centre[5] + centre[-5]) - centre[11] - centre[-11];
+}
+
+// High-pass filter of the odd positions (weights sum to zero). (TransformLevel)
+static int HighPassSum(const int *taps)
+{
+    const int *centre = taps + FILTER_REACH;
+    return 5 * (14 * (198 * centre[0] - centre[6] - centre[-6]) + 197 * (centre[3] + centre[-3]) - centre[9] - centre[-9]) +
+           29 * (centre[7] + centre[-7] - 82 * (centre[2] + centre[-2])) +
+           2 * (6 * (34 * (centre[4] + centre[-4]) + centre[8] + centre[-8]) - centre[10] - centre[-10]) -
+           5741 * (centre[1] + centre[-1]) - 169 * (centre[5] + centre[-5]) + centre[11] + centre[-11];
+}
+
+// Divides a filter sum by FILTER_GAIN, rounding to nearest with the sign kept symmetric. (TransformLevel)
+static int ScaleFilterSum(int sum)
+{
+    if (sum < 0)
+        return -((FILTER_ROUNDING - sum) / FILTER_GAIN);
+    return (sum + FILTER_ROUNDING) / FILTER_GAIN;
+}
+
+// Filters every line of one direction: the samples of a line are sampleStep apart and the lines lineStep apart.
+// Even positions go to the first half of the output line, odd positions to the second half. (TransformLevel)
+static void FilterLines(const short *source, short *dest, int length, int lines, int sampleStep, int lineStep)
+{
+    for (int line = 0; line < lines; line++) {
+        const short *in = source + line * lineStep;
+        short *out = dest + line * lineStep;
+        for (int position = 0; position < length; position++) {
+            int taps[FILTER_TAPS];
+            for (int tap = 0; tap < FILTER_TAPS; tap++)
+                taps[tap] = in[ReflectIndex(position + tap - FILTER_REACH, length) * sampleStep];
+            if (position % 2 == 0)
+                out[position / 2 * sampleStep] = ScaleFilterSum(LowPassSum(taps));
+            else
+                out[((length + 1) / 2 + position / 2) * sampleStep] = ScaleFilterSum(HighPassSum(taps));
+        }
+    }
+}
+
+// One level of the two-dimensional analysis: filters the rows of plane into scratch, then the columns of scratch back
+// into plane, leaving the low-pass quarter in the top-left corner. Needs width and height of at least 12. (BMPPack)
+void TransformLevel(short *plane, short *scratch, int width, int height, int stride)
+{
+    FilterLines(plane, scratch, width, height, 1, stride);
+    FilterLines(scratch, plane, height, width, stride, 1);
 }
 
 // ---- quantisation ----
@@ -409,20 +484,158 @@ void QuantiseBands(short *planeA, short *planeB, short *planeC, const int *width
 
 // ---- band coder ----
 
+// Mask and shifts of a run/level word: zero run in the low nibble, level magnitude above it, sign in bit 15.
+const unsigned short WORD_RUN_MASK = 0xf;
+const unsigned short WORD_LEVEL_MASK = 0x7ff;
+const int WORD_LEVEL_SHIFT = 4;
+
+// Model byte scaling: the magnitude class is 16 * mean ^ 0.25, the ratios are fractions of 256.
+const double SCALE_FACTOR = 16.0;
+const double SCALE_EXPONENT = 0.25;
+const double RATIO_FACTOR = 256.0;
+const double ROUND_HALF = 0.5;
+const double NO_WEIGHT = 0.0;
+const double FULL_WEIGHT = 1.0;
+
+// Measures one plane's run/level words and writes the three model bytes into model: scale (clamped to 1..255) and the
+// slope of a first-order fit of each level against its predecessor, before and after two refinement passes that
+// replay the zero runs. An empty band gets scale 0. Always returns 0. (EncodeBand)
+int BandStatistics(PlaneModel *model, const unsigned short *words, int count)
+{
+    double total = count;
+    unsigned short firstWord = words[0];
+    unsigned short firstLevel;
+    if (firstWord & WORD_RUN_MASK)
+        firstLevel = 0;
+    else
+        firstLevel = (firstWord >> WORD_LEVEL_SHIFT) & WORD_LEVEL_MASK;
+    double sumCurrent = 0.0;
+    double sumLagged;
+    double sumSquares = 0.0;
+    double sumProducts = 0.0;
+    unsigned short level = 0;
+    unsigned short previous = 0;
+    int consumed = 0;
+    const unsigned short *word = words;
+    while (consumed < count) {
+        unsigned short entry = *word++;
+        unsigned short run = entry & WORD_RUN_MASK;
+        level = (entry >> WORD_LEVEL_SHIFT) & WORD_LEVEL_MASK;
+        consumed += run + 1;
+        sumCurrent += level;
+        sumProducts += previous * level;
+        sumSquares += level * level;
+        previous = run == 0 ? level : 0;
+    }
+    if (sumCurrent == 0.0) {
+        model->scale = 0;
+        return 0;
+    }
+    double mean = sumCurrent / total;
+    sumLagged = mean + sumCurrent - level;
+    sumSquares = mean * mean + sumSquares - level * level;
+    sumProducts = firstLevel * mean + sumProducts;
+    double slope = (sumProducts * total - sumCurrent * sumLagged) / (sumSquares * total - sumLagged * sumLagged);
+    sumCurrent = 0.0;
+    sumProducts = 0.0;
+    sumSquares = 0.0;
+    sumLagged = 0.0;
+    double lagged = mean;
+    double current = mean;
+    double retain = (FULL_WEIGHT - slope) * NO_WEIGHT;
+    double inject = (FULL_WEIGHT - slope) * mean;
+    word = words;
+    consumed = 0;
+    while ((double)consumed < total) {
+        unsigned short entry = *word++;
+        unsigned short run = entry & WORD_RUN_MASK;
+        level = (entry >> WORD_LEVEL_SHIFT) & WORD_LEVEL_MASK;
+        consumed += run + 1;
+        for (unsigned short step = run; step != 0; step--) {
+            current = retain * current + inject;
+            sumLagged += lagged;
+            sumCurrent += current;
+            sumSquares += lagged * lagged;
+            sumProducts += lagged * current;
+            lagged = current;
+        }
+        current = level * slope + retain * current + inject;
+        sumLagged += lagged;
+        sumCurrent += current;
+        sumSquares += lagged * lagged;
+        sumProducts += lagged * current;
+        lagged = current;
+    }
+    slope = (sumProducts * total - sumCurrent * sumLagged) / (sumSquares * total - sumLagged * sumLagged);
+    sumCurrent = 0.0;
+    sumProducts = 0.0;
+    sumSquares = 0.0;
+    sumLagged = 0.0;
+    current = mean;
+    lagged = mean;
+    retain = FULL_WEIGHT - slope;
+    inject = (FULL_WEIGHT - slope) * mean * NO_WEIGHT;
+    word = words;
+    consumed = 0;
+    while ((double)consumed < total) {
+        unsigned short entry = *word++;
+        unsigned short run = entry & WORD_RUN_MASK;
+        level = (entry >> WORD_LEVEL_SHIFT) & WORD_LEVEL_MASK;
+        consumed += run + 1;
+        for (unsigned short step = run; step != 0; step--) {
+            current = retain * current + inject;
+            sumLagged += lagged;
+            sumCurrent += current;
+            sumSquares += lagged * lagged;
+            sumProducts += lagged * current;
+            lagged = current;
+        }
+        current = level * slope + retain * current + inject;
+        sumLagged += lagged;
+        sumCurrent += current;
+        sumSquares += lagged * lagged;
+        sumProducts += lagged * current;
+        lagged = current;
+    }
+    double refinedSlope = (sumProducts * total - sumCurrent * sumLagged) / (sumSquares * total - sumLagged * sumLagged);
+    int value = (int)(pow(mean, SCALE_EXPONENT) * SCALE_FACTOR + ROUND_HALF);
+    model->scale = value;
+    if (value <= 1)
+        model->scale = 1;
+    if (value >= 255)
+        model->scale = 255;
+    value = (int)(slope * RATIO_FACTOR + ROUND_HALF);
+    model->zeroRatio = value;
+    if (value <= 0)
+        model->zeroRatio = 0;
+    if (value >= 255)
+        model->zeroRatio = 255;
+    value = (int)(refinedSlope * RATIO_FACTOR + ROUND_HALF);
+    model->escapeRatio = value;
+    if (value <= 0)
+        model->escapeRatio = 0;
+    if (value >= 255)
+        model->escapeRatio = 255;
+    return 0;
+}
+
+
 // Codes one plane's run/level words of a sub-band with the adaptive arithmetic coder: zero runs as 0 bits, levels as
 // unary magnitude then a terminating 0 and a sign bit, the probability following the model measured by
 // BandStatistics. Returns the number of words consumed. out receives the coded bytes. (EncodeBandPlanes)
-int EncodeBand(const short *words, unsigned char *out, int count, int *length, PlaneModel *model)
+int EncodeBand(const unsigned short *words, unsigned char *out, int count, int *length, PlaneModel *model)
 {
     BandStatistics(model, words, count);
     unsigned int estimate = model->scale;
     if (estimate == 0)
         return 0;
-    unsigned char magnitudeStep = model->zeroRatio;
+    int zeroRatio = model->zeroRatio;
+    int escapeRatio = model->escapeRatio;
     estimate = estimate * estimate * estimate * estimate;
-    int remainingStep = 256 - magnitudeStep;
-    int offset = (256 - model->escapeRatio) * remainingStep;
-    remainingStep = remainingStep * model->escapeRatio;
+    int remainingStep = 256 - zeroRatio;
+    int offset = (256 - escapeRatio) * remainingStep;
+    remainingStep = remainingStep * escapeRatio;
+    int magnitudeStep = zeroRatio << 8;
     g_coderHigh = g_coderMax;
     offset = ((estimate & 0xffff) * offset + 0x8000 >> 16) + (estimate >> 16) * offset;
     unsigned int probability = (((estimate >> 1) - estimate) - 0x8000) / (estimate + 0x10000) + 1;
@@ -438,7 +651,7 @@ int EncodeBand(const short *words, unsigned char *out, int count, int *length, P
     while (position < count) {
         unsigned short word = words[consumed];
         unsigned short level = word >> 4;
-        int run = (word & 0xf) + 1;
+        unsigned short run = (word & 0xf) + 1;
         consumed++;
         position += run;
         zeroRun += run;
@@ -465,8 +678,8 @@ int EncodeBand(const short *words, unsigned char *out, int count, int *length, P
                 for (unsigned int ones = level & 0x7ff; ones != 0; ones--)
                     EncodeBit(1, probability, out);
                 EncodeBit(0, probability, out);
-                EncodeBit(word >> 15, 0x8000, out);
-                estimate = (level & 0x7ff) * magnitudeStep * 256 + (estimate >> 16) * remainingStep + offset +
+                EncodeBit(level >> 11, 0x8000, out);
+                estimate = (level & 0x7ff) * magnitudeStep + (estimate >> 16) * remainingStep + offset +
                            ((estimate & 0xffff) * remainingStep + 0x8000 >> 16);
                 if (estimate == 0)
                     estimate = 1;
@@ -606,11 +819,11 @@ extern "C" int BMPPack(const unsigned char *bgr, int width, int height, int qual
             TransformLevel(planeC, buffer, widths[level], heights[level], width);
         QuantiseBands(planeA, planeB, planeC, widths, heights, quality << 6, levels, &models);
         PackPlanesToWords(planeA, planeB, planeC, packedWords, widths[levels], heights[levels], width);
-        PackLevels(planeA, buffer, widths, heights, levels);
-        PackLevels(planeB, planeA, widths, heights, levels);
-        PackLevels(planeC, planeB, widths, heights, levels);
-        EncodeStream(buffer, planeA, planeB, (unsigned char *)planeC, widths, heights, levels, &streamLength,
-                     &models);
+        PackLevels(planeA, (unsigned short *)buffer, widths, heights, levels);
+        PackLevels(planeB, (unsigned short *)planeA, widths, heights, levels);
+        PackLevels(planeC, (unsigned short *)planeB, widths, heights, levels);
+        EncodeStream((unsigned short *)buffer, (unsigned short *)planeA, (unsigned short *)planeB,
+                     (unsigned char *)planeC, widths, heights, levels, &streamLength, &models);
         WriteStream(packedWords, (unsigned char *)planeC, widths, heights, quality << 6, levels, &streamLength,
                     &models, out, outLength);
         free(packedWords);

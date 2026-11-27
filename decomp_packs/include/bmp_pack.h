@@ -72,23 +72,24 @@ extern int g_planeOffset1;
 extern int g_planeOffset2;
 
 // Run-length coding helpers.
-void StoreCoefficient(short *out, short zeroRun, short value);
-void PackBlocks(const short *plane, short *out, int width, int height, int stride);
-void PackLevels(const short *plane, short *out, const int *widths, const int *heights, int levels);
+void StoreCoefficient(unsigned short *out, unsigned short zeroRun, short value);
+void PackBlocks(const short *plane, unsigned short *out, int width, int height, int stride);
+void PackLevels(const short *plane, unsigned short *out, const int *widths, const int *heights, int levels);
 
 // Arithmetic coder.
 void EmitBit(int bit, unsigned char *out);
 void EncodeBit(int bit, unsigned short probability, unsigned char *out);
 
 // Per-plane band coding.
-int BandStatistics(PlaneModel *model, const short *words, int count);
-int EncodeBand(const short *words, unsigned char *out, int count, int *length, PlaneModel *model);
-int EncodeBandPlanes(short *plane0, short *plane1, short *plane2, unsigned char *out, int count, int *length,
+int BandStatistics(PlaneModel *model, const unsigned short *words, int count);
+int EncodeBand(const unsigned short *words, unsigned char *out, int count, int *length, PlaneModel *model);
+int EncodeBandPlanes(unsigned short *plane0, unsigned short *plane1, unsigned short *plane2, unsigned char *out, int count, int *length,
                      BandModel *model);
-int EncodeStream(short *plane0, short *plane1, short *plane2, unsigned char *out, const int *widths,
+int EncodeStream(unsigned short *plane0, unsigned short *plane1, unsigned short *plane2, unsigned char *out, const int *widths,
                  const int *heights, int levels, int *length, LevelModelSet *models);
 
-// Wavelet-style analysis of one level (in place on plane, scratch holds a row copy); not reconstructed yet.
+// One level of the 23-tap wavelet analysis of a plane in place (scratch is a plane-sized work buffer): low-pass half
+// first, high-pass half second, in both directions. Needs width and height of at least 12.
 void TransformLevel(short *plane, short *scratch, int width, int height, int stride);
 
 // Writes the compressed file: header, band models, packed pixel words and the arithmetic-coded stream.

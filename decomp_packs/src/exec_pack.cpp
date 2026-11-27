@@ -19,9 +19,7 @@ const unsigned EXEC_PROGRESS_STAGE_WEIGHT = 0x1000;
 
 // ---- decoder state ----
 ExecUnpackStream *g_unpack;           // chunk being expanded
-unsigned short g_bits;                // bit buffer, next flag in the low bit
-unsigned char g_bitCount;             // bits left in g_bits
-int g_unpackConsumed;                 // packed bytes consumed in the chunk (written, never read)
+BitReader g_reader;
 unsigned char *g_unpackChunkStart;    // start of g_unpackChunk, where every chunk is expanded
 unsigned char *g_unpackDest;          // caller's buffer, next free byte
 unsigned g_unpackLimit;               // original size: no chunk may grow past it
@@ -58,15 +56,15 @@ int g_cancelled;                      // set by a progress callback to abort
 // Reads one flag bit from the packed stream, refilling the 16-bit buffer when it is empty. (DecodeChunk)
 inline unsigned short GetBit(void)
 {
-    if (g_bitCount == 0) {
-        g_bits = *(const unsigned short *)g_unpack->in;
-        g_bitCount = 16;
+    if (g_reader.count == 0) {
+        g_reader.bits = *(const unsigned short *)g_unpack->in;
+        g_reader.count = 16;
         g_unpack->in += 2;
-        g_unpackConsumed += 2;
+        g_reader.consumed += 2;
     }
-    unsigned short bit = g_bits & 1;
-    g_bits >>= 1;
-    g_bitCount--;
+    unsigned short bit = g_reader.bits & 1;
+    g_reader.bits >>= 1;
+    g_reader.count--;
     return bit;
 }
 
@@ -75,7 +73,8 @@ inline unsigned short GetBits(int count)
 {
     int value = 0;
     while (count != 0) {
-        value = value * 2 + GetBit();
+        value <<= 1;
+        value += GetBit();
         count--;
     }
     return value;
@@ -85,9 +84,9 @@ inline unsigned short GetBits(int count)
 // Returns 1 at the end marker, 0 when a copy would pass the original size. (UnpackRecords)
 int DecodeChunk(void)
 {
-    g_unpackConsumed = 4;
-    g_bits = g_unpack->in[1];
-    g_bitCount = 8;
+    g_reader.consumed = 4;
+    g_reader.bits = g_unpack->in[1];
+    g_reader.count = 8;
     g_unpack->in += 2;
     for (;;) {
         if (GetBit() == 0) {
@@ -95,14 +94,11 @@ int DecodeChunk(void)
             g_unpack->out++;
             g_unpack->in++;
             g_unpack->outCount++;
-            g_unpackConsumed++;
+            g_reader.consumed++;
             continue;
         }
         unsigned offset;
-        if (GetBit() == 0) {
-            offset = *g_unpack->in++;
-            g_unpackConsumed++;
-        } else {
+        if (GetBit() != 0) {
             unsigned offsetHigh = GetBits(5);
             offset = offsetHigh * 256 + *g_unpack->in++;
             if (offset == 0)
@@ -111,11 +107,11 @@ int DecodeChunk(void)
                 unsigned runLength;
                 if (GetBit() == 0) {
                     runLength = GetBits(4);
-                    g_unpackConsumed += 0xf + runLength;
+                    g_reader.consumed += 0xf + runLength;
                 } else {
                     unsigned runHigh = GetBits(4);
                     runLength = runHigh * 256 + *g_unpack->in++;
-                    g_unpackConsumed += 0x10 + runLength;
+                    g_reader.consumed += 0x10 + runLength;
                 }
                 unsigned char fill = *g_unpack->in++;
                 for (unsigned n = runLength + EXEC_MIN_RUN; n != 0; n--)
@@ -123,6 +119,9 @@ int DecodeChunk(void)
                 g_unpack->outCount += runLength + EXEC_MIN_RUN;
                 continue;
             }
+        } else {
+            offset = *g_unpack->in++;
+            g_reader.consumed++;
         }
         unsigned length;
         if (GetBit() != 0)
@@ -135,7 +134,7 @@ int DecodeChunk(void)
             length = 5;
         else if (GetBit() == 0) {
             length = *g_unpack->in++ + EXEC_MIN_RUN;
-            g_unpackConsumed++;
+            g_reader.consumed++;
         } else
             length = GetBits(3) + 6;
         const unsigned char *from = g_unpack->out - offset;
@@ -244,8 +243,9 @@ void AdvanceOverToken(void)
                 g_pack->tail[expiredKey] = EXEC_NO_POSITION;
         }
         unsigned short key = *(const unsigned short *)g_pack->in;
-        unsigned short previous = g_pack->tail[key];
-        g_pack->tail[key] = g_inPos;
+        unsigned short *tailSlot = &g_pack->tail[key];
+        unsigned short previous = *tailSlot;
+        *tailSlot = g_inPos;
         if (previous != EXEC_NO_POSITION)
             g_pack->next[previous & EXEC_CHAIN_MASK] = g_inPos;
         else

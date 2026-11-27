@@ -318,7 +318,7 @@ function) and node_world.cpp (0) still break rule 2.
 ## Helper DLLs (2026-11-26)
 
 APP.dll walls are parked (state above). Packs.dll is in `decomp_packs/` (README, QUEUE, own gate writing
-`progress/jp/packs.json`): 20 of 51 game functions matched after batch 393. Same compiler as APP.dll; so is SoundArc.dll,
+`progress/jp/packs.json`): 24 of 51 game functions matched after batch 395. Same compiler as APP.dll; so is SoundArc.dll,
 a GUI EXE (sound server), complete in `decomp_soundarc/` (11 of 11, batch 394; built /Od /ZI). sound3d.dll last (middleware). Whether Packs joins
 `report.json` and the README meter is waiting on the parent session's answer.
 

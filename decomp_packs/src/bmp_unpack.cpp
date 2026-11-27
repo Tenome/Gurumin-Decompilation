@@ -40,25 +40,25 @@ int ReadStreamHeader(PackStreamInfo *info, int *widths, int *heights, unsigned i
 
     int recordCount = levels * 9;
     int consumed = 0;
-    BandRecord *record = (BandRecord *)records;
+    unsigned char *record = records[0][0][0];
     while (recordCount > 0) {
         recordCount--;
         unsigned char gain = data[*position];
         (*position)++;
-        record->gain = gain;
+        record[RECORD_GAIN] = gain;
         consumed++;
         if (gain != 0) {
-            record->adaptWeight = data[*position];
-            record->decayWeight = data[++*position];
-            record->bias = data[++*position];
+            record[RECORD_ADAPT_WEIGHT] = data[*position];
+            record[RECORD_DECAY_WEIGHT] = data[++*position];
+            record[RECORD_BIAS] = data[++*position];
             (*position)++;
             consumed += 3;
         } else {
-            record->adaptWeight = 0;
-            record->decayWeight = 0;
-            record->bias = 0;
+            record[RECORD_ADAPT_WEIGHT] = 0;
+            record[RECORD_DECAY_WEIGHT] = 0;
+            record[RECORD_BIAS] = 0;
         }
-        record++;
+        record += BAND_RECORD_SIZE;
     }
     return consumed;
 }
@@ -177,10 +177,10 @@ static inline unsigned int ProbabilityFromScale(unsigned int scale)
 // Decodes one wavelet band of width x height coefficients into a plane with the given stride. The band is coded in
 // 16x16 blocks, each in scan order; an adaptive model turns the running magnitude into the probability for the next
 // coefficient. (UnpackBands)
-void DecodeBand(const unsigned char *data, short *band, int width, int height, int stride, const BandRecord *record)
+void DecodeBand(const unsigned char *data, short *band, int width, int height, int stride, const unsigned char *record)
 {
     int startPos = g_arithBytePos;
-    unsigned int gain = record->gain;
+    unsigned int gain = record[RECORD_GAIN];
     if (gain == 0) {
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++)
@@ -190,11 +190,11 @@ void DecodeBand(const unsigned char *data, short *band, int width, int height, i
         return;
     }
 
-    unsigned char adaptWeight = record->adaptWeight;
+    unsigned char adaptWeight = record[RECORD_ADAPT_WEIGHT];
     unsigned int scale = gain * gain * gain * gain;
     int keep = 0x100 - adaptWeight;
-    int weightInitial = (0x100 - record->decayWeight) * keep;
-    int weightCurrent = keep * record->decayWeight;
+    int weightInitial = (0x100 - record[RECORD_DECAY_WEIGHT]) * keep;
+    int weightCurrent = keep * record[RECORD_DECAY_WEIGHT];
     unsigned int initialShare = (((scale & 0xffff) * weightInitial + ARITH_PROB_ROUND) >> 16) + (scale >> 16) * weightInitial;
 
     g_arithBitsRead = 0;
@@ -296,9 +296,9 @@ static inline int DequantizeSample(int value, int wholePart, int remainderPart, 
         else
             result = value * wholePart - ((half - value * remainderPart) + bias) / divisor;
     }
-    if (result < -COEFFICIENT_LIMIT + 1)
+    if (result <= -COEFFICIENT_LIMIT)
         result = -COEFFICIENT_LIMIT;
-    else if (result > COEFFICIENT_LIMIT - 1)
+    else if (result >= COEFFICIENT_LIMIT)
         result = COEFFICIENT_LIMIT;
     return result;
 }
@@ -349,20 +349,20 @@ void DequantizeLevels(short *plane0, short *plane1, short *plane2, const int *wi
 
         int offset = widths[level];
         DequantizeBand(plane0 + offset, plane1 + offset, plane2 + offset, widths[level - 1] - widths[level],
-                       heights[level], stride, quantScale, scale, (rec->band[0][0].bias - BAND_BIAS_ZERO) * scale,
-                       (rec->band[0][1].bias - BAND_BIAS_ZERO) * scale, (rec->band[0][2].bias - BAND_BIAS_ZERO) * scale);
+                       heights[level], stride, quantScale, scale, ((*rec)[0][0][RECORD_BIAS] - BAND_BIAS_ZERO) * scale,
+                       ((*rec)[0][1][RECORD_BIAS] - BAND_BIAS_ZERO) * scale, ((*rec)[0][2][RECORD_BIAS] - BAND_BIAS_ZERO) * scale);
 
         offset = heights[level] * stride;
         DequantizeBand(plane0 + offset, plane1 + offset, plane2 + offset, widths[level],
                        heights[level - 1] - heights[level], stride, quantScale, scale,
-                       (rec->band[1][0].bias - BAND_BIAS_ZERO) * scale, (rec->band[1][1].bias - BAND_BIAS_ZERO) * scale,
-                       (rec->band[1][2].bias - BAND_BIAS_ZERO) * scale);
+                       ((*rec)[1][0][RECORD_BIAS] - BAND_BIAS_ZERO) * scale, ((*rec)[1][1][RECORD_BIAS] - BAND_BIAS_ZERO) * scale,
+                       ((*rec)[1][2][RECORD_BIAS] - BAND_BIAS_ZERO) * scale);
 
         offset = heights[level] * stride + widths[level];
         DequantizeBand(plane0 + offset, plane1 + offset, plane2 + offset, widths[level - 1] - widths[level],
                        heights[level - 1] - heights[level], stride, quantScale, scale,
-                       (rec->band[2][0].bias - BAND_BIAS_ZERO) * scale, (rec->band[2][1].bias - BAND_BIAS_ZERO) * scale,
-                       (rec->band[2][2].bias - BAND_BIAS_ZERO) * scale);
+                       ((*rec)[2][0][RECORD_BIAS] - BAND_BIAS_ZERO) * scale, ((*rec)[2][1][RECORD_BIAS] - BAND_BIAS_ZERO) * scale,
+                       ((*rec)[2][2][RECORD_BIAS] - BAND_BIAS_ZERO) * scale);
     }
 }
 
@@ -383,23 +383,23 @@ void DecodeLevels(const unsigned char *data, short *plane0, short *plane1, short
         int offset = widths[level];
         int bandWidth = widths[level - 1] - widths[level];
         int bandHeight = heights[level];
-        DecodeBand(data, plane0 + offset, bandWidth, bandHeight, stride, &rec->band[0][0]);
-        DecodeBand(data, plane1 + offset, bandWidth, bandHeight, stride, &rec->band[0][1]);
-        DecodeBand(data, plane2 + offset, bandWidth, bandHeight, stride, &rec->band[0][2]);
+        DecodeBand(data, plane0 + offset, bandWidth, bandHeight, stride, (*rec)[0][0]);
+        DecodeBand(data, plane1 + offset, bandWidth, bandHeight, stride, (*rec)[0][1]);
+        DecodeBand(data, plane2 + offset, bandWidth, bandHeight, stride, (*rec)[0][2]);
 
         offset = heights[level] * stride;
         bandWidth = widths[level];
         bandHeight = heights[level - 1] - heights[level];
-        DecodeBand(data, plane0 + offset, bandWidth, bandHeight, stride, &rec->band[1][0]);
-        DecodeBand(data, plane1 + offset, bandWidth, bandHeight, stride, &rec->band[1][1]);
-        DecodeBand(data, plane2 + offset, bandWidth, bandHeight, stride, &rec->band[1][2]);
+        DecodeBand(data, plane0 + offset, bandWidth, bandHeight, stride, (*rec)[1][0]);
+        DecodeBand(data, plane1 + offset, bandWidth, bandHeight, stride, (*rec)[1][1]);
+        DecodeBand(data, plane2 + offset, bandWidth, bandHeight, stride, (*rec)[1][2]);
 
         offset = heights[level] * stride + widths[level];
         bandWidth = widths[level - 1] - widths[level];
         bandHeight = heights[level - 1] - heights[level];
-        DecodeBand(data, plane0 + offset, bandWidth, bandHeight, stride, &rec->band[2][0]);
-        DecodeBand(data, plane1 + offset, bandWidth, bandHeight, stride, &rec->band[2][1]);
-        DecodeBand(data, plane2 + offset, bandWidth, bandHeight, stride, &rec->band[2][2]);
+        DecodeBand(data, plane0 + offset, bandWidth, bandHeight, stride, (*rec)[2][0]);
+        DecodeBand(data, plane1 + offset, bandWidth, bandHeight, stride, (*rec)[2][1]);
+        DecodeBand(data, plane2 + offset, bandWidth, bandHeight, stride, (*rec)[2][2]);
     }
 }
 
@@ -567,8 +567,7 @@ extern "C" int BMPUnpack(const unsigned char *data, int unused, unsigned char *o
     int widths[PACK_LEVEL_SLOTS];
     int heights[PACK_LEVEL_SLOTS];
     unsigned int flags;
-    unsigned char recordStorage[PACK_MAX_LEVELS * sizeof(LevelRecords)];
-    LevelRecords *records = (LevelRecords *)recordStorage;
+    LevelRecords records[PACK_MAX_LEVELS];
     int position;
     int outPosition;
 

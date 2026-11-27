@@ -13,19 +13,19 @@ enum { PACK_HEADER_SIZE = 24 };
 // Arithmetic coder: probabilities are 16-bit fixed point, the code value is 16 bits wide.
 enum { ARITH_DEFAULT_BITS = 16, ARITH_PROB_ONE = 0x10000, ARITH_PROB_ROUND = 0x8000, ARITH_PROB_MAX = 0xfffe };
 
-// Parameters of one wavelet band of one colour plane (4 bytes in the stream). gain == 0 means the band is all zero
-// and the other three bytes are absent from the stream.
-struct BandRecord {
-    unsigned char gain;         // adaptive model strength, raised to the 4th power to get the initial scale
-    unsigned char adaptWeight;  // weight of the coded magnitude in the model update
-    unsigned char decayWeight;  // weight of the old model value in the model update
-    unsigned char bias;         // dequantisation bias, stored with +128
+// Parameters of one wavelet band of one colour plane (4 bytes in the stream), indexed by these fields. A gain of 0
+// means the band is all zero and the other three bytes are absent from the stream.
+enum {
+    RECORD_GAIN,          // adaptive model strength, raised to the 4th power to get the initial scale
+    RECORD_ADAPT_WEIGHT,  // weight of the coded magnitude in the model update
+    RECORD_DECAY_WEIGHT,  // weight of the old model value in the model update
+    RECORD_BIAS,          // dequantisation bias, stored with +128
+    BAND_RECORD_SIZE
 };
 
-// The three bands (right, below, diagonal) of one pyramid level, each with a record per colour plane.
-struct LevelRecords {
-    BandRecord band[3][3];  // [band][plane]
-};
+// The three bands (right, below, diagonal) of one pyramid level, each with a record per colour plane:
+// [band][plane][field].
+typedef unsigned char LevelRecords[3][3][BAND_RECORD_SIZE];
 
 // The part of the header BMPUnpack uses besides the sizes.
 struct PackStreamInfo {
@@ -61,7 +61,7 @@ extern FILE *g_mmvFile;
 int ReadStreamHeader(PackStreamInfo *info, int *widths, int *heights, unsigned int *flags, LevelRecords *records,
                      const unsigned char *data, int *position);
 short DecodeSignedValue(const unsigned char *data, unsigned short probability);
-void DecodeBand(const unsigned char *data, short *band, int width, int height, int stride, const BandRecord *record);
+void DecodeBand(const unsigned char *data, short *band, int width, int height, int stride, const unsigned char *record);
 void ToRgbBytes(const short *plane0, const short *plane1, const short *plane2, const int *widths, const int *heights,
                 unsigned char *out, int *outPosition);
 

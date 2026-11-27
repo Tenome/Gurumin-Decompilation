@@ -5,6 +5,28 @@
 #include "pack_file.h"
 #include "jpeg_api.h"
 
+// Copies width pixels of 3 bytes from one row to another, keeping the byte order. (EncodeJpegRgb)
+inline void CopyRowRgb(unsigned char *to, unsigned char *from, int width)
+{
+    for (int x = 0; x < width; x++) {
+        *to++ = from[0];
+        *to++ = from[1];
+        *to++ = from[2];
+        from += 3;
+    }
+}
+
+// Copies width pixels of 3 bytes from one row to another, swapping the first and last byte. (SaveJpeg)
+inline void CopyRowSwapRb(unsigned char *to, unsigned char *from, int width)
+{
+    for (int x = 0; x < width; x++) {
+        *to++ = from[2];
+        *to++ = from[1];
+        *to++ = from[0];
+        from += 3;
+    }
+}
+
 // Decodes the JPEG stream at the file position into dest, one row per stride bytes (width * 3 when stride is 0).
 // Reports the picture size through width and height. Returns 1, or 0 when fp or dest is missing. (BMPLoad)
 int DecodeJpegRgb(FILE *fp, unsigned char *dest, int stride, int *width, int *height, int reserved)
@@ -12,6 +34,7 @@ int DecodeJpegRgb(FILE *fp, unsigned char *dest, int stride, int *width, int *he
     jpeg_error_mgr errorManager;
     jpeg_decompress_struct cinfo;
     JSAMPROW row;
+    unsigned char *rowDest;
 
     if (fp == 0)
         return 0;
@@ -26,10 +49,11 @@ int DecodeJpegRgb(FILE *fp, unsigned char *dest, int stride, int *width, int *he
     *height = cinfo.output_height;
     if (stride == 0)
         stride = cinfo.output_width * 3;
+    rowDest = dest;
     while (cinfo.output_scanline < cinfo.output_height) {
-        row = dest;
+        row = rowDest;
         jpeg_read_scanlines(&cinfo, &row, 1);
-        dest += stride;
+        rowDest += stride;
     }
     jpeg_finish_decompress(&cinfo);
     jpeg_destroy_decompress(&cinfo);
@@ -46,9 +70,6 @@ int EncodeJpegRgb(FILE *fp, unsigned char *src, int width, int height, int quali
     unsigned char *rowBuffer;
     JSAMPROW row;
     unsigned char *srcRow;
-    unsigned char *to;
-    unsigned char *from;
-    int x;
 
     if (fp == 0)
         return 0;
@@ -70,14 +91,7 @@ int EncodeJpegRgb(FILE *fp, unsigned char *src, int width, int height, int quali
     srcStride = (width * 3 + 3) / 4 * 4;
     srcRow = src;
     while (cinfo.next_scanline < cinfo.image_height) {
-        to = rowBuffer;
-        from = srcRow;
-        for (x = 0; x < width; x++) {
-            *to++ = from[0];
-            *to++ = from[1];
-            *to++ = from[2];
-            from += 3;
-        }
+        CopyRowRgb(rowBuffer, srcRow, width);
         srcRow += srcStride;
         row = rowBuffer;
         jpeg_write_scanlines(&cinfo, &row, 1);
@@ -98,9 +112,6 @@ extern "C" int SaveJpeg(const char *path, unsigned char *bgr, int width, int hei
     unsigned char *rowBuffer;
     JSAMPROW row;
     unsigned char *srcRow;
-    unsigned char *to;
-    unsigned char *from;
-    int x;
     FILE *fp = fopen(path, "wb");
 
     if (fp == 0)
@@ -123,14 +134,7 @@ extern "C" int SaveJpeg(const char *path, unsigned char *bgr, int width, int hei
     srcStride = (width * 3 + 3) / 4 * 4;
     srcRow = bgr;
     while (cinfo.next_scanline < cinfo.image_height) {
-        to = rowBuffer;
-        from = srcRow;
-        for (x = 0; x < width; x++) {
-            *to++ = from[2];
-            *to++ = from[1];
-            *to++ = from[0];
-            from += 3;
-        }
+        CopyRowSwapRb(rowBuffer, srcRow, width);
         srcRow += srcStride;
         row = rowBuffer;
         jpeg_write_scanlines(&cinfo, &row, 1);

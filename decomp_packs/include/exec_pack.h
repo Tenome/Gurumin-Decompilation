@@ -65,15 +65,21 @@ struct ExecUnpackStream {
     unsigned reserved;           // never used here; the original frame holds 0x18 bytes, so the stream keeps a sixth field like ExecPackStream
 };
 
+// Flag-bit reader of the decoder. It has to be one struct: as three separate globals cl keeps the bit buffer in a
+// register inside GetBit, the original reads and writes it in memory.
+struct BitReader {
+    unsigned short bits;    // bit buffer, next flag in the low bit
+    unsigned char count;    // bits left in the buffer
+    int consumed;           // packed bytes consumed in the chunk (written, never read)
+};
+
 // Progress callback shared by ExecPack and ExecUnpack: (user data, bytes of the current chunk, percent of the job).
 // A non-zero result aborts the job.
 typedef int (*ExecProgressFn)(void *user, unsigned chunkBytes, unsigned percent);
 
 // ---- shared state (file-scope data of exec_pack.cpp) ----
 extern ExecUnpackStream *g_unpack;  // chunk being expanded
-extern unsigned short g_bits;  // bit buffer, next flag in the low bit
-extern unsigned char g_bitCount;  // bits left in g_bits
-extern int g_unpackConsumed;  // packed bytes consumed in the chunk (written, never read)
+extern BitReader g_reader;
 extern unsigned char *g_unpackChunkStart;  // start of g_unpackChunk, where every chunk is expanded
 extern unsigned char *g_unpackDest;  // caller's buffer, next free byte
 extern unsigned g_unpackLimit;  // original size: no chunk may grow past it
