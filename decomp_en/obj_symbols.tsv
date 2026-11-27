@@ -1220,6 +1220,7 @@ _Textures_SaveAllItp	007427f0
 ?OnDrawItem@CTabCtrl2@@IAEXHPAUtagDRAWITEMSTRUCT@@@Z	006e93b0
 ?OnCtlColor@CNetDlg@@IAEPAUHBRUSH__@@PAVCDC@@PAVCWnd@@I@Z	006e9290
 ?OnCtlColor@CTitDlg@@IAEPAUHBRUSH__@@PAVCDC@@PAVCWnd@@I@Z	006e9320
+?OnInitDialog@CTitDlg@@UAEHXZ	006ea250
 ?OnCtlColor@CVideoDlg@@IAEPAUHBRUSH__@@PAVCDC@@PAVCWnd@@I@Z	006e9350
 ?OnDrawItem@CVideoDlg@@IAEXHPAUtagDRAWITEMSTRUCT@@@Z	006e93c0
 ?OnEraseBkgnd@CVideoDlg@@IAEHPAVCDC@@@Z	006e93e0
@@ -1374,7 +1375,12 @@ _Jpeg_WriteRgb	007be690
 _Packs_DecodeBlock	007bd990
 # launcher (batch 18)
 ?OnTimer@COseDlg@@IAEXI@Z	006eca20
-?OnLButtonDown@COseDlg@@IAEXIVCPoint@@@Z	006ec8f0
+?OnRButtonDown@COseDlg@@IAEXIVCPoint@@@Z	006ec8f0
+?Ose_PlayMove@@YAHPAHIIH@Z	006ec360
+?Ose_SearchMove@@YAHPAEHHH@Z	006ecb50
+?Ose_SearchMovePacked@@YAHPAHHHH@Z	006ecf40
+?OnLButtonDown@COseDlg@@IAEXIVCPoint@@@Z	006ec5d0
+?OnPaint@COseDlg@@IAEXXZ	006ec790
 ??1CNetDlg@@UAE@XZ	006e68b0
 ??_GCAboutDlg@@UAEPAXI@Z	006e6de0
 ??_GCButton@@UAEPAXI@Z	006e6000
@@ -1617,3 +1623,4 @@ _Char_DispatchByKind	00699810
 _DataFolder_SetFolderName	007a4b60
 ?QueryDeltaStartAndCursor@ImeContext@@QAEXXZ	007aac90
 _Event_PlayCueSound	00647a40
+?Launcher_LoadConfig@@YAXH@Z	006e81d0

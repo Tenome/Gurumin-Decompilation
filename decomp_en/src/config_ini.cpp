@@ -22,7 +22,7 @@ extern "C" int Config_SetInt(const char *file, const char *section, const char *
 
 // Reads the integer `key` of `section` in `file` into *value, 0 when the key is missing. Always returns 1. Called by
 // the launcher when it loads its settings.
-extern "C" int Config_GetInt(const char *file, const char *section, const char *key, unsigned int *value)
+extern "C" int Config_GetInt(const char *file, const char *section, const char *key, int *value)
 {
     *value = GetPrivateProfileIntA(section, key, 0, file);
     return 1;
