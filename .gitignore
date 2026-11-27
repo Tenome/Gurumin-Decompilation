@@ -18,3 +18,5 @@ build/pyinstaller/
 build/port/
 decomp_packs/build/
 decomp_packs/triage.tsv
+decomp_soundarc/build/
+decomp_soundarc/triage.tsv

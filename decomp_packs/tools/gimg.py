@@ -53,7 +53,7 @@ def inventory():
     image = Image()
     for a, b in zip(starts, starts[1:] + [GAME_END]):
         if GAME_START <= a < GAME_END:
-            code = image.read(a, b - a)
+            code = image.read(a, min(b, GAME_END) - a)
             inv[a] = (inv[a][0], len(code.rstrip(bytes([0x90, 0xCC]))))
     if os.path.exists(TRIAGE):
         for line in open(TRIAGE).read().splitlines()[1:]:

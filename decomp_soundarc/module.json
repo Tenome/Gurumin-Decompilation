@@ -1,0 +1,8 @@
+{
+  "dll": "SoundArc.dll",
+  "unit_prefix": "soundarc/",
+  "report": "progress/jp/soundarc.json",
+  "game_start": "00401000",
+  "game_end": "00402b30",
+  "title": "Gurumin (JP PC) SoundArc.dll matching decompilation"
+}
