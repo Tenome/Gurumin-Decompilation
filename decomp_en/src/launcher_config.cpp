@@ -137,8 +137,7 @@ void Launcher_LoadConfig(int part)
         strcpy(lobbyAddress, "192.168.1.3");   // default lobby server address
     }
     g_netPage.m_lobbyAddress.SetString(lobbyAddress, (int)strlen(lobbyAddress));
-    const int which = part;   // the original reuses the parameter's stack slot for the gamma reads below
-    if (which == LAUNCHER_LOAD_ALL) {
+    if (part == LAUNCHER_LOAD_ALL) {
         Config_GetInt(path, "CONFIG", "RESOLUTION", &g_videoPage.m_resolution);
         Config_GetInt(path, "CONFIG", "FULLSCREEN", &g_videoPage.m_windowed);
         Config_GetInt(path, "CONFIG", "HDVS", &g_videoPage.m_hwVertexShader);
@@ -191,10 +190,11 @@ void Launcher_LoadConfig(int part)
         Config_GetInt(path, "CONFIG", "SOUND3D2", &g_videoPage.m_combo414);
         Config_GetInt(path, "CONFIG", "SOUNDTP", &g_videoPage.m_combo40e);
         Config_GetInt(path, "CONFIG", "SOUNDTP2", &g_videoPage.m_combo40f);
-        Config_GetInt(path, "CONFIG", "GAMMA", &part);
-        g_videoPage.m_contrast = part / LAUNCHER_GAMMA_DIVISOR + LAUNCHER_GAMMA_BASE;
-        Config_GetInt(path, "CONFIG", "GAMMA2", &part);
-        g_videoPage.m_brightness = part / LAUNCHER_GAMMA_DIVISOR + LAUNCHER_GAMMA_BASE;
+        int gamma;
+        Config_GetInt(path, "CONFIG", "GAMMA", &gamma);
+        g_videoPage.m_contrast = gamma / LAUNCHER_GAMMA_DIVISOR + LAUNCHER_GAMMA_BASE;
+        Config_GetInt(path, "CONFIG", "GAMMA2", &gamma);
+        g_videoPage.m_brightness = gamma / LAUNCHER_GAMMA_DIVISOR + LAUNCHER_GAMMA_BASE;
         Config_GetInt(path, "CONFIG", "USEJP", &g_padPage.m_check3eb);
         Config_GetInt(path, "CONFIG", "USEVB", &g_padPage.m_check425);
         Config_GetInt(path, "CONFIG", "EKEY1", &g_padPage.m_check424);
@@ -203,7 +203,7 @@ void Launcher_LoadConfig(int part)
         Config_GetInt(path, "CONFIG", "EKEY4", &g_padPage.m_check428);
         Config_GetInt(path, "CONFIG", "NOUDXI", &g_padPage.m_check42a);
     }
-    if (which == LAUNCHER_LOAD_ALL || which == LAUNCHER_LOAD_KEYBOARD) {
+    if (part == LAUNCHER_LOAD_ALL || part == LAUNCHER_LOAD_KEYBOARD) {
         Config_GetInt(path, "KEYCONFIG", "KEY01", &g_kbPage.m_dash);
         Config_GetInt(path, "KEYCONFIG", "KEY02", &g_kbPage.m_moveLeft);
         Config_GetInt(path, "KEYCONFIG", "KEY03", &g_kbPage.m_moveForward);
@@ -217,7 +217,7 @@ void Launcher_LoadConfig(int part)
         Config_GetInt(path, "KEYCONFIG", "KEY14", &g_kbPage.m_menu);
         Config_GetInt(path, "KEYCONFIG", "KEY15", &g_kbPage.m_cameraRight);
     }
-    if (which == LAUNCHER_LOAD_ALL || which == LAUNCHER_LOAD_PAD) {
+    if (part == LAUNCHER_LOAD_ALL || part == LAUNCHER_LOAD_PAD) {
         Config_GetInt(path, "KEYCONFIG", "PAD01", &g_padPage.m_00d0);
         Config_GetInt(path, "KEYCONFIG", "PAD02", &g_padPage.m_00ec);
         Config_GetInt(path, "KEYCONFIG", "PAD03", &g_padPage.m_00f0);
@@ -235,13 +235,13 @@ void Launcher_LoadConfig(int part)
         Config_GetInt(path, "KEYCONFIG", "PAD15", &g_padPage.m_00d4);
         Config_GetInt(path, "KEYCONFIG", "PADID", &g_padPage.m_0110);
     }
-    if (which == LAUNCHER_LOAD_ALL || which == LAUNCHER_LOAD_PAD) {
+    if (part == LAUNCHER_LOAD_ALL || part == LAUNCHER_LOAD_PAD) {
         g_padPage.ShowAssignments(FALSE);
     }
-    if (which == LAUNCHER_LOAD_ALL || which == LAUNCHER_LOAD_KEYBOARD) {
+    if (part == LAUNCHER_LOAD_ALL || part == LAUNCHER_LOAD_KEYBOARD) {
         g_kbPage.UpdateData(FALSE);
     }
-    if (which == LAUNCHER_LOAD_ALL) {
+    if (part == LAUNCHER_LOAD_ALL) {
         g_videoPage.UpdateData(FALSE);
         g_netPage.UpdateData(FALSE);
     }

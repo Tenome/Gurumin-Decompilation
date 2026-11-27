@@ -5,7 +5,7 @@ Re-run after each batch (finished items drop out). Per function: `python tools/p
 the JP twin's matched source, the EN callees with their JP names and the EN disassembly (`--brief` makes a
 subagent brief). Low-confidence map rows: check the twin before porting.
 
-## 1. Walls to retry (305)
+## 1. Walls to retry (308)
 
 - [ ] `005a1200` — CharRecord::operator= (implicit, 556 bytes): header ready (CharRecord fields 0x44..0xec made individual, ParamVector position); a throwaway copy function matched, but the standalone copy is only emitted in a TU with a real caller (Game_Reset 5a2dd0, Map_PlaceCharacters 637160, Game_LoadData 5f2cd0), so it has no honest source yet
 - [ ] `005a1fa0` — Switch_Hold (src/switches.cpp): function really ends at 0x5a214f (432 bytes, shared return-0 block after the last ret). With the held-object store inside each search branch ours tail-duplicates the code after the branches (434 bytes) where the original jumps to one shared tail; with the store after the branches the kind blocks and the lever check order differ. Tried 3 kind-block spellings and both store positions.
@@ -118,7 +118,10 @@ subagent brief). Low-confidence map rows: check the twin before porting.
 - [ ] `006e7010` — 6-byte-body thunk (push ebp; mov ebp,esp; pop ebp; jmp CDialog::Create(LPCTSTR,CWnd*) 0x40129c) in the vtable at 0x84f170 next to 0x6e9410: virtual override of an unreconstructed launcher dialog class; class not identified (batch 17)
 - [ ] `006ea830` — CCongigDlg::ShowPage: 9 diffs, only the load order of the final MoveWindow arguments (original loads top, bottom, left; ours bottom, top, left). The two RECT initialisations now match after declaring them at point of use; three spellings of the MoveWindow call (fields, &rect overload, locals x/y) compile to the same bytes.
 - [ ] `006eb860` — CKbDlg::IsStartRefused: all but the "unassigned list" flag matches (vectorised id array, loop, MessageBox call). The original keeps the bool result in a stack byte [ebp-1] for the normal exit and in bl for the declined path, and loads the stack frame 4 bytes larger; ours constant-folds the flag (xor al,al / mov al,1). Three spellings tried (result local set before the box and returned on both exits, constants on both exits, early return).
-- [ ] `006ec790` — Othello board paint handler (CPaintDC, board packing loops): not attempted, see NOTES launcher section
+- [ ] `006ec360` — Ose_PlayMove (src/launcher_ose_logic.cpp): 383 vs 362 bytes. Unpack, repack, the two step tables indexed by one byte offset, steps applied at the loop bottom from a precomputed first cell and the not-adjacent branch first now all line up with the original; what remains is register allocation in the direction loop (original: adjacent flag in eax and distance in ecx both set from one constant 1, distance spilled to [ebp-4], row kept in edi across directions; ours puts the flag in ecx and the distance in esi). Tried board++ repack, int/bool flag, 2D step table, unsigned direction, explicit index, counted-down flip, flag declared after the start cell. In the original it sits in the same object as COseDlg::OnTimer but is not inlined there; a definition in launcher_ose.cpp gets inlined into OnTimer, so the draft lives in its own file until it matches
+- [ ] `006ec790` — COseDlg::OnPaint (src/launcher_ose.cpp): 351 bytes, same size, 141 diff bytes: only the outer-loop cell pointer setup differs (original re-derives edi = cells + row inside the outer loop with the row counter spilled to [ebp-0x18]; ours hoists the lea); row/column counter form is worse
+- [ ] `006ecb50` — Ose_SearchMove (src/launcher_ose_logic.cpp, not launcher_ose.cpp: next to OnTimer it gets inlined there): 948 vs 973 bytes (932 with one 2D step table); the 8x8 flag scan matches byte for byte, the rest differs only in the direction loop: the original indexes both step tables with one byte offset (esi-style d += 4, cmp 0x20, [d+0x908990]/[d+0x9089b0]) and rereads the row step from the table, ours walks two table pointers. Same wall as Ose_PlayMove 006ec360. Tried int flags + ternary flag spelling, int adjacent, destructive flip counter, row step read inline, one 2D step table, int return 0 / best < count
+- [ ] `006ecf40` — Ose_SearchMovePacked (dead code twin of 006ecb50, same file): 1101 vs 1127 bytes, same direction loop residue as 006ecb50 plus the pack/unpack frame; same spellings tried
 - [ ] `006ed900` — CPadDlg::IsStartRefused: same residue as CKbDlg::IsStartRefused 0x006eb860 (flag kept in [ebp-1] and bl, frame 0x34 vs ours 0x30); identical source shape, same three spellings tried.
 - [ ] `006ef7b0` — launcher pad page handler (SendMessageA, key assignment): not attempted
 - [ ] `006efb10` — CPadDlg::OnTimer (src/launcher_pad.cpp): 2 bytes off, the final countdown step is sub eax,2 in the original and add eax,-2 in ours (local, direct, ternary and += spellings tried).
@@ -313,15 +316,18 @@ subagent brief). Low-confidence map rows: check the twin before porting.
 - [ ] `007c5a60` — SoundArc_PlayFile: EN keeps the queue index in a byte and recomputes slot*0x1c0 for the tick store; every spelling keeps one pointer
 - [ ] `007c5f80` — SoundEngine_SetOptions: store of the tens digit scheduled after the second division
 
-## 2. JP twin matched: port the JP source (5 functions, 27684 bytes)
+## 2. JP twin matched: port the JP source (8 functions, 38764 bytes)
 
+- [ ] `006cbad0` 1645 bytes <- APP.dll `10023d30` Map_Unload [decomp/src/map_unload.cpp] (high 0.61)
 - [ ] `005aec10` 1767 bytes <- APP.dll `1001e4b0` StatusPanel_UpdateText [decomp/src/status_panel_text.cpp] (medium 0.53)
+- [ ] `005a7980` 1880 bytes <- APP.dll `100b0250` Companion0_Update [decomp/src/companion_update.cpp] (high 0.81)
 - [ ] `005bb080` 5147 bytes <- APP.dll `10078060` Partner_SpecialSkill [decomp/src/partner_skill.cpp] (high 0.85)
 - [ ] `0062cb70` 6201 bytes <- APP.dll `10114950` TitleScreen_Update [decomp/src/title_screen.cpp] (high 0.85)
 - [ ] `005a2dd0` 6854 bytes <- APP.dll `1003e710` Game_Reset [decomp/src/game_reset.cpp] (high 0.80)
+- [ ] `006cd640` 7555 bytes <- APP.dll `100404e0` Char_PutOnEquipment [decomp/src/char_equip_models.cpp] (high 0.85)
 - [ ] `005d3360` 7715 bytes <- APP.dll `10038c10` Scene_DrawFrame [decomp/src/scene_draw.cpp] (high 0.85)
 
-## 3. JP twin not matched yet (193 functions, 1351466 bytes)
+## 3. JP twin not matched yet (190 functions, 1340386 bytes)
 
 - [ ] `007c20a0` 1290 bytes <- sound3d.dll `10006250`  (high 0.66)
 - [ ] `007a45b0` 1333 bytes <- APP.dll `10150bb0` MeshData_BuildBuffers (high 0.96)
@@ -343,7 +349,6 @@ subagent brief). Low-confidence map rows: check the twin before porting.
 - [ ] `005d7e00` 1613 bytes <- APP.dll `1001ed80` Map_DrawMovie (high 0.84)
 - [ ] `006d4590` 1613 bytes <- APP.dll `100451c0` Npc_WalkRoute (high 0.85)
 - [ ] `00770b00` 1629 bytes <- APP.dll `101b0240`  (high 0.72)
-- [ ] `006cbad0` 1645 bytes <- APP.dll `10023d30` Map_Unload (high 0.61)
 - [ ] `0076fd80` 1647 bytes <- APP.dll `101afe00` KeyTrack_Sample (high 0.83)
 - [ ] `006ac260` 1648 bytes <- APP.dll `10051e20` Flames_Update (high 0.86)
 - [ ] `006bc9b0` 1653 bytes <- APP.dll `10044b10` Npc_PatrolRoute (high 0.81)
@@ -364,7 +369,6 @@ subagent brief). Low-confidence map rows: check the twin before porting.
 - [ ] `005bddd0` 1851 bytes <- APP.dll `10026d80` Enemy_WanderNearHome (high 0.93)
 - [ ] `006cc180` 1867 bytes <- APP.dll `100b4930` Npc_RideAlarm (high 0.76)
 - [ ] `0074d5b0` 1869 bytes <- APP.dll `10193d10` Node_ShadeWaveCopy (high 0.93)
-- [ ] `005a7980` 1880 bytes <- APP.dll `100b0250` Companion0_Update (high 0.81)
 - [ ] `005b8d90` 1895 bytes <- APP.dll `10089210` ListBank::RunStatements (high 0.79)
 - [ ] `00695e20` 1898 bytes <- APP.dll `100a7150` Enemy_StarVolley (medium 0.57)
 - [ ] `007a13e0` 1899 bytes <- APP.dll `10148b00` TextureManager::CreateDevice (medium 0.54)
@@ -471,7 +475,6 @@ subagent brief). Low-confidence map rows: check the twin before porting.
 - [ ] `006e32d0` 7209 bytes <- APP.dll `1002ae70` Char_HikariWarp (high 0.74)
 - [ ] `006a7c50` 7272 bytes <- APP.dll `100aa820` Enemy_StalkAndClaw (high 0.85)
 - [ ] `005aa7f0` 7473 bytes <- APP.dll `1008fea0` DrillClaws_Update (medium 0.58)
-- [ ] `006cd640` 7555 bytes <- APP.dll `100404e0` Char_PutOnEquipment (high 0.85)
 - [ ] `007a60b0` 7702 bytes <- APP.dll `101493f0` Render_ComposeFrame (high 0.75)
 - [ ] `005fd1b0` 7848 bytes <- APP.dll `100fedd0` Script_SystemCommand (high 0.89)
 - [ ] `00652b60` 8179 bytes <- APP.dll `10032240` SoccerGame_UpdateCpuPlayer (high 0.91)
@@ -517,7 +520,7 @@ subagent brief). Low-confidence map rows: check the twin before porting.
 - [ ] `006883a0` 51470 bytes <- APP.dll `100d24a0` Bs006_Update (medium 0.60)
 - [ ] `0060cb10` 113582 bytes <- APP.dll `1011d810`  (high 0.72)
 
-## 4. EN-only (no JP twin found) (176 functions, 173883 bytes)
+## 4. EN-only (no JP twin found) (170 functions, 167831 bytes)
 
 - [ ] `00748fa0` 273 bytes (unknown)
 - [ ] `007ae1e0` 274 bytes (unknown)
@@ -568,11 +571,9 @@ subagent brief). Low-confidence map rows: check the twin before porting.
 - [ ] `007b01c0` 349 bytes (unknown)
 - [ ] `00747730` 361 bytes (unknown)
 - [ ] `00752740` 361 bytes (unknown)
-- [ ] `006ec360` 362 bytes (launcher (EN-only config dialog))
 - [ ] `007a5b00` 362 bytes (unknown)
 - [ ] `00741130` 364 bytes (unknown)
 - [ ] `0072da60` 365 bytes (unknown)
-- [ ] `006ea250` 372 bytes (launcher (EN-only config dialog))
 - [ ] `007492d0` 390 bytes (unknown)
 - [ ] `00773910` 394 bytes (unknown)
 - [ ] `00749460` 396 bytes (unknown)
@@ -585,7 +586,6 @@ subagent brief). Low-confidence map rows: check the twin before porting.
 - [ ] `0072dcd0` 422 bytes (unknown)
 - [ ] `0072de80` 422 bytes (unknown)
 - [ ] `007432d0` 424 bytes (unknown)
-- [ ] `006ec5d0` 425 bytes (launcher (EN-only config dialog))
 - [ ] `0076ae00` 428 bytes (unknown)
 - [ ] `007af740` 454 bytes (unknown)
 - [ ] `0073f580` 464 bytes (unknown)
@@ -641,14 +641,12 @@ subagent brief). Low-confidence map rows: check the twin before porting.
 - [ ] `0079b5d0` 929 bytes (unknown)
 - [ ] `0073e320` 953 bytes (unknown)
 - [ ] `00744a80` 958 bytes (unknown)
-- [ ] `006ecb50` 973 bytes (launcher (EN-only config dialog))
 - [ ] `0074bc60` 980 bytes (unknown)
 - [ ] `0079b1f0` 988 bytes (unknown)
 - [ ] `007472b0` 997 bytes (unknown)
 - [ ] `0075c160` 1012 bytes (unknown)
 - [ ] `00792750` 1016 bytes (unknown)
 - [ ] `0079a4a0` 1029 bytes (unknown)
-- [ ] `006ecf40` 1127 bytes (launcher (EN-only config dialog))
 - [ ] `00768f30` 1147 bytes (unknown)
 - [ ] `007b9ab0` 1184 bytes (unknown)
 - [ ] `0075c560` 1203 bytes (unknown)
@@ -686,7 +684,6 @@ subagent brief). Low-confidence map rows: check the twin before porting.
 - [ ] `00751530` 2469 bytes (unknown)
 - [ ] `00797f30` 2636 bytes (unknown)
 - [ ] `0075fee0` 2732 bytes (unknown)
-- [ ] `006e81d0` 2793 bytes (launcher (EN-only config dialog))
 - [ ] `005caa80` 2955 bytes (unknown)
 - [ ] `005e30b0` 3188 bytes (unknown)
 - [ ] `007334c0` 3558 bytes (unknown)

@@ -10,7 +10,7 @@ EN game functions: 2006 (2078797 bytes)
     from SoundArc.dll 4
     from sound3d.dll  102
     by features 787, by call graph 347
-    JP twin already matched: 686
+    JP twin already matched: 709
   without a JP twin: 872 (246277 bytes)
     launcher (EN-only config dialog)     145 functions    19137 bytes
     steam                                 13 functions     1502 bytes
