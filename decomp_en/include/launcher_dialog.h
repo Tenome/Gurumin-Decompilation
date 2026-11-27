@@ -119,7 +119,7 @@ public:
     int m_resolution;                // 0x0a0 IDC_RESOLUTION selected row (-1 none)
     int m_uncompressedTextures;      // 0x0a4 IDC_UNCOMPRESSED_TEXTURES check state
     int m_audioEnable;               // 0x0a8 IDC_AUDIO_ENABLE radio group index (-1 none)
-    int m_00ac;                      // 0x0ac not touched by the constructor or DoDataExchange
+    int m_antiAlias;                 // 0x0ac ini key ANTI, loaded by Launcher_LoadConfig; not touched by the constructor or DoDataExchange
     int m_textureFiltering;          // 0x0b0 IDC_TEXTURE_FILTERING selected row
     int m_multiSampling;             // 0x0b4 IDC_MULTI_SAMPLING selected row
     int m_depthOfField;              // 0x0b8 IDC_DEPTH_OF_FIELD check state
@@ -322,7 +322,13 @@ enum LauncherNetControlId {
 enum LauncherTitleControlId {
     IDC_TITLE_ONLINE_UPDATE = 0x3ff,    // "Online Update(&L)" push button
     IDC_TITLE_PROGRESS_A = 0x415,       // first update progress bar
-    IDC_TITLE_PROGRESS_B = 0x419        // second update progress bar
+    IDC_TITLE_VERSION_TEXT = 0x416,     // static text: "Version: yyyy/mm/dd Rev.n"
+    IDC_TITLE_UPDATE_STATUS_B = 0x417,  // static text of the update progress (hidden in this build)
+    IDC_TITLE_UPDATE_STATUS = 0x418,    // static text: update check status message
+    IDC_TITLE_PROGRESS_B = 0x419,       // second update progress bar
+    IDC_TITLE_UPDATE_SERVER = 0x41a,    // static text: "UpdateServer:" label
+    IDC_TITLE_COPYRIGHT = 0x41b,        // static text: copyright line
+    IDC_TITLE_HIDDEN_424 = 0x424        // control hidden at start-up (purpose unknown)
 };
 
 // Network page (dialog template IDD_NET_DIALOG): the lobby server address and the "no patch at start-up" switch.
@@ -348,6 +354,7 @@ class CTitDlg : public CDialog {
 public:
     CTitDlg(CWnd *pParent = NULL);   // EN 0x006f0470
     virtual ~CTitDlg();              // EN 0x006f0510, scalar deleting form 0x006f05c0
+    virtual BOOL OnInitDialog();     // EN 0x006ea250
 
     enum { IDD = IDD_TITLE_DIALOG };
 
@@ -360,6 +367,7 @@ protected:
     afx_msg HBRUSH OnCtlColor(CDC *pDC, CWnd *pWnd, UINT nCtlColor);   // EN 0x006e9320
     DECLARE_MESSAGE_MAP()
 };
+extern CTitDlg *g_titlePageThis;        // the title page object, set by CTitDlg::OnInitDialog (EN 0x0161274c)
 
 // ---- "Osero" (Othello) mini game page (RT_DIALOG 132): a hidden game on the 128x128 client area --------------------
 enum LauncherOseControlId {
@@ -371,21 +379,41 @@ enum LauncherOseControlId {
 const int OSE_BOARD_SIZE = 8;               // cells per board side
 const int OSE_CELL_COUNT = 64;              // OSE_BOARD_SIZE * OSE_BOARD_SIZE
 const int OSE_BOARD_WORDS = 4;              // the packed board: 16 two-bit cells per 32-bit word
+const int OSE_GRID_LINES = 9;                // lines of the board grid in each direction (OSE_BOARD_SIZE + 1)
+const int OSE_DIRECTIONS = 8;               // neighbours of a cell (the 8 compass directions)
 const int OSE_CELL_PIXELS = 16;             // width and height of a board cell on screen
+const COLORREF OSE_COLOR_BLACK = 0x000000;   // colour of the grid lines and black pieces
+const COLORREF OSE_COLOR_WHITE = 0xfafafa;   // colour of white pieces
 const unsigned char OSE_CELL_EMPTY = 0;     // cell state: no piece
 const unsigned char OSE_CELL_BLACK = 1;     // cell state: black piece
 const unsigned char OSE_CELL_WHITE = 2;     // cell state: white piece
 
 extern int g_oseBoard[OSE_BOARD_WORDS];   // the board, 2 bits per cell, row major (EN 0x01614d60)
 extern int g_oseComputerTurnPending;               // non-zero while the computer owes a move (EN 0x01614d70)
-extern int g_oseChosenCell;                        // cell index the move search chose, -1 = no move (EN 0x01614d74)
-extern int g_oseChosenValue;                       // the search's value for the chosen move (EN 0x01615298)
+extern int g_oseChosenColumn;                      // column the move search chose, -1 = no move (EN 0x01614d74)
+extern int g_oseChosenRow;                         // row of the chosen move (EN 0x01615298)
+extern int g_oseDirectionColumn[OSE_DIRECTIONS];   // column step of each of the 8 directions (EN 0x00908990)
+extern int g_oseDirectionRow[OSE_DIRECTIONS];      // row step of each of the 8 directions (EN 0x009089b0)
 
-// Move search of the computer player (not yet reconstructed, EN 0x006ecb50): looks for the best move for `color`
-// (1 black, 2 white) on the unpacked board `cells`, recursing with `depth`; leaves its choice in g_oseChosenCell.
-void Ose_SearchMove(unsigned char *cells, int depth, int color, int opponentColor);
-// Plays the chosen move on the packed board (not yet reconstructed, EN 0x006ec360). Returns 0 when the move is illegal.
-int Ose_PlayMove(int *board, int cell, int value, int color);
+const int OSE_SEARCH_DEPTH = 7;             // plies the exhaustive move search looks ahead
+const int OSE_SEARCH_TABLE_SIZE = 164;      // entries the original reserves in the per-ply move tables
+extern int g_oseMoveColumn[OSE_SEARCH_TABLE_SIZE];   // column of the move tried at each ply of the search (EN 0x01614d78)
+extern int g_oseMoveRow[OSE_SEARCH_TABLE_SIZE];      // row of the move tried at each ply of the search (EN 0x01615008)
+extern int g_oseBestCount;                           // most pieces of the counted colour reached so far (EN 0x0161529c)
+
+// Move search of the computer player (EN 0x006ecb50): tries every empty cell for `color` (1 black, 2 white) on the
+// unpacked board `cells`, plays it and recurses one ply deeper for the other colour (a side without a move passes).
+// At the end of a line (board full or one colour gone, or OSE_SEARCH_DEPTH plies) it counts the pieces of
+// `countColor`; the first move of the line with the highest count is left in g_oseChosenColumn/g_oseChosenRow.
+// Always returns 0 (the result is unused). Called by COseDlg::OnTimer with depth 0.
+int Ose_SearchMove(unsigned char *cells, int depth, int color, int countColor);
+// The same search on a packed board (EN 0x006ecf40): unpacks it itself and packs every child board before recursing.
+// Never called in the exe (dead code next to Ose_SearchMove); only recursion.
+int Ose_SearchMovePacked(int *board, int depth, int color, int countColor);
+// Plays a move of `color` at (column, row) on the packed board: flips the opponent pieces it captures in the 8
+// directions and repacks the board. Returns 1 when the move was legal, 0 when it flips nothing or the cell is taken
+// (EN 0x006ec360). Called by COseDlg::OnTimer (computer) and COseDlg::OnLButtonDown (player).
+int Ose_PlayMove(int *board, unsigned int column, unsigned int row, int color);
 
 // Othello page (dialog template IDD_OSE_DIALOG): the player plays one colour against the computer. The timer
 // (every 10 ms) lets the computer move once the player has moved or passed.
@@ -404,7 +432,9 @@ protected:
     afx_msg void OnReset();                             // EN 0x006ec4e0
     afx_msg void OnPass();                              // EN 0x006ec580
     afx_msg void OnTimer(UINT_PTR nIDEvent);            // EN 0x006eca20 (10 ms game timer: the computer's move)
-    afx_msg void OnLButtonDown(UINT nFlags, CPoint point);   // EN 0x006ec8f0 (setup phase: puts a white piece)
+    afx_msg void OnLButtonDown(UINT nFlags, CPoint point);   // EN 0x006ec5d0 (setup: black piece, else the player's move)
+    afx_msg void OnPaint();                                  // EN 0x006ec790 (draws the board)
+    afx_msg void OnRButtonDown(UINT nFlags, CPoint point);   // EN 0x006ec8f0 (setup phase: puts a white piece)
     DECLARE_MESSAGE_MAP()
 };
 
@@ -678,9 +708,11 @@ protected:
     DECLARE_MESSAGE_MAP()
 };
 
-// Loads the launcher settings from bin\gurumin.def into the global configuration. `section` 0 loads everything,
-// 1 only the pad assignments, 2 only the keyboard assignments (EN 0x006e81d0, not yet reconstructed).
-void Launcher_LoadConfig(int section);
+// Loads the launcher settings from bin\gurumin.def into the page objects' members (the lobby address, the graphics
+// and audio switches, the keyboard and pad assignments) and refreshes the pages. `part` 0 loads everything, 1 only the
+// pad assignments, 2 only the keyboard assignments. Called by the Reset To Default button (0), the pad page (1) and
+// the keyboard page (2). EN 0x006e81d0.
+void Launcher_LoadConfig(int part);
 
 // Pad button capture state of the gamepad page (the 50 ms timer in CPadDlg::OnTimer reads it).
 extern int g_padWaitingAction;      // 1-based action slot waiting for a button press, 0 = none (EN 0x016152a0)
