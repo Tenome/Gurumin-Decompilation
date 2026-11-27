@@ -1,25 +1,25 @@
 {
  "measures": {
-  "fuzzy_match_percent": 52.0403,
+  "fuzzy_match_percent": 52.0522,
   "total_code": "1789623",
-  "matched_code": "424086",
-  "matched_code_percent": 23.6969,
+  "matched_code": "434657",
+  "matched_code_percent": 24.2876,
   "total_data": "0",
   "matched_data": "0",
   "matched_data_percent": 0.0,
   "total_functions": 1391,
-  "matched_functions": 1071,
-  "matched_functions_percent": 76.995,
+  "matched_functions": 1074,
+  "matched_functions_percent": 77.2106,
   "complete_code": "6861",
   "complete_code_percent": 0.3834,
   "complete_data": "0",
   "complete_data_percent": 0.0,
   "total_units": 494,
-  "complete_units": 230,
-  "matched_rules_code": "423459",
-  "matched_rules_code_percent": 23.6619,
-  "matched_rules_functions": 1070,
-  "matched_rules_functions_percent": 76.9231
+  "complete_units": 232,
+  "matched_rules_code": "434030",
+  "matched_rules_code_percent": 24.2526,
+  "matched_rules_functions": 1073,
+  "matched_rules_functions_percent": 77.1387
  },
  "units": [
   {
@@ -7697,32 +7697,32 @@
   {
    "name": "app/enemy_barrage",
    "measures": {
-    "fuzzy_match_percent": 99.1594,
+    "fuzzy_match_percent": 99.5671,
     "total_code": "8280",
-    "matched_code": "4800",
-    "matched_code_percent": 57.971,
+    "matched_code": "6488",
+    "matched_code_percent": 78.3575,
     "total_data": "0",
     "matched_data": "0",
     "matched_data_percent": 0.0,
     "total_functions": 5,
-    "matched_functions": 3,
-    "matched_functions_percent": 60.0,
+    "matched_functions": 4,
+    "matched_functions_percent": 80.0,
     "complete_code": "0",
     "complete_code_percent": 0.0,
     "complete_data": "0",
     "complete_data_percent": 0.0,
     "total_units": 1,
     "complete_units": 0,
-    "matched_rules_code": "4800",
-    "matched_rules_code_percent": 57.971,
-    "matched_rules_functions": 3,
-    "matched_rules_functions_percent": 60.0
+    "matched_rules_code": "6488",
+    "matched_rules_code_percent": 78.3575,
+    "matched_rules_functions": 4,
+    "matched_rules_functions_percent": 80.0
    },
    "sections": [
     {
      "name": ".text",
      "size": "8280",
-     "fuzzy_match_percent": 99.1594
+     "fuzzy_match_percent": 99.5671
     }
    ],
    "functions": [
@@ -7745,7 +7745,7 @@
     {
      "name": "?Enemy_StarVolley@@YAHH@Z",
      "size": "1688",
-     "fuzzy_match_percent": 98.0,
+     "fuzzy_match_percent": 100.0,
      "metadata": {
       "virtual_address": "269119824"
      }
@@ -16161,46 +16161,46 @@
   {
    "name": "app/model_scan_chunks",
    "measures": {
-    "fuzzy_match_percent": 98.0,
+    "fuzzy_match_percent": 100.0,
     "total_code": "2157",
-    "matched_code": "0",
-    "matched_code_percent": 0.0,
+    "matched_code": "2157",
+    "matched_code_percent": 100.0,
     "total_data": "0",
     "matched_data": "0",
     "matched_data_percent": 0.0,
     "total_functions": 1,
-    "matched_functions": 0,
-    "matched_functions_percent": 0.0,
-    "complete_code": "0",
-    "complete_code_percent": 0.0,
+    "matched_functions": 1,
+    "matched_functions_percent": 100.0,
+    "complete_code": "2157",
+    "complete_code_percent": 100.0,
     "complete_data": "0",
     "complete_data_percent": 0.0,
     "total_units": 1,
-    "complete_units": 0,
-    "matched_rules_code": "0",
-    "matched_rules_code_percent": 0.0,
-    "matched_rules_functions": 0,
-    "matched_rules_functions_percent": 0.0
+    "complete_units": 1,
+    "matched_rules_code": "2157",
+    "matched_rules_code_percent": 100.0,
+    "matched_rules_functions": 1,
+    "matched_rules_functions_percent": 100.0
    },
    "sections": [
     {
      "name": ".text",
      "size": "2157",
-     "fuzzy_match_percent": 98.0
+     "fuzzy_match_percent": 100.0
     }
    ],
    "functions": [
     {
      "name": "?ScanChunks@Node@@QAEHPAUGameFile@@H@Z",
      "size": "2157",
-     "fuzzy_match_percent": 98.0,
+     "fuzzy_match_percent": 100.0,
      "metadata": {
       "virtual_address": "270158432"
      }
     }
    ],
    "metadata": {
-    "complete": false,
+    "complete": true,
     "source_path": "decomp/src/model_scan_chunks.cpp"
    }
   },
@@ -16777,46 +16777,46 @@
   {
    "name": "app/node_commands",
    "measures": {
-    "fuzzy_match_percent": 98.0,
+    "fuzzy_match_percent": 100.0,
     "total_code": "6726",
-    "matched_code": "0",
-    "matched_code_percent": 0.0,
+    "matched_code": "6726",
+    "matched_code_percent": 100.0,
     "total_data": "0",
     "matched_data": "0",
     "matched_data_percent": 0.0,
     "total_functions": 1,
-    "matched_functions": 0,
-    "matched_functions_percent": 0.0,
-    "complete_code": "0",
-    "complete_code_percent": 0.0,
+    "matched_functions": 1,
+    "matched_functions_percent": 100.0,
+    "complete_code": "6726",
+    "complete_code_percent": 100.0,
     "complete_data": "0",
     "complete_data_percent": 0.0,
     "total_units": 1,
-    "complete_units": 0,
-    "matched_rules_code": "0",
-    "matched_rules_code_percent": 0.0,
-    "matched_rules_functions": 0,
-    "matched_rules_functions_percent": 0.0
+    "complete_units": 1,
+    "matched_rules_code": "6726",
+    "matched_rules_code_percent": 100.0,
+    "matched_rules_functions": 1,
+    "matched_rules_functions_percent": 100.0
    },
    "sections": [
     {
      "name": ".text",
      "size": "6726",
-     "fuzzy_match_percent": 98.0
+     "fuzzy_match_percent": 100.0
     }
    ],
    "functions": [
     {
      "name": "?ApplyCommandText@Node@@QAEHPBD@Z",
      "size": "6726",
-     "fuzzy_match_percent": 98.0,
+     "fuzzy_match_percent": 100.0,
      "metadata": {
       "virtual_address": "270151680"
      }
     }
    ],
    "metadata": {
-    "complete": false,
+    "complete": true,
     "source_path": "decomp/src/node_commands.cpp"
    }
   },

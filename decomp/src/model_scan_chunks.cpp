@@ -34,10 +34,6 @@ int Node::ScanChunks(GameFile *file, int arg)
     char name[SCAN_NAME_SIZE];
     Node *node = 0;
     int chunkSize;
-    int plugCount;
-    int plugSize;
-    int plugCount2;
-    int plugSize2;
     int slotMani;
     int slotMan2;
     int unused1, unused2, unused3;
@@ -110,6 +106,7 @@ int Node::ScanChunks(GameFile *file, int arg)
             file->Read(&chunkSize, 1, 4);
             for (g = 0; g < SCAN_PLUG_COUNT; g++)
             {
+                int plugCount;
                 file->Read(&plugCount, 1, 4);
                 if (plugCount != 0)
                 {
@@ -117,6 +114,7 @@ int Node::ScanChunks(GameFile *file, int arg)
                         DAT_11b1ba40(node->plugs[g]);
                     node->plugs[g] = 0;
                     node->plugType[g] = 0;
+                    int plugSize;
                     file->Read(&plugSize, 1, 4);
                     Channel *data = (Channel *)DAT_11b0b938(plugSize, "c->m_plugdata[g]");
                     node->plugs[g] = data;
@@ -137,12 +135,14 @@ int Node::ScanChunks(GameFile *file, int arg)
             file->Read(&chunkSize, 1, 4);
             for (g = 0; g < SCAN_PLUG_COUNT; g++)
             {
+                int plugCount2;
                 file->Read(&plugCount2, 1, 4);
                 if (plugCount2 != 0)
                 {
                     if (node->plugs[g] != 0)
                         DAT_11b1ba40(node->plugs[g]);
                     node->plugs[g] = 0;
+                    int plugSize2;
                     file->Read(&plugSize2, 1, 4);
                     Channel *data = (Channel *)DAT_11b0b938(plugSize2, "c->m_plugdata[g]");
                     node->plugs[g] = data;

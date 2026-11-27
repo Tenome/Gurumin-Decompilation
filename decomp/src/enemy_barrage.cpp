@@ -257,9 +257,8 @@ int Enemy_StarVolley(int index)
         float dx = player.x - self.x;
         DAT_10db6ee8[index].targetHeading = (float)atan2((double)dx, (double)dy) + PI_APPROX;
         FUN_1001bfb0(index, STAR_TURN_LIMIT);
-        dy = DAT_10db6ee8[index].targetHeading - DAT_10db6ee8[index].heading;
-        dy = (float)fabs(dy);
-        int motion = dy > ONE_DEGREE ? 0 : 2;  // idle once facing the player
+        float turn = DAT_10db6ee8[index].targetHeading - DAT_10db6ee8[index].heading;
+        int motion = (float)fabs(turn) > ONE_DEGREE ? 0 : 2;  // idle once facing the player
         if (DAT_1020b430[index].action > 0)
             DAT_1020b430[index].action--;
         if (DAT_1020b430[index].action == 0 && distance < STAR_START_DISTANCE)
@@ -374,9 +373,8 @@ int Enemy_AimedShots(int index)
         float dx = player.x - self.x;
         DAT_10db6ee8[index].targetHeading = (float)atan2((double)dx, (double)dy) + PI_APPROX;
         FUN_1001bfb0(index, STAR_TURN_LIMIT);
-        dx = DAT_10db6ee8[index].targetHeading - DAT_10db6ee8[index].heading;
-        dx = (float)fabs(dx);
-        int motion = dx > ONE_DEGREE ? 0 : 2;  // idle once facing the player
+        float turn = DAT_10db6ee8[index].targetHeading - DAT_10db6ee8[index].heading;
+        int motion = (float)fabs(turn) > ONE_DEGREE ? 0 : 2;  // idle once facing the player
         if (DAT_1020b430[index].action > 0)
             DAT_1020b430[index].action--;
         if (DAT_1020b430[index].action == 0 && distance < STAR_START_DISTANCE)

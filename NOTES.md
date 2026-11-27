@@ -691,3 +691,20 @@ other huge drafts (Bs00x_Update, DrawLit, RunScriptFrames) for the same gap.
 - **Write the tail in every branch** (again): Switch_Hold, Text_Substitute, Mp3Stream::Read and OggStream::Read all
   matched once each branch ended with its own copy of the shared statements; an inverted test (`== 0`) also moves
   which arm the compiler places out of line.
+- **SIB order across whole loops (D3 study, Menu_DrawScene 0x10022830 / DrawQuad 0x1014c080).** In the originals the operand loaded (defined) last is written first in `[a+b]`: DrawQuad sites `[edx+ebp]`, `[eax+ecx]`, `[ecx+ebx]`, `[edx+ebx]`, `[ecx+eax]` and the three haze loops `[esi+eax]` (esi zeroed after the pointer load) all follow it; ours follows it too except at speculars[i].y and in haze loops 1-2. A/B on the haze loops: dropping any one of the three identical loops gives `[eax+esi]` for the rest, a fourth copy gives `[esi+eax]` for all four, any function-level `int region;` shared by the loops (or declared at the top) gives `[eax+esi]` for all, removing unrelated top-level chunks flips single loops; unreferenced extern declarations and one referenced global before the function change nothing. A standalone loop copy (1-5 loops, struct strides 0x40/0x44, method call with 9 arguments, zero stores, shared or own counters) is always `[esi+eax]`. So the order is register-allocation state of the whole function; there is no spelling at the site.
+- **A named local that was a compiler temporary swaps spill slots; so does a function-scope address-taken local** (batch D2, 2026-11-27). (1) Node::ApplyCommandText 0x101a3000: `float degrees = (float)atof(word); limit = degrees * PI / 180` in the six iklim blocks claimed a spill-slot group first and swapped the two slots of every other spilled value (frames / byte-offset induction variable / setanitb mode / the two loop counters: 15 bytes off). Writing `limit = (float)atof(word) * PI / 180` (same `fstp/fld` pair through the cast temporary) matched. A/B: deleting the iklim blocks, or keeping one with the named local, shows the same flip, so a wall of consistently swapped slots may be a named local the original had as an unnamed temporary (cast or call result). (2) Node::ScanChunks 0x101a4a60: `int plugSize;` declared at function top and read through `file->Read(&plugSize, ...)` made cl store `node->plugs[g] = alloc(plugSize, ...)` right after the call (`add esp,8`, store, reload plugSize); declaring `int plugSize;` (and plugCount) in the block that reads it gives the original order (reload, `add esp,8`, pushes, store just before the Read call). Each of the two sites flips alone (30 -> 15 -> 0 diff lines); a small toy did not reproduce it, so treat it as empirical: declare address-taken scratch ints where they are read.
+
+## Turn angle is its own local, not a reused dx/dy (enemy_barrage.cpp, D1 batch)
+- Enemy_StarVolley matched once `dy = target - heading; dy = fabs(dy); motion = dy > 1 degree ? 0 : 2` became
+  `float turn = target - heading; motion = (float)fabs(turn) > 1 degree ? 0 : 2`. Reusing dx or dy for the turn keeps
+  that variable live across the atan2 result, so the compiler temporary lands in the other coordinate's slot and
+  motion shares the wrong group. With a separate `turn` the groups come out as the original's: {x-diff, atan2
+  temporary, turn} and {y-diff, motion} (AimedShots now has these groups right too; only its two spill slots stay
+  swapped).
+- The inline `(float)atan2((double)dx, (double)dy)` pattern in the stalk/hover siblings (dash slash, hover call
+  strike) stores the y-diff first, then the x-diff, passes both as doubles and puts the result in a float temporary
+  that shares the x-diff's slot. A named variable that receives the result (`delta = (float)atan2(..)`) ties the
+  result to that variable's slot instead.
+- Slot ordering is not plain reference counts: three variables with four references each (int restart, float speed,
+  float delta) come out in an order no declaration order changes, and deleting one reference elsewhere can flip two
+  spill slots (AimedShots). Treat equal-count slot order as unexplained.

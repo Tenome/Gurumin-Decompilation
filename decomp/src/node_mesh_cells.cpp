@@ -84,7 +84,6 @@ int Node::SplitIntoCells()
     float minY = CELL_MIN_START;
     float minZ = CELL_MIN_START;
     int pack;
-    int triangle;
     for (pack = 0; pack < packCount; pack++)
     {
         Vec4 *list = (Vec4 *)DAT_11b0b938((unsigned int)(indexLists[pack].count << 4) / 3, "vtx[x]");

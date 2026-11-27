@@ -309,31 +309,25 @@ int Node::ApplyCommandText(const char *commands) throw()
         {
             AllocSaved();
             NextToken(word, commands, &position);
-            float degrees = (float)atof(word);
-            saved->limitMin.x = degrees * PI_APPROX / 180.0f;
+            saved->limitMin.x = (float)atof(word) * PI_APPROX / 180.0f;
             NextToken(word, commands, &position);
-            degrees = (float)atof(word);
-            saved->limitMax.x = degrees * PI_APPROX / 180.0f;
+            saved->limitMax.x = (float)atof(word) * PI_APPROX / 180.0f;
         }
         else if (_strnicmp(word, "iklimy", 6) == 0)
         {
             AllocSaved();
             NextToken(word, commands, &position);
-            float degrees = (float)atof(word);
-            saved->limitMin.y = degrees * PI_APPROX / 180.0f;
+            saved->limitMin.y = (float)atof(word) * PI_APPROX / 180.0f;
             NextToken(word, commands, &position);
-            degrees = (float)atof(word);
-            saved->limitMax.y = degrees * PI_APPROX / 180.0f;
+            saved->limitMax.y = (float)atof(word) * PI_APPROX / 180.0f;
         }
         else if (_strnicmp(word, "iklimz", 6) == 0)
         {
             AllocSaved();
             NextToken(word, commands, &position);
-            float degrees = (float)atof(word);
-            saved->limitMin.z = degrees * PI_APPROX / 180.0f;
+            saved->limitMin.z = (float)atof(word) * PI_APPROX / 180.0f;
             NextToken(word, commands, &position);
-            degrees = (float)atof(word);
-            saved->limitMax.z = degrees * PI_APPROX / 180.0f;
+            saved->limitMax.z = (float)atof(word) * PI_APPROX / 180.0f;
         }
         else if (_strnicmp(word, "cliplevel", 9) == 0)
         {
