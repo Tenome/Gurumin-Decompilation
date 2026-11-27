@@ -459,3 +459,4 @@ Each finished batch adds two new ones, taken from the medium-function section of
 | 395 | 38 | match | Packs round 2: DecodeJpegRgb, GetBit, AdvanceOverToken, StoreCoefficient; BandStatistics and TransformLevel written; Packs 24 of 51 |
 | 396 | 38 | report | Packs and SoundArc merged into progress/jp/report.json; meter retitled to the whole JP game; 946 of 1274 |
 | 397 | 38 | match | sound3d.dll: 4 lanes + type consolidation, 84 of 116 matched, merged into the JP report; 1030 of 1390 |
+| 398 | 38 | match | sound3d round 2: PrepareBuffers, OpenWav, Mp3Stream::Open, OggStream::Open; FindOrLoadSound, PlaySE (/Od) and Mp3Stream::Read written; 1034 of 1390 |

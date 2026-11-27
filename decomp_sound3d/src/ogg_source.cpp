@@ -43,6 +43,7 @@ int OggStream::Open(const char *fileName)
     header.fmtTag[1] = 'm';
     header.fmtTag[2] = 't';
     header.fmtTag[3] = ' ';
+    dataBytes = (fileSize * BITS_PER_BYTE / info.bitrateNominal + OGG_EXTRA_SECONDS) * PCM_OUTPUT_BYTES_PER_SECOND;
     header.samplesPerSecond = PCM_OUTPUT_RATE;
     header.bytesPerSecond = PCM_OUTPUT_BYTES_PER_SECOND;
     header.blockAlign = PCM_OUTPUT_BLOCK_ALIGN;
@@ -52,7 +53,6 @@ int OggStream::Open(const char *fileName)
     header.bitsPerSample = PCM_OUTPUT_BITS;
     position = 0;
     blockPosition = 0;
-    dataBytes = (fileSize * BITS_PER_BYTE / info.bitrateNominal + OGG_EXTRA_SECONDS) * PCM_OUTPUT_BYTES_PER_SECOND;
     header.riffSize = dataBytes;
     totalBytes = dataBytes + WAV_HEADER_BYTES;
     header.dataSize = dataBytes / 2;

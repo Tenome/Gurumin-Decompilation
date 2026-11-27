@@ -53,10 +53,14 @@ def main():
     symbols = load_symbol_addresses()
     total_m = total_d = total_e = 0
     units, all_functions, seen = [], [], set()
-    for path in sorted(glob.glob(os.path.join(root, "src", "*.cpp"))):
+    sources = [(p, os.path.basename(p), []) for p in sorted(glob.glob(os.path.join(root, "src", "*.cpp")))]
+    sources += [(p, os.path.join("..", "src_od", os.path.basename(p)), ["/Od", "/Op-"])  # /Od units (no /Op: float temporaries are not rounded)
+                for p in sorted(glob.glob(os.path.join(root, "src_od", "*.cpp")))]
+    for path, build_name, flags in sources:
         name = os.path.basename(path)
         rules_clean = not file_violations(path)
-        out = subprocess.run(["cmd", "/c", os.path.join(root, "build.bat"), name], capture_output=True, text=True).stdout
+        out = subprocess.run(["cmd", "/c", os.path.join(root, "build.bat"), build_name] + flags,
+                             capture_output=True, text=True).stdout
         functions = []
         for line in out.splitlines():
             if line.startswith("DIFF") or "error" in line:

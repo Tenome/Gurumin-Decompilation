@@ -13,5 +13,7 @@ probe of `ISetSEVol` and `IReset`).
 | 0x10034670–0x100482d0 | libVorbis ("Xiphophorus libVorbis I 20011217") and libogg, built with `/Gy` |
 | 0x100482d0–end | more CRT/MFC |
 
+`src_od/` holds the functions compiled without optimisation (`/Od /Op-`, like APP.dll's `decomp/src_od/`): PlaySE.
+
 The tools are the module-driven copies from `decomp_packs/` (see its README); `module.json` selects this module.
 Its units are merged into `progress/jp/report.json` by `decomp/tools/build_all.py` (MODULES).

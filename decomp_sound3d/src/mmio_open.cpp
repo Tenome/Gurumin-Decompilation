@@ -15,7 +15,6 @@
 // 0x10004590, 0x10004750, 0x10004860 and 0x10006250.
 int MmioFile::Open(const char *path, const char *mode)
 {
-    char plainPath[MMIO_PATH_BYTES];
     char directory[MMIO_PATH_BYTES];
     ArchiveName wanted;
     ArchiveName entry;
@@ -49,8 +48,8 @@ int MmioFile::Open(const char *path, const char *mode)
                 }
             }
             directory[nameStart] = '\0';
-            char arcPath[MMIO_PATH_BYTES];
             char datPath[MMIO_PATH_BYTES];
+            char arcPath[MMIO_PATH_BYTES];
             ArchiveKey lookup = { {{0, 0, 0, 0}}, {{0, 0, 0, 0, 0, 0, 0, 0}} };
             sprintf(datPath, "%s.dat", directory);
             sscanf(directory + nameStart + 1, "%s %s", lookup.name.text, lookup.extension.text);
@@ -73,6 +72,7 @@ int MmioFile::Open(const char *path, const char *mode)
                 handle = mmioOpen(datPath, NULL, MMIO_PARSE);
                 handle = mmioOpen(datPath, NULL, MMIO_READ);
                 if (handle == 0) {
+                    char plainPath[MMIO_PATH_BYTES];
                     strcpy(plainPath, path);
                     handle = mmioOpen(plainPath, NULL, MMIO_PARSE);
                     handle = mmioOpen(plainPath, NULL, MMIO_READ);
@@ -107,7 +107,7 @@ int MmioFile::Open(const char *path, const char *mode)
                 mmioRead(handle, (HPSTR)entry.word, 8);
                 mmioRead(handle, (HPSTR)&entrySize, 4);
                 mmioRead(handle, (HPSTR)&tableOffset, 4);
-                if (entry.word[0] == wanted.word[0] && entry.word[1] == wanted.word[1]) {
+                if (wanted.word[0] == entry.word[0] && wanted.word[1] == entry.word[1]) {
                     break;
                 }
             }

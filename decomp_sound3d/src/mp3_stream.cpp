@@ -98,3 +98,141 @@ void Mp3Stream::LoadSource()
     mp3_decoder_start(sourcePtr, dataLength);
     file.Close();
 }
+
+// Hands out count bytes of the presented stream into buffer: the 44 byte WAV header first, then decoded 16-bit PCM,
+// decoding frame after frame. A request at a position other than the one the decoder state belongs to restarts the
+// decoder and decodes forward to it. Short requests (below MP3_SMALL_READ_LIMIT) sleep 2 ms first and decode into
+// the frame buffer; long ones decode straight into the caller's buffer. When the data runs out the rest of buffer is
+// zeroed. Returns count (the header read returns 0x2c). Called by WaveStream::Read (0x10004c20) for MP3 streams.
+unsigned int Mp3Stream::Read(BYTE *buffer, unsigned int count)
+{
+    int remaining = count;
+    int skipped;
+    int step;
+    int blockBytes;
+    int delivered;
+
+    if (position < WAV_HEADER_BYTES) {
+        memcpy(buffer, &header, sizeof(header));
+        position += WAV_HEADER_BYTES;
+        lastPosition = position;
+        decoder.outputUsed = 0;
+        return WAV_HEADER_BYTES;
+    }
+    if (position == WAV_HEADER_BYTES) {
+        decoder.outputUsed = 0;
+        sourcePtr = (unsigned char *)source;
+        mp3_decoder_start(source, sourceBytesRead);
+        decoder.inputPtr = sourcePtr;
+        decoder.inputSize = MP3_DECODE_WINDOW;
+        lastPosition = position;
+    }
+    if (lastPosition != position) {
+        decoder.outputUsed = 0;
+        sourcePtr = (unsigned char *)source;
+        mp3_decoder_start(source, sourceBytesRead);
+        decoder.inputSize = MP3_DECODE_WINDOW;
+        decoder.inputPtr = sourcePtr;
+        lastPosition = position;
+        decoder.outputPtr = (unsigned char *)frameBuffer;
+        skipped = WAV_HEADER_BYTES;
+        while (skipped < (int)position) {
+            decoder.inputPtr = sourcePtr;
+            decoder.inputSize = MP3_DECODE_WINDOW;
+            mp3_decode_frame(&decoder);
+            sourcePtr += decoder.inputSize;
+            skipped += decoder.outputSize;
+        }
+        decoder.outputUsed = decoder.outputSize - skipped + position;
+        lastPosition = position;
+    }
+    while (position + remaining < header.riffSize) {
+        if (remaining >= MP3_SMALL_READ_LIMIT) {
+            if (decoder.outputUsed == 0) {
+                int frameOffset;
+
+                decoder.inputSize = MP3_DECODE_WINDOW;
+                decoder.outputPtr = buffer + (count - remaining);
+                while (!mp3_decode_frame(&decoder)) {
+                    sourcePtr++;
+                    while (!Mp3FindFrameStart(sourcePtr, sourceBytesRead, &frameOffset)) {
+                    }
+                    sourcePtr += frameOffset;
+                    decoder.inputPtr = sourcePtr;
+                }
+                sourcePtr += decoder.inputSize;
+                decoder.inputPtr = sourcePtr;
+                step = decoder.outputSize;
+                if (remaining < step) {
+                    return count;
+                }
+                remaining -= step;
+            } else {
+                decoder.outputPtr = (unsigned char *)frameBuffer;
+                if (remaining < decoder.outputSize) {
+                    if (remaining != 0) {
+                        memcpy(buffer + (count - remaining), decoder.outputPtr + decoder.outputUsed, remaining);
+                    }
+                    position += remaining;
+                    lastPosition = position;
+                    decoder.outputUsed += remaining;
+                    return count;
+                }
+                memcpy(buffer + (count - remaining), decoder.outputPtr + decoder.outputUsed,
+                       decoder.outputSize - decoder.outputUsed);
+                remaining += decoder.outputUsed - decoder.outputSize;
+                step = decoder.outputSize - decoder.outputUsed;
+                decoder.outputUsed = 0;
+            }
+        } else {
+            Sleep(MP3_SMALL_READ_SLEEP_MS);
+            if (decoder.outputUsed != 0) {
+                blockBytes = decoder.outputSize;
+                if (blockBytes > remaining) {
+                    if (remaining != 0) {
+                        memcpy(buffer + (count - remaining), decoder.outputPtr + decoder.outputUsed, remaining);
+                    }
+                    position += remaining;
+                    lastPosition = position;
+                    decoder.outputUsed += remaining;
+                    return count;
+                }
+                memcpy(buffer + (count - remaining), decoder.outputPtr + decoder.outputUsed,
+                       blockBytes - decoder.outputUsed);
+                remaining += decoder.outputUsed - decoder.outputSize;
+                step = decoder.outputSize - decoder.outputUsed;
+                decoder.outputUsed = 0;
+            } else {
+                int frameOffset;
+
+                decoder.inputSize = MP3_DECODE_WINDOW;
+                decoder.outputPtr = (unsigned char *)frameBuffer;
+                while (!mp3_decode_frame(&decoder)) {
+                    sourcePtr++;
+                    while (!Mp3FindFrameStart(sourcePtr, sourceBytesRead, &frameOffset)) {
+                    }
+                    sourcePtr += frameOffset;
+                    decoder.inputPtr = sourcePtr;
+                }
+                sourcePtr += decoder.inputSize;
+                decoder.inputPtr = sourcePtr;
+                if (remaining < decoder.outputSize) {
+                    if (remaining != 0) {
+                        memcpy(buffer + (count - remaining), decoder.outputPtr, remaining);
+                    }
+                    position += remaining;
+                    lastPosition = position;
+                    decoder.outputUsed += remaining;
+                    return count;
+                }
+                memcpy(buffer + (count - remaining), decoder.outputPtr, decoder.outputSize);
+                step = decoder.outputSize;
+                remaining -= step;
+            }
+        }
+        position += step;
+        lastPosition = position;
+    }
+    memset(buffer + (count - remaining), 0, remaining);
+    return count;
+}

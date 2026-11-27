@@ -49,11 +49,11 @@ int Mp3Stream::Open(const char *path)
     }
     formatBitrate = info.bitrate;
     decodedBytes = info.samplesPerFrame * info.frameCount * BITS_PER_BYTE / PCM_UNIT_DIVISOR / info.channels;
+    pcmBytes = decodedBytes;
+    seconds = decodedBytes / info.sampleRate;
     formatChannels = info.channels;
     formatSampleRate = info.sampleRate;
     frameCount = info.frameCount;
-    pcmBytes = decodedBytes;
-    seconds = decodedBytes / info.sampleRate;
     baseName = strrchr(path, '\\');
     if (baseName == NULL) {
         baseName = path;

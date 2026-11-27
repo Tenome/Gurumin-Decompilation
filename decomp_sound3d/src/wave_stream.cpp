@@ -75,9 +75,9 @@ int WaveStream::PrepareBuffers(int keepEmpty)
     }
     memset(&decodeHeader, 0, sizeof(decodeHeader));
     decodeHeader.cbStruct = sizeof(ACMSTREAMHEADER);
-    decodeHeader.pbDst = decodedBuffer;
-    decodeHeader.cbSrcLength = ACM_SOURCE_BYTES;
     decodeHeader.pbSrc = compressedBuffer;
+    decodeHeader.cbSrcLength = ACM_SOURCE_BYTES;
+    decodeHeader.pbDst = decodedBuffer;
     decodeHeader.cbDstLength = ACM_DESTINATION_BYTES;
     memset(&encodeHeader, 0, sizeof(encodeHeader));
     encodeHeader.cbStruct = sizeof(ACMSTREAMHEADER);
@@ -90,7 +90,8 @@ int WaveStream::PrepareBuffers(int keepEmpty)
 }
 
 // Opens a WAV file (names that end in 'wav'): measures it, finds the 'data' chunk tag in the first 0x78 bytes with
-// a four byte sliding window and keeps the header. Returns 1 on success. Called by WaveStream::Open (0x10004860),
+// a four byte sliding window and keeps the header; the dword after the tag (the true length of the data chunk) is read
+// over the header's dataSize field. Returns 1 on success. Called by WaveStream::Open (0x10004860),
 // directly for plain names and as the first try for names ending in '?'.
 int WaveStream::OpenWav(const char *path)
 {
@@ -122,10 +123,7 @@ int WaveStream::OpenWav(const char *path)
         return 0;
     }
 dataTagFound:
-    {
-        int chunkSize;
-        file.Read((HPSTR)&chunkSize, 1, 4);
-    }
+    file.Read((HPSTR)&fileHeader.dataSize, 1, 4);
     file.Seek(0, SEEK_SET);
     header = fileHeader;
     dataSize = dataLength - dataOffset;
@@ -202,7 +200,9 @@ int WaveStream::OpenDecoded(const char *path)
     return 1;
 }
 
-// Characters of a file name's last letter that select the reader.
+// Characters of a file name's last letter that select the reader. The original tests them as (lower case, upper case)
+// pairs; the digit suffixes '2' and '3' have no upper case and are tested twice (the binary compares twice, and the
+// strlen call keeps the compiler from folding the repeat).
 const char SUFFIX_WAV_PAIR = '?';
 const char SUFFIX_ENCODED = '2';
 const char SUFFIX_WAV_LOWER = 'v';

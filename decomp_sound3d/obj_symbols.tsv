@@ -128,3 +128,5 @@ _SetParam	100090f0
 ?CloseMixerHandle@@YAXXZ	100092a0
 ?ClearWaveCache@@YAXXZ	100092c0
 ?FreeWaveCache@@YAHXZ	100092e0
+?FindOrLoadSound@@YAHPBD@Z	10006250
+?PlaySE@SoundChannel@@QAEHPBDHPAM11111HM@Z	10006810
