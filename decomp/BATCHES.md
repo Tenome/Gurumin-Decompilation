@@ -454,3 +454,4 @@ Each finished batch adds two new ones, taken from the medium-function section of
 | 390 | 38 | match | permuter over 900-3000-byte walls (1 matched, 3 improved), 11 names; 910 matched |
 | 391 | 38 | notes | zero-register and SIB-order studies; RenderTarget_Probe matched; 911 matched |
 | 392 | 38 | notes | zero-register and stack-slot sweeps; MoveCursor 5 lines; 911 matched |
+| 393 | 38 | setup | Packs.dll tree decomp_packs/ (same compiler), lanes A-D: files, ExecPack LZSS, BMPPack, BMPUnpack wavelet; Packs 20 of 51 matched |

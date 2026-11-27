@@ -29,8 +29,7 @@ def load_game_functions():
 
 def load_symbol_addresses():
     names = {}
-    path = os.path.join(root, "obj_symbols.tsv")
-    if os.path.exists(path):
+    for path in sorted(glob.glob(os.path.join(root, "obj_symbols*.tsv"))):  # obj_symbols.tsv plus per-lane files
         for line in open(path, encoding="utf-8"):
             parts = line.rstrip("\n").split("\t")
             if len(parts) > 1 and parts[1] and not parts[0].startswith("#"):

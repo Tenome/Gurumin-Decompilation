@@ -2,25 +2,26 @@
 
 Lanes are disjoint by file. Sizes are real extents (bytes). "fp" = x87 instruction count.
 
-## Lane A: files (src/pack_file.cpp, src/bmp_file.cpp)
-- [x] 10006180 9, 10006190 26, 10006210 12, 10006220 24: PackFile ctor, dtor, Tell, Seek
-- [ ] 100061b0 85 (open), 100060a0 213 (path helper, /GS), 10006240 121 (read), 100062c0 38 (write)
-- [ ] 10005c00 588 BMPLoad, 10005e50 580 BMPSave (exports)
-- [ ] 10005900 305, 10005a40 439: JPEG decode/encode through libjpeg (calls into 0x10011ae0..0x10014146)
-- [ ] 10005470 465 SaveJpeg (export)
+## Status after batch 393 (20 of 51 matched)
 
-## Lane B: ExecPack compressor (src/exec_pack.cpp)
-- [ ] 10006e90 585 ExecPack, 10006e30 81, 10006a40 996, 10006950 235, 100068d0 125, 10006870 89, 10006820 80
-- [ ] 100070e0 129 ExecUnpack, 100066d0 321, 100063c0 771, 10006350 109, 100062f0 85
+Matched: PackFile ctor/dtor/Tell/Seek/Open/Read/Write, BMPLoad, BMPSave, ExecUnpack, PutZeroBit, PutOneBit, EncodeStart,
+PackBlocks, PackLevels, EmitBit, EncodeBit, ConvertBgrToPlanes, EncodeBandPlanes, DecodeSignedValue.
 
-## Lane C: BMPPack (src/bmp_pack.cpp)
-- [ ] 10004fb0 1209 BMPPack
-- [ ] 100015c0 907, 10002180 2611, 10002bc0 340, 10003d90 206
-- [ ] 10003bb0 471 -> 100019d0 1954 (fp 129)
-- [ ] 10004490 168 -> 10003ae0 201 -> 10001950 124
-- [ ] 10004e50 345 -> 10004db0 147 -> 10004540 737 -> 100043b0 222, 10003a40 159, 10001000 1470 (fp 200)
+Open, closest first (diffs from build output):
+- 10001950 StoreCoefficient (3 bytes: cl narrows `(0x800 - v) << 4` to a word add)
+- 10003600 DequantizeBand (22: two stack slots; original reuses a dead argument slot)
+- 10005900 DecodeJpegRgb (15: edi/esi swap), 100062f0 GetBit (23: bit buffer kept in memory)
+- 100037e0 ReadStreamHeader (31: edx/eax swap), 10005a40 EncodeJpegRgb (40), 10006350 GetBits (69), 100068d0 PutBits (74)
+- 10006950 AdvanceOverToken (98), 100066d0 UnpackRecords (104), 100060a0 ExtractBaseName (138: zero register),
+  10005470 SaveJpeg (130), 10005650 MMV3 (208), 10003490 ToRgbBytes (231)
+- larger: 100015c0 WriteStream, 10002bc0 PackPlanesToWords, 100019d0 QuantiseBand, 10003bb0 QuantiseBands,
+  10004e50 EncodeStream, 10004540 EncodeBand, 10004fb0 BMPPack (level search unrolled 8x), 10003e60 DecodeBand,
+  10004120 DequantizeLevels, 10004830 DecodeLevels, 10002d20 InverseWaveletLevel (shape: two written-out passes?),
+  10004a70 BMPUnpack (byte buffer + typed view only to get /GS: rework before it can count), 10006e90 ExecPack,
+  10006a40 EncodeChunk (inline budget), 100063c0 DecodeChunk (shared length tail)
+- not written: 10001000 BandStatistics (least-squares fit; Ghidra dropped ~150 x87 instructions, read the asm),
+  10002180 TransformLevel (3x3 wavelet filter, 2611 bytes)
 
-## Lane D: unpacking (src/bmp_unpack.cpp)
-- [ ] 10004a70 823 BMPUnpack, 10005650 682 MMV3 (exports)
-- [ ] no direct callers (called through a table): 10002d20 1338, 10003490 359, 100037e0 594, 10004120 656 -> 10003600 474,
-      10004830 576 -> 10003e60 689 -> 10003260 558
+Notes: encoder globals (0x1003afe0..) and decoder globals (0x1003b008..) are separate variables; the scan tables
+`g_scanColumn/g_scanRow` (0x10038040/440, packer) and `g_blockScanX/Y` (0x10038848/c48, unpacker) are separate too.
+Globals are extern only (relocations are masked). Helpers need external linkage for compare_obj to see them.

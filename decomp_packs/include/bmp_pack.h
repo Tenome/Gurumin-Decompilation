@@ -1,0 +1,118 @@
+// bmp_pack.h : types, constants and globals of Packs.dll's BMP compressor (BMPPack and its helpers).
+//
+// BMPPack turns a 24-bit BGR bitmap into three 16-bit planes, runs a wavelet-style transform over each plane,
+// quantises the sub-bands, run-length codes the coefficients and arithmetic-codes the result.
+#ifndef BMP_PACK_H
+#define BMP_PACK_H
+
+// The encoder keeps up to this many decomposition levels (each level halves the plane size).
+const int PACK_MAX_LEVELS = 8;
+
+// A run/level word holds the zero run in its low four bits and the level above them.
+const int LEVEL_UNIT = 16;
+const int COEFFICIENT_LIMIT = 0x7ff;  // levels saturate to +-this
+const int NEGATIVE_LEVEL_BASE = 0x800;  // a negative level v is stored as this minus v
+
+// Per-plane statistics of one sub-band, written by BandStatistics and read by the arithmetic coder.
+struct PlaneModel {
+    unsigned char scale;      // 0 when the band is empty, else the coefficient magnitude class
+    unsigned char zeroRatio;  // 0..255 fraction of zero run/level pairs
+    unsigned char escapeRatio;  // 0..255 fraction of large (escaped) coefficients
+    unsigned char bias;       // quantiser reconstruction bias (0..255) the decoder adds back
+};
+
+// The three planes' models of one sub-band.
+struct BandModel {
+    PlaneModel plane[3];
+};
+
+// The models of one decomposition level: its three sub-bands.
+struct LevelModel {
+    BandModel band[3];
+};
+
+// Everything the coder and the stream writer need from the encoding passes.
+struct LevelModelSet {
+    LevelModel level[PACK_MAX_LEVELS];
+    int unused;
+};
+
+// Side of the blocks the run-length coder scans, and the number of cells in one block.
+const int PACK_MIN_PLANE_SIZE = 12;       // a plane is only halved again while both sides exceed 11 pixels
+const int PACK_QUALITY_LIMIT = 0x5a828;   // a level is only used while (quality << (6 + level)) stays below this
+const int QUALITY_MAX = 0x10000;  // quality scale: 1..QUALITY_MAX, QUALITY_MAX = finest quantisation
+
+const int SCAN_BLOCK_SIZE = 16;
+const int SCAN_BLOCK_CELLS = 256;
+
+// Scan order inside a block: column and row of cell i.
+extern int g_scanColumn[SCAN_BLOCK_CELLS];
+extern int g_scanRow[SCAN_BLOCK_CELLS];
+
+// Run-length stream writer state.
+extern int g_rleLength;  // number of 16-bit words written to the current plane stream
+
+// Arithmetic coder state.
+extern int g_coderPrecision;           // code register width in bits (BMPPack sets 16)
+extern unsigned int g_coderLow;        // lower bound of the interval
+extern unsigned int g_coderHigh;       // upper bound of the interval
+extern unsigned int g_coderQuarter;    // 1 << (precision - 2)
+extern unsigned int g_coderHalf;       // 2 * quarter
+extern unsigned int g_coderThreeQuarters;  // 3 * quarter
+extern unsigned int g_coderFull;       // 4 * quarter
+extern unsigned int g_coderMax;        // full - 1, the initial upper bound
+extern int g_coderPending;             // bits waiting on the underflow rule
+extern unsigned char g_outputByte;     // byte being assembled
+extern unsigned char g_outputBitMask;  // next bit position in g_outputByte
+extern int g_outputLength;             // bytes written to the output stream
+
+// Where the next plane's coded words go (in 16-bit words) in each of the three plane buffers.
+extern int g_planeOffset0;
+extern int g_planeOffset1;
+extern int g_planeOffset2;
+
+// Run-length coding helpers.
+void StoreCoefficient(short *out, short zeroRun, short value);
+void PackBlocks(const short *plane, short *out, int width, int height, int stride);
+void PackLevels(const short *plane, short *out, const int *widths, const int *heights, int levels);
+
+// Arithmetic coder.
+void EmitBit(int bit, unsigned char *out);
+void EncodeBit(int bit, unsigned short probability, unsigned char *out);
+
+// Per-plane band coding.
+int BandStatistics(PlaneModel *model, const short *words, int count);
+int EncodeBand(const short *words, unsigned char *out, int count, int *length, PlaneModel *model);
+int EncodeBandPlanes(short *plane0, short *plane1, short *plane2, unsigned char *out, int count, int *length,
+                     BandModel *model);
+int EncodeStream(short *plane0, short *plane1, short *plane2, unsigned char *out, const int *widths,
+                 const int *heights, int levels, int *length, LevelModelSet *models);
+
+// Wavelet-style analysis of one level (in place on plane, scratch holds a row copy); not reconstructed yet.
+void TransformLevel(short *plane, short *scratch, int width, int height, int stride);
+
+// Writes the compressed file: header, band models, packed pixel words and the arithmetic-coded stream.
+int WriteStream(const unsigned char *pixelWords, const unsigned char *stream, const int *widths, const int *heights,
+                int quality, int levels, const int *streamLength, const LevelModelSet *models, unsigned char *out,
+                int *outLength);
+
+// Quantisation of one sub-band of the three planes; stores each plane's bias in model.
+void QuantiseBand(short *planeA, short *planeB, short *planeC, int width, int height, int stride, int quality,
+                  int scale, BandModel *model);
+
+// Quantises every sub-band of the three planes (coarsest approximation first) and records the biases in models.
+void QuantiseBands(short *planeA, short *planeB, short *planeC, const int *widths, const int *heights, int quality,
+                   int levels, LevelModelSet *models);
+
+// Colour conversion and clamping.
+int ConvertBgrToPlanes(const unsigned char *bgr, void *scratch, short *planeA, short *planeB, short *planeC,
+                       int width, int height);
+void PackPlanesToWords(short *planeA, short *planeB, short *planeC, unsigned char *out,
+                       int width, int height, int stride);
+
+// Exported: compresses a 24-bit BGR bitmap into out (outLength receives the last written index). Returns 1 on
+// success, 0 when an allocation fails.
+extern "C" int BMPPack(const unsigned char *bgr, int width, int height, int quality, unsigned char *out,
+                       int *outLength);
+
+#endif

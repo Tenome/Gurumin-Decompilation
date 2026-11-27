@@ -315,6 +315,13 @@ function) and node_world.cpp (0) still break rule 2.
 - The large Enemy_UpdateBehaviour kinds 10076790 (the common enemy behaviour), 100a5960, 100a9240, 100aa820,
   100ade30, 100af1b0 are unstarted.
 
+## Helper DLLs (2026-11-26)
+
+APP.dll walls are parked (state above). Packs.dll is in `decomp_packs/` (README, QUEUE, own gate writing
+`progress/jp/packs.json`): 20 of 51 game functions matched after batch 393. Same compiler as APP.dll; so is SoundArc.dll
+(next, base 0x400000, ~15 game functions at 0x401000-0x403380). sound3d.dll last (middleware). Whether Packs joins
+`report.json` and the README meter is waiting on the parent session's answer.
+
 ## Next steps
 1. The trail renderer family 101713f0/10170580/10187520 is drafted (effect_trail_draw.cpp, effect_light.cpp): one shared
    residue (this in ebp, frame 12 bytes smaller in the original); try the per-branch drawCount fix in DrawLight too.

@@ -1,0 +1,628 @@
+// bmp_unpack.cpp : BMPUnpack and MMV3, Packs.dll's image unpackers (wavelet pyramid with an arithmetic coder).
+#include "bmp_unpack.h"
+#include "jpeg_api.h"
+#include <windows.h>
+#include <new.h>
+#include <stdlib.h>
+
+// Combines four stream bytes (least significant first) into a 32-bit value.
+#define LE32(b0, b1, b2, b3) ((((((b3) << 8) + (b2)) << 8) + (b1)) << 8) + (b0)
+
+// Byte offsets of the 24-byte stream header's fields (little-endian).
+enum { HDR_QUANT_SCALE = 6, HDR_WIDTH = 8, HDR_HEIGHT = 12, HDR_LEVELS = 16, HDR_FLAGS = 20 };
+
+// Reads the stream header, derives the plane size of every pyramid level and reads the band records.
+// Returns the number of record bytes consumed. (BMPUnpack)
+int ReadStreamHeader(PackStreamInfo *info, int *widths, int *heights, unsigned int *flags, LevelRecords *records,
+                     const unsigned char *data, int *position)
+{
+    unsigned char header[PACK_HEADER_SIZE];
+    int i;
+    for (i = 0; i < PACK_HEADER_SIZE; i++)
+        header[i] = data[(*position)++];
+
+    unsigned int quantScale = (header[HDR_QUANT_SCALE + 1] << 8) + header[HDR_QUANT_SCALE];
+    if (quantScale == 0)
+        quantScale = ARITH_PROB_ONE;
+
+    widths[0] = LE32(header[HDR_WIDTH], header[HDR_WIDTH + 1], header[HDR_WIDTH + 2], header[HDR_WIDTH + 3]);
+    heights[0] = LE32(header[HDR_HEIGHT], header[HDR_HEIGHT + 1], header[HDR_HEIGHT + 2], header[HDR_HEIGHT + 3]);
+    for (i = 1; i < PACK_LEVEL_SLOTS; i++) {
+        widths[i] = (widths[i - 1] + 1) / 2;
+        heights[i] = (heights[i - 1] + 1) / 2;
+    }
+
+    int levels = header[HDR_LEVELS] + (header[HDR_LEVELS + 1] << 8);
+    info->quantScale = quantScale;
+    info->levels = levels;
+    unsigned int flagBits = LE32(header[HDR_FLAGS], header[HDR_FLAGS + 1], header[HDR_FLAGS + 2], header[HDR_FLAGS + 3]);
+    *flags = flagBits;
+
+    int recordCount = levels * 9;
+    int consumed = 0;
+    BandRecord *record = (BandRecord *)records;
+    while (recordCount > 0) {
+        recordCount--;
+        unsigned char gain = data[*position];
+        (*position)++;
+        record->gain = gain;
+        consumed++;
+        if (gain != 0) {
+            record->adaptWeight = data[*position];
+            record->decayWeight = data[++*position];
+            record->bias = data[++*position];
+            (*position)++;
+            consumed += 3;
+        } else {
+            record->adaptWeight = 0;
+            record->decayWeight = 0;
+            record->bias = 0;
+        }
+        record++;
+    }
+    return consumed;
+}
+
+// Shifts the interval and reads the next bit of the stream until the interval is narrow again.
+// (DecodeSignedValue, after each magnitude decision)
+static __forceinline void RenormalizeDecoder(const unsigned char *data)
+{
+    for (;;) {
+        if (g_arithHigh >= g_arithHalf && g_arithLow < g_arithHalf) {
+            if (g_arithLow < g_arithQuarter || g_arithHigh >= g_arithThreeQuarter)
+                break;
+            g_arithValue -= g_arithQuarter;
+            g_arithLow -= g_arithQuarter;
+            g_arithHigh -= g_arithQuarter;
+        }
+        g_arithLow <<= 1;
+        if (g_arithLow >= g_arithFull)
+            g_arithLow -= g_arithFull;
+        g_arithHigh <<= 1;
+        if (g_arithHigh >= g_arithFull)
+            g_arithHigh -= g_arithFull;
+        g_arithHigh++;
+        g_arithValue <<= 1;
+        if (g_arithValue >= g_arithFull)
+            g_arithValue -= g_arithFull;
+        if (g_arithByte & g_arithBitMask)
+            g_arithValue++;
+        if (g_arithBitMask != 0x80) {
+            g_arithBitMask <<= 1;
+        } else {
+            g_arithBytePos++;
+            g_arithBitMask = 1;
+            g_arithByte = data[g_arithBytePos];
+        }
+        g_arithBitsRead++;
+    }
+}
+
+// Shifts the interval and reads the next bit of the stream until the interval is narrow again.
+// (DecodeSignedValue, after the sign decision)
+static __forceinline void RenormalizeAfterSign(const unsigned char *data)
+{
+    for (;;) {
+        if (g_arithHigh >= g_arithHalf && g_arithLow < g_arithHalf) {
+            if (g_arithLow < g_arithQuarter || g_arithHigh >= g_arithThreeQuarter)
+                break;
+            g_arithValue -= g_arithQuarter;
+            g_arithLow -= g_arithQuarter;
+            g_arithHigh -= g_arithQuarter;
+        }
+        g_arithLow <<= 1;
+        if (g_arithLow >= g_arithFull)
+            g_arithLow -= g_arithFull;
+        g_arithHigh <<= 1;
+        if (g_arithHigh >= g_arithFull)
+            g_arithHigh -= g_arithFull;
+        g_arithHigh++;
+        g_arithValue <<= 1;
+        if (g_arithValue >= g_arithFull)
+            g_arithValue -= g_arithFull;
+        if (g_arithByte & g_arithBitMask)
+            g_arithValue++;
+        if (g_arithBitMask != 0x80) {
+            g_arithBitMask <<= 1;
+        } else {
+            g_arithBitMask = 1;
+            g_arithBytePos++;
+            g_arithByte = data[g_arithBytePos];
+        }
+        g_arithBitsRead++;
+    }
+}
+
+// Decodes one signed coefficient: a unary magnitude (each step is one arithmetic decision with the given
+// probability of "zero") followed by the sign. (DecodeBand)
+short DecodeSignedValue(const unsigned char *data, unsigned short probability)
+{
+    short value = 0;
+    int more;
+    do {
+        unsigned int split = (((g_arithHigh - g_arithLow + 1) * probability + ARITH_PROB_ROUND) >> 16) + g_arithLow;
+        if (g_arithValue >= split) {
+            g_arithLow = split;
+            value++;
+            more = 1;
+        } else {
+            g_arithHigh = split - 1;
+            more = 0;
+        }
+        RenormalizeDecoder(data);
+    } while (more);
+
+    if (value != 0) {
+        unsigned int split = ((g_arithHigh - g_arithLow + 2) >> 1) + g_arithLow;
+        if (g_arithValue >= split) {
+            g_arithLow = split;
+            value = -value;
+        } else {
+            g_arithHigh = split - 1;
+        }
+        RenormalizeAfterSign(data);
+    }
+    return value;
+}
+
+// Turns the model scale into the 16-bit probability for the next arithmetic decision. (DecodeBand)
+static inline unsigned int ProbabilityFromScale(unsigned int scale)
+{
+    unsigned int probability = (((scale >> 1) - scale) - ARITH_PROB_ROUND) / (scale + ARITH_PROB_ONE) + 1;
+    if (probability > ARITH_PROB_MAX)
+        probability = ARITH_PROB_MAX;
+    return probability;
+}
+
+// Decodes one wavelet band of width x height coefficients into a plane with the given stride. The band is coded in
+// 16x16 blocks, each in scan order; an adaptive model turns the running magnitude into the probability for the next
+// coefficient. (UnpackBands)
+void DecodeBand(const unsigned char *data, short *band, int width, int height, int stride, const BandRecord *record)
+{
+    int startPos = g_arithBytePos;
+    unsigned int gain = record->gain;
+    if (gain == 0) {
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++)
+                band[x] = 0;
+            band += stride;
+        }
+        return;
+    }
+
+    unsigned char adaptWeight = record->adaptWeight;
+    unsigned int scale = gain * gain * gain * gain;
+    int keep = 0x100 - adaptWeight;
+    int weightInitial = (0x100 - record->decayWeight) * keep;
+    int weightCurrent = keep * record->decayWeight;
+    unsigned int initialShare = (((scale & 0xffff) * weightInitial + ARITH_PROB_ROUND) >> 16) + (scale >> 16) * weightInitial;
+
+    g_arithBitsRead = 0;
+    g_arithBitMask = 1;
+    g_arithByte = data[g_arithBytePos];
+    g_arithValue = 0;
+    for (int bit = g_arithBits; bit > 0; bit--) {
+        unsigned char bitSet = g_arithByte & g_arithBitMask;
+        if (g_arithBitMask != 0x80) {
+            g_arithBitMask <<= 1;
+        } else {
+            g_arithBytePos++;
+            g_arithBitMask = 1;
+            g_arithByte = data[g_arithBytePos];
+        }
+        g_arithValue = (bitSet != 0) + g_arithValue * 2;
+    }
+    g_arithHigh = g_arithTop;
+    g_arithLow = 0;
+
+    unsigned int probability = ProbabilityFromScale(scale);
+    for (int blockY = 0; blockY < height; blockY += 16) {
+        for (int blockX = 0; blockX < width; blockX += 16) {
+            for (int i = 0; i < 256; i++) {
+                int dx = g_blockScanX[i];
+                if (blockX + dx < width) {
+                    int dy = g_blockScanY[i];
+                    if (blockY + dy < height) {
+                        short coefficient = DecodeSignedValue(data, (unsigned short)probability);
+                        band[(blockY + dy) * stride + dx + blockX] = coefficient;
+                        if (coefficient < 0)
+                            coefficient = -coefficient;
+                        scale = (scale >> 16) * weightCurrent + initialShare +
+                                (((scale & 0xffff) * weightCurrent + ARITH_PROB_ROUND) >> 16);
+                        if (coefficient != 0)
+                            scale += coefficient * adaptWeight * 0x100;
+                        if (scale == 0)
+                            scale = 1;
+                        probability = ProbabilityFromScale(scale);
+                    }
+                }
+            }
+        }
+    }
+    g_arithBytePos = ((g_arithBits + 8 + g_arithBitsRead) >> 3) + startPos;
+}
+
+// Window a reconstructed sample is clamped to before it becomes a byte (bits 7..14 of the clamped value).
+enum { SAMPLE_CLAMP_LOW = 0x10000, SAMPLE_CLAMP_HIGH = 0x17fff, SAMPLE_BIAS = 0x10040 };
+
+// Clamps a reconstructed sample and returns it as a byte. (ToRgbBytes)
+static inline unsigned char SampleToByte(unsigned int sample)
+{
+    if (sample > SAMPLE_CLAMP_LOW) {
+        if (sample >= SAMPLE_CLAMP_HIGH)
+            sample = SAMPLE_CLAMP_HIGH;
+    } else {
+        sample = SAMPLE_CLAMP_LOW;
+    }
+    return (unsigned char)(sample >> 7);
+}
+
+// Converts the three reconstructed planes (a lifting-style colour transform) to bytes, three per pixel, written to
+// out at *outPosition, which this function advances (and starts at 0). (BMPUnpack)
+void ToRgbBytes(const short *plane0, const short *plane1, const short *plane2, const int *widths, const int *heights,
+                unsigned char *out, int *outPosition)
+{
+    *outPosition = 0;
+    for (int y = 0; y < heights[0]; y++) {
+        int rowStart = widths[0] * y;
+        for (int x = 0; x < widths[0]; x++) {
+            short v0 = plane0[rowStart + x];
+            short v2 = plane2[rowStart + x];
+            short v1 = plane1[rowStart + x];
+            unsigned int first = (v2 * -3 + v0) * 2 + SAMPLE_BIAS + v1 * -3;
+            unsigned int second = (v1 + v0) * 2 + SAMPLE_BIAS;
+            unsigned int third = (v0 + v2) * 2 + SAMPLE_BIAS + v1 * -3;
+            out[*outPosition] = SampleToByte(first);
+            (*outPosition)++;
+            out[*outPosition] = SampleToByte(second);
+            (*outPosition)++;
+            out[*outPosition] = SampleToByte(third);
+            (*outPosition)++;
+        }
+    }
+}
+
+// Largest magnitude a dequantised coefficient may take.
+enum { COEFFICIENT_LIMIT = 0x7fff };
+
+// Dequantises one coefficient: scales the magnitude by the level scale (as integer part and rounded remainder
+// term) and adds the band bias away from zero. (DequantizeBand)
+static inline int DequantizeSample(int value, int wholePart, int remainderPart, int half, int divisor, int bias)
+{
+    int result = value;
+    if (value != 0) {
+        if (value > 0)
+            result = value * wholePart + (value * remainderPart + half + bias) / divisor;
+        else
+            result = value * wholePart - ((half - value * remainderPart) + bias) / divisor;
+    }
+    if (result < -COEFFICIENT_LIMIT + 1)
+        result = -COEFFICIENT_LIMIT;
+    else if (result > COEFFICIENT_LIMIT - 1)
+        result = COEFFICIENT_LIMIT;
+    return result;
+}
+
+// Dequantises a width x height region of the three planes in place; the same sample index is used in every plane.
+// quantScale and levelScale come from the stream header and the pyramid level, each plane has its own bias.
+// (DequantizeLevels)
+void DequantizeBand(short *plane0, short *plane1, short *plane2, int width, int height, int stride, int quantScale,
+                    int levelScale, int bias0, int bias1, int bias2)
+{
+    int divisor = quantScale * 16;
+    int half = (divisor - 1) >> 1;
+    int wholePart = (levelScale << 8) / divisor - 1;
+    int remainderPart = (levelScale << 8) % divisor + divisor;
+    int rowStart = 0;
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            int index = rowStart + x;
+            plane0[index] = (short)DequantizeSample(plane0[index], wholePart, remainderPart, half, divisor, bias0);
+            plane1[index] = (short)DequantizeSample(plane1[index], wholePart, remainderPart, half, divisor, bias1);
+            plane2[index] = (short)DequantizeSample(plane2[index], wholePart, remainderPart, half, divisor, bias2);
+        }
+        rowStart += stride;
+    }
+}
+
+// Bias stored in a band record is offset by 128.
+enum { BAND_BIAS_ZERO = 0x80 };
+
+// Dequantises every band of every pyramid level, coarsest level last. The level scale halves per level but never
+// drops below the stream's quantisation scale. Each level has three bands: right of, below and diagonal to the
+// next coarser level. (BMPUnpack)
+void DequantizeLevels(short *plane0, short *plane1, short *plane2, const int *widths, const int *heights,
+                      int quantScale, int levels, const LevelRecords *records)
+{
+    int levelScale[PACK_LEVEL_SLOTS];
+    levelScale[0] = ARITH_PROB_ONE;
+    for (int i = 0; i < PACK_MAX_LEVELS; i++) {
+        levelScale[i + 1] = levelScale[i] >> 1;
+        if (levelScale[i] >> 1 < quantScale)
+            levelScale[i + 1] = quantScale;
+    }
+
+    int stride = widths[0];
+    const LevelRecords *rec = records;
+    for (int level = levels; level > 0; level--, rec++) {
+        int scale = levelScale[level];
+
+        int offset = widths[level];
+        DequantizeBand(plane0 + offset, plane1 + offset, plane2 + offset, widths[level - 1] - widths[level],
+                       heights[level], stride, quantScale, scale, (rec->band[0][0].bias - BAND_BIAS_ZERO) * scale,
+                       (rec->band[0][1].bias - BAND_BIAS_ZERO) * scale, (rec->band[0][2].bias - BAND_BIAS_ZERO) * scale);
+
+        offset = heights[level] * stride;
+        DequantizeBand(plane0 + offset, plane1 + offset, plane2 + offset, widths[level],
+                       heights[level - 1] - heights[level], stride, quantScale, scale,
+                       (rec->band[1][0].bias - BAND_BIAS_ZERO) * scale, (rec->band[1][1].bias - BAND_BIAS_ZERO) * scale,
+                       (rec->band[1][2].bias - BAND_BIAS_ZERO) * scale);
+
+        offset = heights[level] * stride + widths[level];
+        DequantizeBand(plane0 + offset, plane1 + offset, plane2 + offset, widths[level - 1] - widths[level],
+                       heights[level - 1] - heights[level], stride, quantScale, scale,
+                       (rec->band[2][0].bias - BAND_BIAS_ZERO) * scale, (rec->band[2][1].bias - BAND_BIAS_ZERO) * scale,
+                       (rec->band[2][2].bias - BAND_BIAS_ZERO) * scale);
+    }
+}
+
+// Decodes every band of every level from the arithmetic-coded stream, coarsest level last, and sets the coder up
+// first (interval constants from the code width). (BMPUnpack)
+void DecodeLevels(const unsigned char *data, short *plane0, short *plane1, short *plane2, const int *widths,
+                  const int *heights, int levels, const LevelRecords *records)
+{
+    g_arithQuarter = 1 << (g_arithBits - 2);
+    g_arithThreeQuarter = g_arithQuarter * 3;
+    g_arithHalf = g_arithQuarter * 2;
+    g_arithFull = g_arithQuarter * 4;
+    g_arithTop = g_arithFull - 1;
+    int stride = widths[0];
+    g_arithBytePos = 0;
+    const LevelRecords *rec = records;
+    for (int level = levels; level > 0; level--, rec++) {
+        int offset = widths[level];
+        int bandWidth = widths[level - 1] - widths[level];
+        int bandHeight = heights[level];
+        DecodeBand(data, plane0 + offset, bandWidth, bandHeight, stride, &rec->band[0][0]);
+        DecodeBand(data, plane1 + offset, bandWidth, bandHeight, stride, &rec->band[0][1]);
+        DecodeBand(data, plane2 + offset, bandWidth, bandHeight, stride, &rec->band[0][2]);
+
+        offset = heights[level] * stride;
+        bandWidth = widths[level];
+        bandHeight = heights[level - 1] - heights[level];
+        DecodeBand(data, plane0 + offset, bandWidth, bandHeight, stride, &rec->band[1][0]);
+        DecodeBand(data, plane1 + offset, bandWidth, bandHeight, stride, &rec->band[1][1]);
+        DecodeBand(data, plane2 + offset, bandWidth, bandHeight, stride, &rec->band[1][2]);
+
+        offset = heights[level] * stride + widths[level];
+        bandWidth = widths[level - 1] - widths[level];
+        bandHeight = heights[level - 1] - heights[level];
+        DecodeBand(data, plane0 + offset, bandWidth, bandHeight, stride, &rec->band[2][0]);
+        DecodeBand(data, plane1 + offset, bandWidth, bandHeight, stride, &rec->band[2][1]);
+        DecodeBand(data, plane2 + offset, bandWidth, bandHeight, stride, &rec->band[2][2]);
+    }
+}
+
+// Packs one decoded RGB pixel into the 32-bit word MMV3 stores per pixel pair: 5 bits red, 6 bits green, 5 bits blue,
+// repeated across the two halves of the word. (MMV3)
+static inline unsigned int PackPixelPair(unsigned int red, unsigned int green, unsigned int blue)
+{
+    unsigned int blueHigh = (blue & 0xf8) << 5;
+    return ((((green & 0xfc) | blueHigh) << 6 | (red & 0xf8)) << 10 | blueHigh | (green & 0xfc)) << 3 | (red >> 3);
+}
+
+// Reads Gurumin's movie-frame container (MMV3 is the format's tag). command is MMV3_CLOSE, MMV3_NEXT_FRAME,
+// MMV3_CONTINUE or a pointer to the file name to open: the container is a chain of blocks, each starting with
+// the offset of the next one, and a JPEG frame is decoded from the block at the file position into pixels
+// (one packed 32-bit word per pixel pair, rows overlapping the JPEG scanline in place). Returns 1 when a frame was
+// decoded or the position moved, else 0. (exported, called by the game)
+extern "C" int MMV3(int command, unsigned int *pixels, int unused, int *width, unsigned int *height)
+{
+    int blockOffset;
+    int nextBlock;
+    if (command == MMV3_CLOSE) {
+        if (g_mmvFile != 0)
+            fclose(g_mmvFile);
+        return 0;
+    }
+    if (command == MMV3_NEXT_FRAME) {
+        fread(&blockOffset, 1, 4, g_mmvFile);
+        if (blockOffset == 0)
+            return 0;
+        fseek(g_mmvFile, blockOffset, SEEK_SET);
+        return 1;
+    }
+    if (command != MMV3_CONTINUE) {
+        if (g_mmvFile != 0)
+            fclose(g_mmvFile);
+        g_mmvFile = fopen((const char *)command, "rb");
+        fread(&blockOffset, 1, 4, g_mmvFile);
+        fread(&blockOffset, 1, 4, g_mmvFile);
+    }
+    if (g_mmvFile == 0)
+        return 0;
+    fread(&nextBlock, 1, 4, g_mmvFile);
+    if (nextBlock == 0)
+        return 0;
+    if (pixels == 0)
+        return 0;
+
+    jpeg_error_mgr errorManager;
+    jpeg_decompress_struct cinfo;
+    cinfo.err = jpeg_std_error(&errorManager);
+    jpeg_create_decompress(&cinfo);
+    jpeg_stdio_src(&cinfo, g_mmvFile);
+    jpeg_read_header(&cinfo, 1);
+    jpeg_start_decompress(&cinfo);
+    int outputWidth = cinfo.output_width;
+    *width = outputWidth;
+    *height = cinfo.output_height;
+    int rowBytes = outputWidth * 2;
+    int pairsPerRow = outputWidth / 2;
+    while (cinfo.output_scanline < cinfo.output_height) {
+        unsigned int *rowStart = pixels;
+        JSAMPROW scanline = (JSAMPROW)pixels;
+        jpeg_read_scanlines(&cinfo, &scanline, 1);
+        if (pairsPerRow > 0) {
+            const unsigned char *rgb = (const unsigned char *)pixels;
+            for (int pairs = pairsPerRow; pairs > 0; pairs--) {
+                *pixels = PackPixelPair(rgb[0], rgb[1], rgb[2]);
+                pixels++;
+                rgb += 6;
+            }
+        }
+        pixels = (unsigned int *)((char *)rowStart + rowBytes);
+    }
+    jpeg_finish_decompress(&cinfo);
+    jpeg_destroy_decompress(&cinfo);
+    fseek(g_mmvFile, nextBlock, SEEK_SET);
+    return 1;
+}
+
+// base - sum / 2, rounded toward zero. (LiftLine)
+static inline short SubtractHalf(short base, int sum)
+{
+    if (sum == 0)
+        return base;
+    if (sum > 0)
+        return base - (sum >> 1);
+    return base + ((unsigned short)-(unsigned short)sum >> 1);
+}
+
+// base + sum / 2, rounded toward zero. (LiftLine)
+static inline short AddHalf(short base, int sum)
+{
+    if (sum == 0)
+        return base;
+    if (sum > 0)
+        return (sum >> 1) + base;
+    return base - ((unsigned short)-(unsigned short)sum >> 1);
+}
+
+// One inverse lifting pass over a line of length samples spaced step apart: the first (length + 1) / 2 samples
+// are the low band, the rest the high band, and dst gets them interleaved (even = low minus half the neighbouring
+// highs, odd = high plus half the neighbouring lows). The two last pairs clamp their neighbours to the line.
+// (InverseWaveletLevel)
+static __forceinline void LiftLine(const short *src, short *dst, int length, int step)
+{
+    int half = (length + 1) / 2;
+    const short *high = src + half * step;
+    int out = 0;
+    int lowNext = 1;
+    int highNext = 0;
+    short low = src[0];
+    short prevLow = low;
+    short highValue = high[0];
+    short prevHigh = highValue;
+
+    for (int pairs = half - 2; pairs > 0; pairs--) {
+        low = src[lowNext * step];
+        lowNext++;
+        highValue = high[highNext * step];
+        highNext++;
+        dst[out * step] = SubtractHalf(prevLow, prevHigh + highValue);
+        dst[(out + 1) * step] = AddHalf(highValue, prevLow + low);
+        out += 2;
+        prevLow = low;
+        prevHigh = highValue;
+    }
+
+    int limit = half * 2 - 2;
+    for (int pairs = 2; pairs > 0; pairs--) {
+        short nextLow = src[lowNext * step];
+        if (limit + 1 - half < half - 1)
+            lowNext++;
+        short nextHigh = high[highNext * step];
+        if (limit < length - 1)
+            highNext++;
+        dst[out * step] = SubtractHalf(low, prevHigh + nextHigh);
+        out++;
+        if (out < length) {
+            dst[out * step] = AddHalf(nextHigh, low + nextLow);
+            out++;
+        }
+        limit++;
+        low = nextLow;
+        prevHigh = nextHigh;
+    }
+}
+
+// Inverse of one wavelet level in both directions: undoes the horizontal then the vertical lifting steps on the
+// width x height region of plane, using scratch as the intermediate image (same stride). (BMPUnpack)
+void InverseWaveletLevel(short *plane, short *scratch, int width, int height, int stride)
+{
+    for (int y = 0; y < height; y++)
+        LiftLine(plane + y * stride, scratch + y * stride, width, 1);
+    for (int x = 0; x < width; x++)
+        LiftLine(scratch + x, plane + x, height, stride);
+}
+
+// Unpacks a packed image: header, the raw coarsest level, the arithmetic-coded detail bands, dequantisation, the
+// inverse wavelet levels and the colour conversion to bytes (three per pixel) in out. data is the packed stream,
+// the width and height come back in *outWidth and *outHeight. Returns 1 on success, 0 when memory ran out.
+// (exported, called by the game; the GetTickCount calls are the leftovers of the original's timing code)
+extern "C" int BMPUnpack(const unsigned char *data, int unused, unsigned char *out, int *outWidth, int *outHeight)
+{
+    PackStreamInfo info;
+    int widths[PACK_LEVEL_SLOTS];
+    int heights[PACK_LEVEL_SLOTS];
+    unsigned int flags;
+    unsigned char recordStorage[PACK_MAX_LEVELS * sizeof(LevelRecords)];
+    LevelRecords *records = (LevelRecords *)recordStorage;
+    int position;
+    int outPosition;
+
+    g_arithBits = ARITH_DEFAULT_BITS;
+    position = 0;
+    for (int pass = 1; pass < 2; pass++) {
+        ReadStreamHeader(&info, widths, heights, &flags, records, data, &position);
+        int pixels = heights[0] * widths[0];
+        short *plane0 = (short *)operator new(pixels * 8);
+        if (plane0 == 0)
+            return 0;
+        short *plane1 = plane0 + pixels;
+        short *plane2 = plane1 + pixels;
+        short *scratch = plane2 + pixels;
+
+        if (heights[info.levels] > 0) {
+            int coarseWidth = widths[info.levels];
+            int coarseHeight = heights[info.levels];
+            short *row1 = plane1;
+            for (int y = 0; y < coarseHeight; y++) {
+                for (int x = 0; x < coarseWidth; x++) {
+                    unsigned short b0 = data[position];
+                    unsigned short b1 = data[position + 1];
+                    unsigned short b2 = data[position + 2];
+                    unsigned short b3 = data[position + 3];
+                    position += 4;
+                    plane0[(row1 - plane1) + x] = (((b1 & 7) - 2) * 0x100 + b0) * 16;
+                    row1[x] = (((b2 & 0x3f) - 0x20) * 0x20 + (b1 >> 3)) * 16;
+                    plane2[(row1 - plane1) + x] = (((b2 >> 6) - 0x200) + b3 * 4) * 16;
+                }
+                row1 += widths[0];
+            }
+        }
+        GetTickCount();
+        DecodeLevels(data + position, plane0, plane1, plane2, widths, heights, info.levels, records);
+        GetTickCount();
+        GetTickCount();
+        DequantizeLevels(plane0, plane1, plane2, widths, heights, info.quantScale, info.levels, records);
+        GetTickCount();
+        GetTickCount();
+        for (int level = info.levels - 1; level >= 0; level--)
+            InverseWaveletLevel(plane0, scratch, widths[level], heights[level], widths[0]);
+        for (int level = info.levels - 1; level >= 0; level--)
+            InverseWaveletLevel(plane1, scratch, widths[level], heights[level], widths[0]);
+        for (int level = info.levels - 1; level >= 0; level--)
+            InverseWaveletLevel(plane2, scratch, widths[level], heights[level], widths[0]);
+        GetTickCount();
+        GetTickCount();
+        outPosition = 0;
+        ToRgbBytes(plane0, plane1, plane2, widths, heights, out, &outPosition);
+        GetTickCount();
+        *outWidth = widths[0];
+        *outHeight = heights[0];
+        free(plane0);
+    }
+    return 1;
+}

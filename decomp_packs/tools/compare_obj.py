@@ -6,8 +6,8 @@ img = Image()
 _inv = None
 import os
 NAMED = {}
-_named = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "obj_symbols.tsv")
-if os.path.exists(_named):
+import glob
+for _named in sorted(glob.glob(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "obj_symbols*.tsv"))):
     for _line in open(_named).read().splitlines():
         if _line and not _line.startswith("#"):
             _n, _a = _line.split("\t")[:2]
