@@ -4,7 +4,7 @@ usage: python tools/build_all.py [--report progress/jp/report.json] [--version j
 
 --report writes an objdiff-format progress report (function names, addresses, sizes and match percentages only)
 for ByteMatch / decomp.dev, plus progress.svg (README meter) next to it. Functions not yet decompiled are listed in the unit "app/unmatched" at 0 %.
-With --version jp the report covers the whole JP game: the helper-DLL trees in MODULES (Packs.dll, SoundArc.dll) are
+With --version jp the report covers the whole JP game: the helper-DLL trees in MODULES (Packs.dll, SoundArc.dll, sound3d.dll) are
 built with their own tools/build_all.py and their units ("packs/...", "soundarc/...") are added; the measures are the
 sums over APP.dll and the modules.
 "Matched under the rules" counts the matched functions whose file declares no struct/class/union and no extern
@@ -18,7 +18,7 @@ from rule_check import file_violations
 
 here = os.path.dirname(os.path.abspath(__file__))
 root = os.path.join(here, "..")
-MODULES = ["decomp_packs", "decomp_soundarc"]  # helper-DLL trees (module.json) merged into the JP report
+MODULES = ["decomp_packs", "decomp_soundarc", "decomp_sound3d"]  # helper-DLL trees (module.json) merged into the JP report
 
 
 def load_game_functions():

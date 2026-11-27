@@ -1,25 +1,25 @@
 {
  "measures": {
-  "fuzzy_match_percent": 50.9689,
-  "total_code": "1751598",
-  "matched_code": "379793",
-  "matched_code_percent": 21.6827,
+  "fuzzy_match_percent": 51.2102,
+  "total_code": "1789630",
+  "matched_code": "394394",
+  "matched_code_percent": 22.0377,
   "total_data": "0",
   "matched_data": "0",
   "matched_data_percent": 0.0,
-  "total_functions": 1274,
-  "matched_functions": 946,
-  "matched_functions_percent": 74.2543,
+  "total_functions": 1390,
+  "matched_functions": 1030,
+  "matched_functions_percent": 74.1007,
   "complete_code": "6861",
-  "complete_code_percent": 0.3917,
+  "complete_code_percent": 0.3834,
   "complete_data": "0",
   "complete_data_percent": 0.0,
-  "total_units": 475,
-  "complete_units": 210,
-  "matched_rules_code": "379166",
-  "matched_rules_code_percent": 21.6469,
-  "matched_rules_functions": 945,
-  "matched_rules_functions_percent": 74.1758
+  "total_units": 492,
+  "complete_units": 213,
+  "matched_rules_code": "393767",
+  "matched_rules_code_percent": 22.0027,
+  "matched_rules_functions": 1029,
+  "matched_rules_functions_percent": 74.0288
  },
  "units": [
   {
@@ -28257,6 +28257,1580 @@
     }
    ],
    "functions": [],
+   "metadata": {
+    "complete": false,
+    "source_path": ""
+   }
+  },
+  {
+   "name": "sound3d/atl_conversion",
+   "measures": {
+    "fuzzy_match_percent": 97.7636,
+    "total_code": "626",
+    "matched_code": "598",
+    "matched_code_percent": 95.5272,
+    "total_data": "0",
+    "matched_data": "0",
+    "matched_data_percent": 0.0,
+    "total_functions": 9,
+    "matched_functions": 8,
+    "matched_functions_percent": 88.8889,
+    "complete_code": "0",
+    "complete_code_percent": 0.0,
+    "complete_data": "0",
+    "complete_data_percent": 0.0,
+    "total_units": 1,
+    "complete_units": 0,
+    "matched_rules_code": "598",
+    "matched_rules_code_percent": 95.5272,
+    "matched_rules_functions": 8,
+    "matched_rules_functions_percent": 88.8889
+   },
+   "sections": [
+    {
+     "name": ".text",
+     "size": "626",
+     "fuzzy_match_percent": 97.7636
+    }
+   ],
+   "functions": [
+    {
+     "name": "?_AtlGetThreadACPThunk@ATL@@YGIXZ",
+     "size": "289",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268440336"
+     }
+    },
+    {
+     "name": "?AtlThrow@ATL@@YGXJ@Z",
+     "size": "28",
+     "fuzzy_match_percent": 50.0,
+     "metadata": {
+      "virtual_address": "268441104"
+     }
+    },
+    {
+     "name": "?AllocateHeap@?$CTempBuffer@D$0IA@VCCRTAllocator@ATL@@@ATL@@AAEXI@Z",
+     "size": "36",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268449296"
+     }
+    },
+    {
+     "name": "?FreeHeap@?$CTempBuffer@D$0IA@VCCRTAllocator@ATL@@@ATL@@AAEXXZ",
+     "size": "10",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268449168"
+     }
+    },
+    {
+     "name": "??1?$CW2AEX@$0IA@@ATL@@QAE@XZ",
+     "size": "35",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268449120"
+     }
+    },
+    {
+     "name": "?Init@?$CW2AEX@$0IA@@ATL@@AAEXPBGI@Z",
+     "size": "97",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268449184"
+     }
+    },
+    {
+     "name": "??1?$CTempBuffer@D$0IA@VCCRTAllocator@ATL@@@ATL@@QAE@XZ",
+     "size": "15",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268457104"
+     }
+    },
+    {
+     "name": "?AllocateBytes@?$CTempBuffer@D$0IA@VCCRTAllocator@ATL@@@ATL@@QAEPADI@Z",
+     "size": "83",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268457168"
+     }
+    },
+    {
+     "name": "??0?$CW2AEX@$0IA@@ATL@@QAE@PBG@Z",
+     "size": "33",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268457120"
+     }
+    }
+   ],
+   "metadata": {
+    "complete": false,
+    "source_path": "decomp_sound3d/src/atl_conversion.cpp"
+   }
+  },
+  {
+   "name": "sound3d/atl_string_fakes",
+   "measures": {
+    "fuzzy_match_percent": 100.0,
+    "total_code": "1912",
+    "matched_code": "1912",
+    "matched_code_percent": 100.0,
+    "total_data": "0",
+    "matched_data": "0",
+    "matched_data_percent": 0.0,
+    "total_functions": 7,
+    "matched_functions": 7,
+    "matched_functions_percent": 100.0,
+    "complete_code": "1912",
+    "complete_code_percent": 100.0,
+    "complete_data": "0",
+    "complete_data_percent": 0.0,
+    "total_units": 1,
+    "complete_units": 1,
+    "matched_rules_code": "1912",
+    "matched_rules_code_percent": 100.0,
+    "matched_rules_functions": 7,
+    "matched_rules_functions_percent": 100.0
+   },
+   "sections": [
+    {
+     "name": ".text",
+     "size": "1912",
+     "fuzzy_match_percent": 100.0
+    }
+   ],
+   "functions": [
+    {
+     "name": "?_AtlInstallStringThunk@ATL@@YAXPAPAXPAX1@Z",
+     "size": "64",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268443760"
+     }
+    },
+    {
+     "name": "?CompareStringWFake@ATL@@YGHKKPBGH0H@Z",
+     "size": "279",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268443824"
+     }
+    },
+    {
+     "name": "?lstrcmpiWFake@ATL@@YGHPBG0@Z",
+     "size": "263",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268444112"
+     }
+    },
+    {
+     "name": "?CharLowerWFake@ATL@@YGPAGPAG@Z",
+     "size": "263",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268444384"
+     }
+    },
+    {
+     "name": "?CharUpperWFake@ATL@@YGPAGPAG@Z",
+     "size": "181",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268444656"
+     }
+    },
+    {
+     "name": "?GetEnvironmentVariableWFake@ATL@@YGKPBGPAGK@Z",
+     "size": "519",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268457264"
+     }
+    },
+    {
+     "name": "?GetStringTypeExWFake@ATL@@YGHKKPBGHPAG@Z",
+     "size": "343",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268457792"
+     }
+    }
+   ],
+   "metadata": {
+    "complete": true,
+    "source_path": "decomp_sound3d/src/atl_string_fakes.cpp"
+   }
+  },
+  {
+   "name": "sound3d/file_name_utils",
+   "measures": {
+    "fuzzy_match_percent": 37.5416,
+    "total_code": "1057",
+    "matched_code": "0",
+    "matched_code_percent": 0.0,
+    "total_data": "0",
+    "matched_data": "0",
+    "matched_data_percent": 0.0,
+    "total_functions": 3,
+    "matched_functions": 0,
+    "matched_functions_percent": 0.0,
+    "complete_code": "0",
+    "complete_code_percent": 0.0,
+    "complete_data": "0",
+    "complete_data_percent": 0.0,
+    "total_units": 1,
+    "complete_units": 0,
+    "matched_rules_code": "0",
+    "matched_rules_code_percent": 0.0,
+    "matched_rules_functions": 0,
+    "matched_rules_functions_percent": 0.0
+   },
+   "sections": [
+    {
+     "name": ".text",
+     "size": "1057",
+     "fuzzy_match_percent": 37.5416
+    }
+   ],
+   "functions": [
+    {
+     "name": "?GetBaseFileName@@YAXPADPBD@Z",
+     "size": "240",
+     "fuzzy_match_percent": 20.0893,
+     "metadata": {
+      "virtual_address": "268439552"
+     }
+    },
+    {
+     "name": "?CheckNameKeyA@@YAHPADH0HI@Z",
+     "size": "264",
+     "fuzzy_match_percent": 26.5625,
+     "metadata": {
+      "virtual_address": "268447072"
+     }
+    },
+    {
+     "name": "?CheckKey@WaveStream@@QAEHPAEHI@Z",
+     "size": "553",
+     "fuzzy_match_percent": 50.3571,
+     "metadata": {
+      "virtual_address": "268447344"
+     }
+    }
+   ],
+   "metadata": {
+    "complete": false,
+    "source_path": "decomp_sound3d/src/file_name_utils.cpp"
+   }
+  },
+  {
+   "name": "sound3d/mmio_file",
+   "measures": {
+    "fuzzy_match_percent": 100.0,
+    "total_code": "406",
+    "matched_code": "406",
+    "matched_code_percent": 100.0,
+    "total_data": "0",
+    "matched_data": "0",
+    "matched_data_percent": 0.0,
+    "total_functions": 1,
+    "matched_functions": 1,
+    "matched_functions_percent": 100.0,
+    "complete_code": "406",
+    "complete_code_percent": 100.0,
+    "complete_data": "0",
+    "complete_data_percent": 0.0,
+    "total_units": 1,
+    "complete_units": 1,
+    "matched_rules_code": "406",
+    "matched_rules_code_percent": 100.0,
+    "matched_rules_functions": 1,
+    "matched_rules_functions_percent": 100.0
+   },
+   "sections": [
+    {
+     "name": ".text",
+     "size": "406",
+     "fuzzy_match_percent": 100.0
+    }
+   ],
+   "functions": [
+    {
+     "name": "?Read@MmioFile@@QAEJPADHH@Z",
+     "size": "406",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268439920"
+     }
+    }
+   ],
+   "metadata": {
+    "complete": true,
+    "source_path": "decomp_sound3d/src/mmio_file.cpp"
+   }
+  },
+  {
+   "name": "sound3d/mmio_open",
+   "measures": {
+    "fuzzy_match_percent": 98.0881,
+    "total_code": "1135",
+    "matched_code": "50",
+    "matched_code_percent": 4.4053,
+    "total_data": "0",
+    "matched_data": "0",
+    "matched_data_percent": 0.0,
+    "total_functions": 2,
+    "matched_functions": 1,
+    "matched_functions_percent": 50.0,
+    "complete_code": "0",
+    "complete_code_percent": 0.0,
+    "complete_data": "0",
+    "complete_data_percent": 0.0,
+    "total_units": 1,
+    "complete_units": 0,
+    "matched_rules_code": "50",
+    "matched_rules_code_percent": 4.4053,
+    "matched_rules_functions": 1,
+    "matched_rules_functions_percent": 50.0
+   },
+   "sections": [
+    {
+     "name": ".text",
+     "size": "1135",
+     "fuzzy_match_percent": 98.0881
+    }
+   ],
+   "functions": [
+    {
+     "name": "?Tell@MmioFile@@QAEHXZ",
+     "size": "50",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268439856"
+     }
+    },
+    {
+     "name": "?Open@MmioFile@@QAEHPBD0@Z",
+     "size": "1085",
+     "fuzzy_match_percent": 98.0,
+     "metadata": {
+      "virtual_address": "268449344"
+     }
+    }
+   ],
+   "metadata": {
+    "complete": false,
+    "source_path": "decomp_sound3d/src/mmio_open.cpp"
+   }
+  },
+  {
+   "name": "sound3d/mp3_source",
+   "measures": {
+    "fuzzy_match_percent": 95.8984,
+    "total_code": "497",
+    "matched_code": "0",
+    "matched_code_percent": 0.0,
+    "total_data": "0",
+    "matched_data": "0",
+    "matched_data_percent": 0.0,
+    "total_functions": 1,
+    "matched_functions": 0,
+    "matched_functions_percent": 0.0,
+    "complete_code": "0",
+    "complete_code_percent": 0.0,
+    "complete_data": "0",
+    "complete_data_percent": 0.0,
+    "total_units": 1,
+    "complete_units": 0,
+    "matched_rules_code": "0",
+    "matched_rules_code_percent": 0.0,
+    "matched_rules_functions": 0,
+    "matched_rules_functions_percent": 0.0
+   },
+   "sections": [
+    {
+     "name": ".text",
+     "size": "497",
+     "fuzzy_match_percent": 95.8984
+    }
+   ],
+   "functions": [
+    {
+     "name": "?Open@Mp3Stream@@QAEHPBD@Z",
+     "size": "497",
+     "fuzzy_match_percent": 95.8984,
+     "metadata": {
+      "virtual_address": "268450480"
+     }
+    }
+   ],
+   "metadata": {
+    "complete": false,
+    "source_path": "decomp_sound3d/src/mp3_source.cpp"
+   }
+  },
+  {
+   "name": "sound3d/mp3_stream",
+   "measures": {
+    "fuzzy_match_percent": 62.9467,
+    "total_code": "769",
+    "matched_code": "277",
+    "matched_code_percent": 36.0208,
+    "total_data": "0",
+    "matched_data": "0",
+    "matched_data_percent": 0.0,
+    "total_functions": 7,
+    "matched_functions": 5,
+    "matched_functions_percent": 71.4286,
+    "complete_code": "0",
+    "complete_code_percent": 0.0,
+    "complete_data": "0",
+    "complete_data_percent": 0.0,
+    "total_units": 1,
+    "complete_units": 0,
+    "matched_rules_code": "277",
+    "matched_rules_code_percent": 36.0208,
+    "matched_rules_functions": 5,
+    "matched_rules_functions_percent": 71.4286
+   },
+   "sections": [
+    {
+     "name": ".text",
+     "size": "769",
+     "fuzzy_match_percent": 62.9467
+    }
+   ],
+   "functions": [
+    {
+     "name": "??1MmioFile@@QAE@XZ",
+     "size": "26",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268439792"
+     }
+    },
+    {
+     "name": "?Close@MmioFile@@QAEHXZ",
+     "size": "28",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268439824"
+     }
+    },
+    {
+     "name": "??_GOwnedText@@UAEPAXI@Z",
+     "size": "44",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268450432"
+     }
+    },
+    {
+     "name": "??0Mp3Stream@@QAE@XZ",
+     "size": "36",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268440640"
+     }
+    },
+    {
+     "name": "?Close@Mp3Stream@@QAEHXZ",
+     "size": "143",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268440688"
+     }
+    },
+    {
+     "name": "?BuildWavHeader@Mp3Stream@@QAEXPBUWavSourceFormat@@@Z",
+     "size": "270",
+     "fuzzy_match_percent": 11.7188,
+     "metadata": {
+      "virtual_address": "268440832"
+     }
+    },
+    {
+     "name": "?LoadSource@Mp3Stream@@QAEXXZ",
+     "size": "222",
+     "fuzzy_match_percent": 79.0179,
+     "metadata": {
+      "virtual_address": "268441136"
+     }
+    }
+   ],
+   "metadata": {
+    "complete": false,
+    "source_path": "decomp_sound3d/src/mp3_stream.cpp"
+   }
+  },
+  {
+   "name": "sound3d/ogg_source",
+   "measures": {
+    "fuzzy_match_percent": 60.9765,
+    "total_code": "1044",
+    "matched_code": "0",
+    "matched_code_percent": 0.0,
+    "total_data": "0",
+    "matched_data": "0",
+    "matched_data_percent": 0.0,
+    "total_functions": 2,
+    "matched_functions": 0,
+    "matched_functions_percent": 0.0,
+    "complete_code": "0",
+    "complete_code_percent": 0.0,
+    "complete_data": "0",
+    "complete_data_percent": 0.0,
+    "total_units": 1,
+    "complete_units": 0,
+    "matched_rules_code": "0",
+    "matched_rules_code_percent": 0.0,
+    "matched_rules_functions": 0,
+    "matched_rules_functions_percent": 0.0
+   },
+   "sections": [
+    {
+     "name": ".text",
+     "size": "1044",
+     "fuzzy_match_percent": 60.9765
+    }
+   ],
+   "functions": [
+    {
+     "name": "?Open@OggStream@@QAEHPBD@Z",
+     "size": "452",
+     "fuzzy_match_percent": 79.0948,
+     "metadata": {
+      "virtual_address": "268450992"
+     }
+    },
+    {
+     "name": "?Read@OggStream@@QAEHPAEH@Z",
+     "size": "592",
+     "fuzzy_match_percent": 47.1429,
+     "metadata": {
+      "virtual_address": "268451456"
+     }
+    }
+   ],
+   "metadata": {
+    "complete": false,
+    "source_path": "decomp_sound3d/src/ogg_source.cpp"
+   }
+  },
+  {
+   "name": "sound3d/ogg_stream",
+   "measures": {
+    "fuzzy_match_percent": 75.8839,
+    "total_code": "2437",
+    "matched_code": "1546",
+    "matched_code_percent": 63.4387,
+    "total_data": "0",
+    "matched_data": "0",
+    "matched_data_percent": 0.0,
+    "total_functions": 7,
+    "matched_functions": 5,
+    "matched_functions_percent": 71.4286,
+    "complete_code": "0",
+    "complete_code_percent": 0.0,
+    "complete_data": "0",
+    "complete_data_percent": 0.0,
+    "total_units": 1,
+    "complete_units": 0,
+    "matched_rules_code": "1546",
+    "matched_rules_code_percent": 63.4387,
+    "matched_rules_functions": 5,
+    "matched_rules_functions_percent": 71.4286
+   },
+   "sections": [
+    {
+     "name": ".text",
+     "size": "2437",
+     "fuzzy_match_percent": 75.8839
+    }
+   ],
+   "functions": [
+    {
+     "name": "?FeedChunk@OggStream@@QAEHXZ",
+     "size": "247",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268442592"
+     }
+    },
+    {
+     "name": "?StartDecoder@OggStream@@QAEHXZ",
+     "size": "470",
+     "fuzzy_match_percent": 21.25,
+     "metadata": {
+      "virtual_address": "268442848"
+     }
+    },
+    {
+     "name": "?RewindDecoder@OggStream@@QAEHXZ",
+     "size": "421",
+     "fuzzy_match_percent": 48.3173,
+     "metadata": {
+      "virtual_address": "268443328"
+     }
+    },
+    {
+     "name": "?Decode@OggStream@@QAEHPAE@Z",
+     "size": "1047",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268444848"
+     }
+    },
+    {
+     "name": "?ReleaseReader@OggStream@@QAEHXZ",
+     "size": "47",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268445904"
+     }
+    },
+    {
+     "name": "?Release@OggStream@@QAEHXZ",
+     "size": "99",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268445952"
+     }
+    },
+    {
+     "name": "?Close@OggStream@@QAEHXZ",
+     "size": "106",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268446064"
+     }
+    }
+   ],
+   "metadata": {
+    "complete": false,
+    "source_path": "decomp_sound3d/src/ogg_stream.cpp"
+   }
+  },
+  {
+   "name": "sound3d/sound_api",
+   "measures": {
+    "fuzzy_match_percent": 97.055,
+    "total_code": "4851",
+    "matched_code": "4008",
+    "matched_code_percent": 82.6221,
+    "total_data": "0",
+    "matched_data": "0",
+    "matched_data_percent": 0.0,
+    "total_functions": 30,
+    "matched_functions": 29,
+    "matched_functions_percent": 96.6667,
+    "complete_code": "0",
+    "complete_code_percent": 0.0,
+    "complete_data": "0",
+    "complete_data_percent": 0.0,
+    "total_units": 1,
+    "complete_units": 0,
+    "matched_rules_code": "4008",
+    "matched_rules_code_percent": 82.6221,
+    "matched_rules_functions": 29,
+    "matched_rules_functions_percent": 96.6667
+   },
+   "sections": [
+    {
+     "name": ".text",
+     "size": "4851",
+     "fuzzy_match_percent": 97.055
+    }
+   ],
+   "functions": [
+    {
+     "name": "_IReInit",
+     "size": "19",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268473376"
+     }
+    },
+    {
+     "name": "_ITimeGetTime",
+     "size": "18",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268473408"
+     }
+    },
+    {
+     "name": "_IStopSE",
+     "size": "78",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268473440"
+     }
+    },
+    {
+     "name": "_ISetPlayer",
+     "size": "6",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268473520"
+     }
+    },
+    {
+     "name": "_ISetSEPos",
+     "size": "257",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268473968"
+     }
+    },
+    {
+     "name": "_ISetSEVol",
+     "size": "32",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268476512"
+     }
+    },
+    {
+     "name": "_ISetBGMVol",
+     "size": "93",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268476416"
+     }
+    },
+    {
+     "name": "_IReset",
+     "size": "14",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268477024"
+     }
+    },
+    {
+     "name": "_ISetMem",
+     "size": "52",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268477040"
+     }
+    },
+    {
+     "name": "_IEnter",
+     "size": "29",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268476784"
+     }
+    },
+    {
+     "name": "_ILeave",
+     "size": "29",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268476816"
+     }
+    },
+    {
+     "name": "_IGetPos",
+     "size": "52",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268476720"
+     }
+    },
+    {
+     "name": "_IVolFade",
+     "size": "58",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268476848"
+     }
+    },
+    {
+     "name": "_ISetSEVolume",
+     "size": "97",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268476912"
+     }
+    },
+    {
+     "name": "_IPlaySE",
+     "size": "244",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268473536"
+     }
+    },
+    {
+     "name": "_IPlaySEB",
+     "size": "163",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268473792"
+     }
+    },
+    {
+     "name": "_ISetListen",
+     "size": "174",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268474240"
+     }
+    },
+    {
+     "name": "_IStopAllSE",
+     "size": "79",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268474416"
+     }
+    },
+    {
+     "name": "_IPlayFadeEx",
+     "size": "178",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268474496"
+     }
+    },
+    {
+     "name": "_IPlayFadeBEx",
+     "size": "107",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268474688"
+     }
+    },
+    {
+     "name": "_IPlayFade",
+     "size": "168",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268474800"
+     }
+    },
+    {
+     "name": "_IPlayFadeB",
+     "size": "1156",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268474976"
+     }
+    },
+    {
+     "name": "_IPlayB",
+     "size": "102",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268476144"
+     }
+    },
+    {
+     "name": "_IPlayStop",
+     "size": "77",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268476256"
+     }
+    },
+    {
+     "name": "_ISetLoopPos",
+     "size": "76",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268476336"
+     }
+    },
+    {
+     "name": "_IFadeOut",
+     "size": "77",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268476544"
+     }
+    },
+    {
+     "name": "_IFadeOutEx",
+     "size": "82",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268476624"
+     }
+    },
+    {
+     "name": "?ProcessCommandQueue@@YAXH@Z",
+     "size": "843",
+     "fuzzy_match_percent": 83.0529,
+     "metadata": {
+      "virtual_address": "268477344"
+     }
+    },
+    {
+     "name": "_IInit",
+     "size": "262",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268478192"
+     }
+    },
+    {
+     "name": "_IRelease",
+     "size": "229",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268477104"
+     }
+    }
+   ],
+   "metadata": {
+    "complete": false,
+    "source_path": "decomp_sound3d/src/sound_api.cpp"
+   }
+  },
+  {
+   "name": "sound3d/sound_bgm",
+   "measures": {
+    "fuzzy_match_percent": 100.0,
+    "total_code": "687",
+    "matched_code": "687",
+    "matched_code_percent": 100.0,
+    "total_data": "0",
+    "matched_data": "0",
+    "matched_data_percent": 0.0,
+    "total_functions": 5,
+    "matched_functions": 5,
+    "matched_functions_percent": 100.0,
+    "complete_code": "687",
+    "complete_code_percent": 100.0,
+    "complete_data": "0",
+    "complete_data_percent": 0.0,
+    "total_units": 1,
+    "complete_units": 1,
+    "matched_rules_code": "687",
+    "matched_rules_code_percent": 100.0,
+    "matched_rules_functions": 5,
+    "matched_rules_functions_percent": 100.0
+   },
+   "sections": [
+    {
+     "name": ".text",
+     "size": "687",
+     "fuzzy_match_percent": 100.0
+    }
+   ],
+   "functions": [
+    {
+     "name": "?FadeOut@SoundChannel@@QAEHXZ",
+     "size": "58",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268468368"
+     }
+    },
+    {
+     "name": "?FadeOutEx@SoundChannel@@QAEHH@Z",
+     "size": "63",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268468432"
+     }
+    },
+    {
+     "name": "?PlayB@SoundChannel@@QAEHPBDHHHH@Z",
+     "size": "208",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268468496"
+     }
+    },
+    {
+     "name": "?PlayFadeB@SoundChannel@@QAEHPBDHHHH@Z",
+     "size": "197",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268468704"
+     }
+    },
+    {
+     "name": "?PlayFadeBEx@SoundChannel@@QAEHPBDHHHHH@Z",
+     "size": "161",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268468912"
+     }
+    }
+   ],
+   "metadata": {
+    "complete": true,
+    "source_path": "decomp_sound3d/src/sound_bgm.cpp"
+   }
+  },
+  {
+   "name": "sound3d/sound_channel",
+   "measures": {
+    "fuzzy_match_percent": 69.3109,
+    "total_code": "4331",
+    "matched_code": "1994",
+    "matched_code_percent": 46.0402,
+    "total_data": "0",
+    "matched_data": "0",
+    "matched_data_percent": 0.0,
+    "total_functions": 18,
+    "matched_functions": 12,
+    "matched_functions_percent": 66.6667,
+    "complete_code": "0",
+    "complete_code_percent": 0.0,
+    "complete_data": "0",
+    "complete_data_percent": 0.0,
+    "total_units": 1,
+    "complete_units": 0,
+    "matched_rules_code": "1994",
+    "matched_rules_code_percent": 46.0402,
+    "matched_rules_functions": 12,
+    "matched_rules_functions_percent": 66.6667
+   },
+   "sections": [
+    {
+     "name": ".text",
+     "size": "4331",
+     "fuzzy_match_percent": 69.3109
+    }
+   ],
+   "functions": [
+    {
+     "name": "??0SoundChannel@@QAE@XZ",
+     "size": "68",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268458144"
+     }
+    },
+    {
+     "name": "?IsPlaying@SoundChannel@@QAEHXZ",
+     "size": "116",
+     "fuzzy_match_percent": 70.5357,
+     "metadata": {
+      "virtual_address": "268458224"
+     }
+    },
+    {
+     "name": "?SetWindow@SoundChannel@@QAEHPAUHWND__@@@Z",
+     "size": "28",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268458352"
+     }
+    },
+    {
+     "name": "?SetListener@SoundChannel@@QAEHMMMMMMMMMM@Z",
+     "size": "305",
+     "fuzzy_match_percent": 44.375,
+     "metadata": {
+      "virtual_address": "268458384"
+     }
+    },
+    {
+     "name": "?SetLoopPos@SoundChannel@@QAEHHH@Z",
+     "size": "85",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268458704"
+     }
+    },
+    {
+     "name": "?Commit@SoundChannel@@QAEHXZ",
+     "size": "6",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268458800"
+     }
+    },
+    {
+     "name": "?GetPosition@SoundChannel@@QAEHXZ",
+     "size": "279",
+     "fuzzy_match_percent": 8.6806,
+     "metadata": {
+      "virtual_address": "268458816"
+     }
+    },
+    {
+     "name": "?Stop@SoundChannel@@QAEHXZ",
+     "size": "102",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268459104"
+     }
+    },
+    {
+     "name": "?ApplyVolume@SoundChannel@@QAEHHH@Z",
+     "size": "170",
+     "fuzzy_match_percent": 16.6667,
+     "metadata": {
+      "virtual_address": "268459216"
+     }
+    },
+    {
+     "name": "?CancelFade@SoundChannel@@QAEXXZ",
+     "size": "27",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268459392"
+     }
+    },
+    {
+     "name": "?SetVolume@SoundChannel@@QAEHH@Z",
+     "size": "43",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268459424"
+     }
+    },
+    {
+     "name": "?StartFade@SoundChannel@@QAEHHH@Z",
+     "size": "88",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268459472"
+     }
+    },
+    {
+     "name": "?FillSection@SoundChannel@@QAEHKHK@Z",
+     "size": "628",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268459568"
+     }
+    },
+    {
+     "name": "?UpdateFade@SoundChannel@@QAEHXZ",
+     "size": "414",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268460208"
+     }
+    },
+    {
+     "name": "?ReleaseBuffers@SoundChannel@@QAEHXZ",
+     "size": "262",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268461824"
+     }
+    },
+    {
+     "name": "?Update3DPan@SoundChannel@@QAEHXZ",
+     "size": "774",
+     "fuzzy_match_percent": 84.4415,
+     "metadata": {
+      "virtual_address": "268466240"
+     }
+    },
+    {
+     "name": "?UpdateSE@SoundChannel@@QAEHXZ",
+     "size": "243",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268467024"
+     }
+    },
+    {
+     "name": "?Open@SoundChannel@@QAEHPBDHHHI@Z",
+     "size": "693",
+     "fuzzy_match_percent": 12.2024,
+     "metadata": {
+      "virtual_address": "268467664"
+     }
+    }
+   ],
+   "metadata": {
+    "complete": false,
+    "source_path": "decomp_sound3d/src/sound_channel.cpp"
+   }
+  },
+  {
+   "name": "sound3d/sound_file",
+   "measures": {
+    "fuzzy_match_percent": 85.781,
+    "total_code": "2086",
+    "matched_code": "661",
+    "matched_code_percent": 31.6874,
+    "total_data": "0",
+    "matched_data": "0",
+    "matched_data_percent": 0.0,
+    "total_functions": 6,
+    "matched_functions": 4,
+    "matched_functions_percent": 66.6667,
+    "complete_code": "0",
+    "complete_code_percent": 0.0,
+    "complete_data": "0",
+    "complete_data_percent": 0.0,
+    "total_units": 1,
+    "complete_units": 0,
+    "matched_rules_code": "661",
+    "matched_rules_code_percent": 31.6874,
+    "matched_rules_functions": 4,
+    "matched_rules_functions_percent": 66.6667
+   },
+   "sections": [
+    {
+     "name": ".text",
+     "size": "2086",
+     "fuzzy_match_percent": 85.781
+    }
+   ],
+   "functions": [
+    {
+     "name": "??0WaveStream@@QAE@XZ",
+     "size": "74",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268446176"
+     }
+    },
+    {
+     "name": "?FreeBuffers@WaveStream@@QAEHXZ",
+     "size": "256",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268446256"
+     }
+    },
+    {
+     "name": "?Seek@WaveStream@@QAEXI@Z",
+     "size": "285",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268446512"
+     }
+    },
+    {
+     "name": "?Tell@WaveStream@@QAEHXZ",
+     "size": "222",
+     "fuzzy_match_percent": 70.4167,
+     "metadata": {
+      "virtual_address": "268446800"
+     }
+    },
+    {
+     "name": "?AtEnd@WaveStream@@QAE_NXZ",
+     "size": "46",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268447024"
+     }
+    },
+    {
+     "name": "?Close@WaveStream@@QAEHXZ",
+     "size": "1203",
+     "fuzzy_match_percent": 80.8036,
+     "metadata": {
+      "virtual_address": "268447904"
+     }
+    }
+   ],
+   "metadata": {
+    "complete": false,
+    "source_path": "decomp_sound3d/src/sound_file.cpp"
+   }
+  },
+  {
+   "name": "sound3d/sound_init",
+   "measures": {
+    "fuzzy_match_percent": 55.5738,
+    "total_code": "1554",
+    "matched_code": "627",
+    "matched_code_percent": 40.3475,
+    "total_data": "0",
+    "matched_data": "0",
+    "matched_data_percent": 0.0,
+    "total_functions": 5,
+    "matched_functions": 3,
+    "matched_functions_percent": 60.0,
+    "complete_code": "0",
+    "complete_code_percent": 0.0,
+    "complete_data": "0",
+    "complete_data_percent": 0.0,
+    "total_units": 1,
+    "complete_units": 0,
+    "matched_rules_code": "627",
+    "matched_rules_code_percent": 40.3475,
+    "matched_rules_functions": 3,
+    "matched_rules_functions_percent": 60.0
+   },
+   "sections": [
+    {
+     "name": ".text",
+     "size": "1554",
+     "fuzzy_match_percent": 55.5738
+    }
+   ],
+   "functions": [
+    {
+     "name": "?Init@SoundChannel@@QAEHPAUHWND__@@PAUIDirectSound8@@PAUIDirectSoundBuffer@@@Z",
+     "size": "673",
+     "fuzzy_match_percent": 10.6855,
+     "metadata": {
+      "virtual_address": "268469088"
+     }
+    },
+    {
+     "name": "?AllocateNamed@@YAPAXIPBD@Z",
+     "size": "373",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268469776"
+     }
+    },
+    {
+     "name": "?ComputeFileChecksum@@YAHPBDPAHPAI@Z",
+     "size": "141",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268473104"
+     }
+    },
+    {
+     "name": "?ReadFileWords@@YAHPBDHHPAX1@Z",
+     "size": "113",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268473248"
+     }
+    },
+    {
+     "name": "?InitTrackedAllocator@@YAXXZ",
+     "size": "254",
+     "fuzzy_match_percent": 64.8438,
+     "metadata": {
+      "virtual_address": "268470160"
+     }
+    }
+   ],
+   "metadata": {
+    "complete": false,
+    "source_path": "decomp_sound3d/src/sound_init.cpp"
+   }
+  },
+  {
+   "name": "sound3d/sound_mixer",
+   "measures": {
+    "fuzzy_match_percent": 71.614,
+    "total_code": "2684",
+    "matched_code": "1021",
+    "matched_code_percent": 38.0402,
+    "total_data": "0",
+    "matched_data": "0",
+    "matched_data_percent": 0.0,
+    "total_functions": 2,
+    "matched_functions": 1,
+    "matched_functions_percent": 50.0,
+    "complete_code": "0",
+    "complete_code_percent": 0.0,
+    "complete_data": "0",
+    "complete_data_percent": 0.0,
+    "total_units": 1,
+    "complete_units": 0,
+    "matched_rules_code": "1021",
+    "matched_rules_code_percent": 38.0402,
+    "matched_rules_functions": 1,
+    "matched_rules_functions_percent": 50.0
+   },
+   "sections": [
+    {
+     "name": ".text",
+     "size": "2684",
+     "fuzzy_match_percent": 71.614
+    }
+   ],
+   "functions": [
+    {
+     "name": "_MixOpen",
+     "size": "1663",
+     "fuzzy_match_percent": 54.1863,
+     "metadata": {
+      "virtual_address": "268470416"
+     }
+    },
+    {
+     "name": "_MixClose",
+     "size": "1021",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268472080"
+     }
+    }
+   ],
+   "metadata": {
+    "complete": false,
+    "source_path": "decomp_sound3d/src/sound_mixer.cpp"
+   }
+  },
+  {
+   "name": "sound3d/wave_stream",
+   "measures": {
+    "fuzzy_match_percent": 56.7076,
+    "total_code": "5015",
+    "matched_code": "814",
+    "matched_code_percent": 16.2313,
+    "total_data": "0",
+    "matched_data": "0",
+    "matched_data_percent": 0.0,
+    "total_functions": 7,
+    "matched_functions": 3,
+    "matched_functions_percent": 42.8571,
+    "complete_code": "0",
+    "complete_code_percent": 0.0,
+    "complete_data": "0",
+    "complete_data_percent": 0.0,
+    "total_units": 1,
+    "complete_units": 0,
+    "matched_rules_code": "814",
+    "matched_rules_code_percent": 16.2313,
+    "matched_rules_functions": 3,
+    "matched_rules_functions_percent": 42.8571
+   },
+   "sections": [
+    {
+     "name": ".text",
+     "size": "5015",
+     "fuzzy_match_percent": 56.7076
+    }
+   ],
+   "functions": [
+    {
+     "name": "??1WaveStream@@QAE@XZ",
+     "size": "107",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268452048"
+     }
+    },
+    {
+     "name": "?PrepareBuffers@WaveStream@@QAEHH@Z",
+     "size": "590",
+     "fuzzy_match_percent": 98.0,
+     "metadata": {
+      "virtual_address": "268452160"
+     }
+    },
+    {
+     "name": "?OpenWav@WaveStream@@QAEHPBD@Z",
+     "size": "507",
+     "fuzzy_match_percent": 98.0,
+     "metadata": {
+      "virtual_address": "268452752"
+     }
+    },
+    {
+     "name": "?OpenEncoded@WaveStream@@QAEHPBD@Z",
+     "size": "447",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268453264"
+     }
+    },
+    {
+     "name": "?OpenDecoded@WaveStream@@QAEHPBD@Z",
+     "size": "260",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268453712"
+     }
+    },
+    {
+     "name": "?Open@WaveStream@@QAEHPBD@Z",
+     "size": "950",
+     "fuzzy_match_percent": 69.9353,
+     "metadata": {
+      "virtual_address": "268453984"
+     }
+    },
+    {
+     "name": "?Read@WaveStream@@QAEHPAEH@Z",
+     "size": "2154",
+     "fuzzy_match_percent": 13.4838,
+     "metadata": {
+      "virtual_address": "268454944"
+     }
+    }
+   ],
+   "metadata": {
+    "complete": false,
+    "source_path": "decomp_sound3d/src/wave_stream.cpp"
+   }
+  },
+  {
+   "name": "sound3d/unmatched",
+   "measures": {
+    "fuzzy_match_percent": 0.0,
+    "total_code": "6941",
+    "matched_code": "0",
+    "matched_code_percent": 0.0,
+    "total_data": "0",
+    "matched_data": "0",
+    "matched_data_percent": 0.0,
+    "total_functions": 4,
+    "matched_functions": 0,
+    "matched_functions_percent": 0.0,
+    "complete_code": "0",
+    "complete_code_percent": 0.0,
+    "complete_data": "0",
+    "complete_data_percent": 0.0,
+    "total_units": 1,
+    "complete_units": 0,
+    "matched_rules_code": "0",
+    "matched_rules_code_percent": 0.0,
+    "matched_rules_functions": 0,
+    "matched_rules_functions_percent": 0.0
+   },
+   "sections": [
+    {
+     "name": ".text",
+     "size": "6941",
+     "fuzzy_match_percent": 0.0
+    }
+   ],
+   "functions": [
+    {
+     "name": "FUN_10001710",
+     "size": "1226",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268441360"
+     }
+    },
+    {
+     "name": "FUN_10006250",
+     "size": "1193",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268460624"
+     }
+    },
+    {
+     "name": "FUN_10006810",
+     "size": "4140",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268462096"
+     }
+    },
+    {
+     "name": "FUN_10007c50",
+     "size": "382",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268467280"
+     }
+    }
+   ],
    "metadata": {
     "complete": false,
     "source_path": ""

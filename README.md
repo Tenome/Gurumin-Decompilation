@@ -19,8 +19,9 @@ No game files are included. Point the tools at your own copy of the game.
 <p align="center"><img src="progress/jp/progress.svg" alt="JP decompilation progress" width="600"></p>
 
 The JP meter counts the whole game: APP.dll (`decomp/`) plus the helper DLLs, each in its own tree with the same
-compiler: Packs.dll, the image and archive codec (`decomp_packs/`), and SoundArc.dll, the sound server
-(`decomp_soundarc/`). Statically linked libraries (the C runtime, libjpeg) are not counted.
+compiler: Packs.dll, the image and archive codec (`decomp_packs/`), SoundArc.dll, the sound server
+(`decomp_soundarc/`), and sound3d.dll, the DirectSound engine it drives (`decomp_sound3d/`). Statically linked
+libraries (the C runtime, MFC, libjpeg, libVorbis) are not counted.
 
 ### English Steam release (game_en_steam.exe, Visual C++ 2013)
 

@@ -321,7 +321,7 @@ APP.dll walls are parked (state above). Packs.dll is in `decomp_packs/` (README,
 `progress/jp/packs.json`): 24 of 51 game functions matched after batch 395. Same compiler as APP.dll; so is SoundArc.dll,
 a GUI EXE (sound server), complete in `decomp_soundarc/` (11 of 11, batch 394; built /Od /ZI). sound3d.dll last (middleware). Packs and SoundArc are merged into
 `progress/jp/report.json` (decomp/tools/build_all.py MODULES; the meter now counts the whole JP game). sound3d.dll
-(`decomp_sound3d/`, 84 of 116 in the working tree) joins MODULES once its duplicate types are consolidated.
+(`decomp_sound3d/`, the DirectSound engine) joined in batch 397: 84 of 116, types consolidated. JP total 1030 of 1390.
 
 ## Next steps
 1. The trail renderer family 101713f0/10170580/10187520 is drafted (effect_trail_draw.cpp, effect_light.cpp): one shared

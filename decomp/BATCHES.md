@@ -458,3 +458,4 @@ Each finished batch adds two new ones, taken from the medium-function section of
 | 394 | 38 | match | SoundArc.dll complete: 11 of 11 (built /Od /ZI, own build.bat); Packs round 2 in progress |
 | 395 | 38 | match | Packs round 2: DecodeJpegRgb, GetBit, AdvanceOverToken, StoreCoefficient; BandStatistics and TransformLevel written; Packs 24 of 51 |
 | 396 | 38 | report | Packs and SoundArc merged into progress/jp/report.json; meter retitled to the whole JP game; 946 of 1274 |
+| 397 | 38 | match | sound3d.dll: 4 lanes + type consolidation, 84 of 116 matched, merged into the JP report; 1030 of 1390 |
