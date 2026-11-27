@@ -88,7 +88,7 @@ void WorldRenderer::DrawWorldPictures(const Matrix4 *view, const Matrix4 *camera
                     DAT_118d0ba8[screenTexture].DrawTinted(
                         (int)(picturePositions[i].x - pictureSizes[i].x * 0.5f + offsetX),
                         (int)(picturePositions[i].y - pictureSizes[i].y * 0.5f + offsetY),
-                        (int)(offsetX + (picturePositions[i].x + pictureSizes[i].x * 0.5f)),
+                        (int)(offsetX + picturePositions[i].x + pictureSizes[i].x * 0.5f),
                         (int)(picturePositions[i].y + pictureSizes[i].y * 0.5f + offsetY),
                         SCREEN_BORDER / SCREEN_TEXTURE_WIDTH, SCREEN_BORDER / SCREEN_TEXTURE_HEIGHT,
                         (float)(screenWidth - SCREEN_BORDER) / SCREEN_TEXTURE_WIDTH,
@@ -119,7 +119,7 @@ void WorldRenderer::DrawWorldPictures(const Matrix4 *view, const Matrix4 *camera
                     DAT_118d0ba8[screenTexture].DrawTinted(
                         (int)(picturePositions[i].x - pictureSizes[i].x * 0.5f + offsetX),
                         (int)(picturePositions[i].y - pictureSizes[i].y * 0.5f + offsetY),
-                        (int)(offsetX + (picturePositions[i].x + pictureSizes[i].x * 0.5f)),
+                        (int)(offsetX + picturePositions[i].x + pictureSizes[i].x * 0.5f),
                         (int)(picturePositions[i].y + pictureSizes[i].y * 0.5f + offsetY),
                         SCREEN_BORDER / SCREEN_TEXTURE_WIDTH,
                         (float)(screenHeight - SCREEN_BORDER) / SCREEN_TEXTURE_HEIGHT,
@@ -152,7 +152,7 @@ void WorldRenderer::DrawWorldPictures(const Matrix4 *view, const Matrix4 *camera
                     DAT_118d0ba8[screenTexture].DrawTinted(
                         (int)(picturePositions[i].x - pictureSizes[i].x * 0.5f + offsetX),
                         (int)(picturePositions[i].y - pictureSizes[i].y * 0.5f + offsetY),
-                        (int)(offsetX + (picturePositions[i].x + pictureSizes[i].x * 0.5f)),
+                        (int)(offsetX + picturePositions[i].x + pictureSizes[i].x * 0.5f),
                         (int)(picturePositions[i].y + pictureSizes[i].y * 0.5f + offsetY),
                         (float)(HALF_TEXEL / SCREEN_TEXTURE_WIDTH_D), (float)(HALF_TEXEL / SCREEN_TEXTURE_HEIGHT_D),
                         (float)((screenWidth - HALF_TEXEL) / SCREEN_TEXTURE_WIDTH_D),
@@ -172,7 +172,7 @@ void WorldRenderer::DrawWorldPictures(const Matrix4 *view, const Matrix4 *camera
                         (int)(screen.x + pictureSizes[i].x * 0.5f + offsetX),
                         (int)(screen.y + pictureSizes[i].y * 0.5f + offsetY),
                         (float)(HALF_TEXEL / SCREEN_TEXTURE_WIDTH_D), (float)(HALF_TEXEL / SCREEN_TEXTURE_HEIGHT_D),
-                        (float)((screenWidth - HALF_TEXEL) / SCREEN_TEXTURE_WIDTH_D),
+                        (screenWidth - HALF_TEXEL) / SCREEN_TEXTURE_WIDTH_D,
                         (float)(screenHeight - SCREEN_BORDER) / SCREEN_TEXTURE_HEIGHT, screen.z,
                         pictureAlpha[i], pictureAngle[i], pictureGrey[i]);
                 }
@@ -184,7 +184,7 @@ void WorldRenderer::DrawWorldPictures(const Matrix4 *view, const Matrix4 *camera
                     DAT_118d0ba8[textures[i]].DrawTinted(
                         (int)(picturePositions[i].x - pictureSizes[i].x * 0.5f + offsetX),
                         (int)(picturePositions[i].y - pictureSizes[i].y * 0.5f + offsetY),
-                        (int)(offsetX + (picturePositions[i].x + pictureSizes[i].x * 0.5f)),
+                        (int)(offsetX + picturePositions[i].x + pictureSizes[i].x * 0.5f),
                         (int)(picturePositions[i].y + pictureSizes[i].y * 0.5f + offsetY),
                         pictureUVs[i].x, pictureUVs[i].y, pictureUVs[i].z, pictureUVs[i].w, picturePositions[i].z,
                         pictureAlpha[i], pictureAngle[i], pictureGrey[i]);

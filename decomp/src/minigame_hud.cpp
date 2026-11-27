@@ -87,6 +87,9 @@ static inline int HalfWidth(int width)
 extern "C" int FUN_100301a0(void)
 {
     char scoreText[12];
+    // Half sizes of the banner quad and of its glow copy, shared by the banner branches (declared once here: as
+    // per-branch locals their spill slots differ from the original).
+    int halfW, halfH, glowHalfW, glowHalfH;
     float fade;
     if (DAT_102028c8 < 0)
         return 0;
@@ -98,7 +101,7 @@ extern "C" int FUN_100301a0(void)
         {
             int step = DAT_1020c2e8 / BANNER_FRAMES_PER_STEP;
             fade = (float)(BANNER_FRAMES_PER_STEP - DAT_1020c2e8 % BANNER_FRAMES_PER_STEP) / BANNER_FRAMES_PER_STEP_F;
-            int halfW = SCALED(DIGIT_BASE, fade, DIGIT_RATE);
+            halfW = SCALED(DIGIT_BASE, fade, DIGIT_RATE);
             int glowHalf = SCALED(DIGIT_BASE, fade, DIGIT_GLOW_RATE);
             float u1 = ((float)step * DIGIT_CELL_TEXELS + DIGIT_CELL_LAST_TEXEL) / SHEET_WIDTH;
             float u0 = ((float)step * DIGIT_CELL_TEXELS + DIGIT_CELL_FIRST_TEXEL) / SHEET_WIDTH;
@@ -108,10 +111,10 @@ extern "C" int FUN_100301a0(void)
         else if (DAT_1020c2e8 < BANNER_END_FRAMES && DAT_1020c2e8 > BANNER_DIGIT_FRAMES - 1)
         {
             fade = (float)(BANNER_FRAMES_PER_STEP - DAT_1020c2e8 % BANNER_FRAMES_PER_STEP) / BANNER_FRAMES_PER_STEP_F;
-            int halfW = SCALED(WORD_BASE, fade, WORD_WIDTH_RATE);
-            int halfH = SCALED(DIGIT_BASE, fade, WORD_HEIGHT_RATE);
-            int glowHalfW = SCALED(WORD_BASE, fade, WORD_GLOW_WIDTH_RATE);
-            int glowHalfH = SCALED(DIGIT_BASE, fade, WORD_GLOW_HEIGHT_RATE);
+            halfW = SCALED(WORD_BASE, fade, WORD_WIDTH_RATE);
+            halfH = SCALED(DIGIT_BASE, fade, WORD_HEIGHT_RATE);
+            glowHalfW = SCALED(WORD_BASE, fade, WORD_GLOW_WIDTH_RATE);
+            glowHalfH = SCALED(DIGIT_BASE, fade, WORD_GLOW_HEIGHT_RATE);
             BANNER_QUAD(slot, halfW, halfH, WORD_U0, START_V0, WORD_U1, START_V1, fade);
             BANNER_GLOW(glowHalfW, glowHalfH, WORD_U0, START_V0, WORD_U1, START_V1, fade);
         }
@@ -121,10 +124,10 @@ extern "C" int FUN_100301a0(void)
                 fade = (float)(timer + BANNER_FRAMES_PER_STEP) / BANNER_FRAMES_PER_STEP_F;
             else
                 fade = 0.0f;
-            int halfW = SCALED(WORD_BASE, fade, WORD_WIDTH_RATE);
-            int halfH = SCALED(DIGIT_BASE, fade, WORD_HEIGHT_RATE);
-            int glowHalfW = SCALED(WORD_BASE, fade, WORD_GLOW_WIDTH_RATE);
-            int glowHalfH = SCALED(DIGIT_BASE, fade, WORD_GLOW_HEIGHT_RATE);
+            halfW = SCALED(WORD_BASE, fade, WORD_WIDTH_RATE);
+            halfH = SCALED(DIGIT_BASE, fade, WORD_HEIGHT_RATE);
+            glowHalfW = SCALED(WORD_BASE, fade, WORD_GLOW_WIDTH_RATE);
+            glowHalfH = SCALED(DIGIT_BASE, fade, WORD_GLOW_HEIGHT_RATE);
             BANNER_QUAD(slot, halfW, halfH, WORD_U0, FINISH_V0, WORD_U1, FINISH_V1, 1.0f);
             BANNER_GLOW(glowHalfW, glowHalfH, WORD_U0, FINISH_V0, WORD_U1, FINISH_V1, fade);
         }

@@ -731,3 +731,24 @@ other huge drafts (Bs00x_Update, DrawLit, RunScriptFrames) for the same gap.
 - `__forceinline` was needed for CopyString in sound3d _IPlay: plain `inline` expanded it at three queue writers
   but left _IPlay's copy as a call.
 - sound3d's inventory had _IPlay (0x10009ad0) merged into _IPlayFadeB, so it is listed in module.json extra_functions.
+
+## Scratch registers: rotation for temporaries, eax first for cross-block values (minigame HUDs, lane C2)
+- cl 13.00 hands out eax/ecx/edx to a block's temporaries in turn: each one gets the register after the one allocated
+  last, and the turn carries on from the code before (a forced `this` in ecx does not count). Call arguments are
+  allocated right to left, so `_itoa(global, buffer, 10)` gets the `lea` of the buffer first and the global's load
+  second: buffer in register r, value in r+1, the next temporary in r+2. Toy tests over 120 different lead-ins never
+  gave anything else.
+- A value that is live across a block boundary is allocated before the block's temporaries and takes eax when it is
+  free. The temporaries then skip eax. The minigame HUDs' first `_itoa` has the value in eax and the buffer in the
+  next register in turn (eax/ecx/edx in both DrawHud and DrawTimerHud, even though their lead-ins differ). So in the
+  original that score is a cross-block value. Proof: `int score = DAT_10c65060; for (int once = 0; once < 1; once++)
+  _itoa(score, ...)` makes DrawHud, DrawHudTwoScores and DrawTimerHud byte-identical. DrawHudMinuteTimer needs its
+  second score done the same way, which leaves 8 stack-slot lines. That loop is a fakematch and is not used.
+- These also create the boundary, but none of them reads as the original: a ternary with identical arms,
+  `if (s >= 0 || s < 0)`, an unsigned `if (score >= 0)` around the whole score block, and loops that run once
+  (`for`, `while (n--)`). These do not create it: a named local, a local defined further up, `register`/`const`, an
+  inline helper (cl substitutes plain arguments), `if (1)`, `do {} while (0)`, `for (;;) {... break;}`, a goto to
+  the next line, a struct member, a pointer or a reference to the global.
+- The banner half sizes (`halfW, halfH, glowHalfW, glowHalfH`, plus `fade` in the timer HUDs) are declared once at
+  the top of the function, C style. As per-branch locals, glowHalfH's spill shared the `step`/`width` slot instead of
+  the cast temporaries' slot.

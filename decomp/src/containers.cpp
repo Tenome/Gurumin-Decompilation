@@ -223,8 +223,8 @@ int KeyBank::CopyTo(KeyTrack *target)
 #include "motion_list.h"
 
 // Inserts `value` at `position` (-1 = append) and records `tag`. Returns 0 when the position is past the end or
-// the list is full.
-int MotionList::Insert(int position, int value, int tag)
+// the list is full. Expanded inline into InsertByName (plain `inline` is not expanded at /Ob1 here).
+__forceinline int MotionList::Insert(int position, int value, int tag)
 {
     m_0208 = tag;
     if (count < position)

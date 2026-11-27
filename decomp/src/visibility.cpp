@@ -26,12 +26,12 @@ int Node::UpdateVisibleCells()
     if (visibilityCells != 0)
     {
         Vec4 eye;
+        Box2 *box = visibilityCells->boxes;
         if (DAT_10f65520 != 0)
             eye.Copy(DAT_10f66908);
         else
             eye.Copy(DAT_10f668e8);
         memset(DAT_11afffe8, 0, sizeof(DAT_11afffe8));
-        Box2 *box = visibilityCells->boxes;
         for (int i = 0; i < 0x40; i++, box++)
         {
             if (visibilityCells->cells[i].count != 0 && eye.InBox(box))

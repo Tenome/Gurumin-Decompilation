@@ -840,31 +840,32 @@ int ListBank::GetIndexPart(const char *name, char *part, int n)
 // 0x100fb6d0. Copies the script `source` (`length` bytes, plus the byte after them) into `text` and compiles it.
 // "//" comments outside double quotes are blanked out on the way: from the second slash to the end of the line
 // every character becomes '\r', and the first slash is dropped. Returns 1.
+// The copied character is always read back through text[out] (never through a local), the way the original does.
 int ListBank::LoadText(const char *source, int length)
 {
-    int inQuotes = 0;
-    int inComment = 0;
-    int out = 0;
+    int in = 0;
     self = this;
     textLength = 0;
     memset(text, 0, sizeof(text));
-    for (int in = 0; in <= length;)
+    int inQuotes = 0;
+    int inComment = 0;
+    int out = 0;
+    for (; in <= length;)
     {
-        char c = source[in];
+        text[out] = source[in];
         in++;
-        text[out] = c;
         if (inComment == 0)
         {
-            if (c == '"' && inQuotes == 0)
+            if (text[out] == '"' && inQuotes == 0)
                 inQuotes = 1;
-            else if (c == '"' && inQuotes == 1)
+            else if (text[out] == '"' && inQuotes == 1)
                 inQuotes = 0;
-            if (out > 0 && inQuotes == 0 && c == '/' && text[out - 1] == '/')
+            if (out > 0 && inQuotes == 0 && text[out] == '/' && text[out - 1] == '/')
             {
                 // Start of a comment: drop the first slash and blank out the rest of the line.
+                inComment = 1;
                 out--;
                 textLength--;
-                inComment = 1;
             }
         }
         if (inComment == 1)
@@ -880,8 +881,8 @@ int ListBank::LoadText(const char *source, int length)
                 textLength--;
             }
         }
-        textLength++;
         out++;
+        textLength++;
     }
     CompileText();
     return 1;

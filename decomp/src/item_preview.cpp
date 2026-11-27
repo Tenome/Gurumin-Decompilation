@@ -58,10 +58,12 @@ int DrawItemPreview(void)
     {
         Matrix4 placement;
         Matrix4 raised;
-        int scale = ITEM_PREVIEW_DEFAULT_SCALE;
-        if (DAT_1088e6b0[DAT_1042e2a8[DAT_104bfd30]].previewScale != 0)
-            scale = DAT_1088e6b0[DAT_1042e2a8[DAT_104bfd30]].previewScale;
+        // The table entry's scale (0 = use the default) and height are read together before the scale is chosen.
+        int previewScale = DAT_1088e6b0[DAT_1042e2a8[DAT_104bfd30]].previewScale;
         int height = DAT_1088e6b0[DAT_1042e2a8[DAT_104bfd30]].previewHeight;
+        int scale = ITEM_PREVIEW_DEFAULT_SCALE;
+        if (previewScale != 0)
+            scale = previewScale;
         placement = Scaling((float)scale * ITEM_PREVIEW_SCALE_STEP, (float)scale * ITEM_PREVIEW_SCALE_STEP,
                             (float)scale * ITEM_PREVIEW_SCALE_STEP) *
                     RotationZ(DAT_104c02f8) * RotationY(0) * RotationX(0) * TranslationMatrix(0, 0, 0);

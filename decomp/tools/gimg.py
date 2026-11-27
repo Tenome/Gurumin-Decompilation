@@ -27,6 +27,19 @@ class Image:
         return b""
 
 TRIAGE = os.path.join(ROOT, "decomp", "triage.tsv")
+FIXES = os.path.join(ROOT, "decomp", "inventory_fixes.tsv")
+GAME_START, GAME_END = 0x10001000, 0x101b2000  # game code of APP.dll; the CRT follows
+
+def load_fixes():
+    """inventory_fixes.tsv rows: (address, kind, note); kind 'add' = function start Ghidra missed,
+    'merge' = Ghidra start that lies inside the previous function (jump target, not a function)."""
+    rows = []
+    if os.path.exists(FIXES):
+        for line in open(FIXES, encoding="utf-8").read().splitlines()[1:]:
+            c = line.split("\t")
+            if len(c) >= 2 and c[0]:
+                rows.append((int(c[0], 16), c[1], c[2] if len(c) > 2 else ""))
+    return rows
 
 def inventory():
     inv = {}
@@ -42,4 +55,18 @@ def inventory():
             a = int(c[0], 16)
             if a not in inv:
                 inv[a] = ("FUN_%08x" % a, int(c[1]))
+    for a, kind, _ in load_fixes():
+        if kind == "add":
+            inv[a] = ("FUN_%08x" % a, 0)
+        elif kind == "merge":
+            inv.pop(a, None)
+    # Ghidra's sizes leave out epilogues and switch tables: a game function runs to the next function start,
+    # minus the alignment padding (nop or int3) in front of it
+    image = Image()
+    starts = sorted(inv)
+    for i, a in enumerate(starts):
+        if GAME_START <= a < GAME_END:
+            end = starts[i + 1] if i + 1 < len(starts) else a + inv[a][1]
+            code = image.read(a, end - a).rstrip(bytes([0x90, 0xCC]))
+            inv[a] = (inv[a][0], len(code))
     return inv
