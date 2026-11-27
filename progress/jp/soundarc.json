@@ -1,0 +1,189 @@
+{
+ "measures": {
+  "fuzzy_match_percent": 100.0,
+  "total_code": "6861",
+  "matched_code": "6861",
+  "matched_code_percent": 100.0,
+  "total_data": "0",
+  "matched_data": "0",
+  "matched_data_percent": 0.0,
+  "total_functions": 11,
+  "matched_functions": 11,
+  "matched_functions_percent": 100.0,
+  "complete_code": "6861",
+  "complete_code_percent": 100.0,
+  "complete_data": "0",
+  "complete_data_percent": 0.0,
+  "total_units": 2,
+  "complete_units": 1,
+  "matched_rules_code": "6861",
+  "matched_rules_code_percent": 100.0,
+  "matched_rules_functions": 11,
+  "matched_rules_functions_percent": 100.0
+ },
+ "units": [
+  {
+   "name": "soundarc/sound_server",
+   "measures": {
+    "fuzzy_match_percent": 100.0,
+    "total_code": "6861",
+    "matched_code": "6861",
+    "matched_code_percent": 100.0,
+    "total_data": "0",
+    "matched_data": "0",
+    "matched_data_percent": 0.0,
+    "total_functions": 11,
+    "matched_functions": 11,
+    "matched_functions_percent": 100.0,
+    "complete_code": "6861",
+    "complete_code_percent": 100.0,
+    "complete_data": "0",
+    "complete_data_percent": 0.0,
+    "total_units": 1,
+    "complete_units": 1,
+    "matched_rules_code": "6861",
+    "matched_rules_code_percent": 100.0,
+    "matched_rules_functions": 11,
+    "matched_rules_functions_percent": 100.0
+   },
+   "sections": [
+    {
+     "name": ".text",
+     "size": "6861",
+     "fuzzy_match_percent": 100.0
+    }
+   ],
+   "functions": [
+    {
+     "name": "??0SoundArcApp@@QAE@XZ",
+     "size": "22",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "4204224"
+     }
+    },
+    {
+     "name": "??1SoundArcApp@@QAE@XZ",
+     "size": "19",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "4204256"
+     }
+    },
+    {
+     "name": "_WinMain@16",
+     "size": "630",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "4198400"
+     }
+    },
+    {
+     "name": "?PumpOneMessage@@YAXXZ",
+     "size": "66",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "4199040"
+     }
+    },
+    {
+     "name": "?MyRegisterClass@@YAGPAUHINSTANCE__@@@Z",
+     "size": "134",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "4199120"
+     }
+    },
+    {
+     "name": "?InitInstance@@YAHPAUHINSTANCE__@@H@Z",
+     "size": "147",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "4199264"
+     }
+    },
+    {
+     "name": "?LogLine@@YAHPBD@Z",
+     "size": "78",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "4199424"
+     }
+    },
+    {
+     "name": "?WndProc@@YGJPAUHWND__@@IIJ@Z",
+     "size": "4585",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "4199504"
+     }
+    },
+    {
+     "name": "?About@@YGJPAUHWND__@@IIJ@Z",
+     "size": "114",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "4204096"
+     }
+    },
+    {
+     "name": "?LoadSound3D@@YAHH@Z",
+     "size": "1002",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "4204288"
+     }
+    },
+    {
+     "name": "?ReleaseSound3D@@YAHXZ",
+     "size": "64",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "4205296"
+     }
+    }
+   ],
+   "metadata": {
+    "complete": true,
+    "source_path": "decomp_soundarc/src/sound_server.cpp"
+   }
+  },
+  {
+   "name": "soundarc/unmatched",
+   "measures": {
+    "fuzzy_match_percent": 0.0,
+    "total_code": "0",
+    "matched_code": "0",
+    "matched_code_percent": 0.0,
+    "total_data": "0",
+    "matched_data": "0",
+    "matched_data_percent": 0.0,
+    "total_functions": 0,
+    "matched_functions": 0,
+    "matched_functions_percent": 0.0,
+    "complete_code": "0",
+    "complete_code_percent": 0.0,
+    "complete_data": "0",
+    "complete_data_percent": 0.0,
+    "total_units": 1,
+    "complete_units": 0,
+    "matched_rules_code": "0",
+    "matched_rules_code_percent": 0.0,
+    "matched_rules_functions": 0,
+    "matched_rules_functions_percent": 0.0
+   },
+   "sections": [
+    {
+     "name": ".text",
+     "size": "0",
+     "fuzzy_match_percent": 0.0
+    }
+   ],
+   "functions": [],
+   "metadata": {
+    "complete": false,
+    "source_path": ""
+   }
+  }
+ ]
+}

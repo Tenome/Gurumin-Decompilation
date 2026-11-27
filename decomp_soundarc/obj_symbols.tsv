@@ -1,1 +1,12 @@
 # mangled name	address, for functions whose names carry no address (constructors, operators)
+_WinMain@16	00401000
+?PumpOneMessage@@YAXXZ	00401280
+?MyRegisterClass@@YAGPAUHINSTANCE__@@@Z	004012d0
+?InitInstance@@YAHPAUHINSTANCE__@@H@Z	00401360
+?LogLine@@YAHPBD@Z	00401400
+?WndProc@@YGJPAUHWND__@@IIJ@Z	00401450
+?About@@YGJPAUHWND__@@IIJ@Z	00402640
+??0SoundArcApp@@QAE@XZ	004026c0
+??1SoundArcApp@@QAE@XZ	004026e0
+?LoadSound3D@@YAHH@Z	00402700
+?ReleaseSound3D@@YAHXZ	00402af0
