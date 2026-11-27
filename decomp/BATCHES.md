@@ -462,3 +462,4 @@ Each finished batch adds two new ones, taken from the medium-function section of
 | 398 | 38 | match | sound3d round 2: PrepareBuffers, OpenWav, Mp3Stream::Open, OggStream::Open; FindOrLoadSound, PlaySE (/Od) and Mp3Stream::Read written; 1034 of 1390 |
 | 399 | 38 | match | helper DLLs round 3: Packs GetBits, PackPlanesToWords, ReadStreamHeader (27 of 51); sound3d SetListener, ApplyVolume, WaveStream::Close, SetPosition (92 of 116); 1041 of 1390 |
 | 400 | 38 | match | helper DLLs round 4: Packs PutBits, UnpackRecords (29 of 51); sound3d GetPosition, WaveStream::Tell/Open, CheckNameKeyA, MixerControls ctor (97 of 117); ProcessCommandQueue typed; 1048 of 1391 |
+| 401 | 38 | match | round 5: Packs MMV3, DequantizeBand, DecodeChunk (32 of 51); APP Screenshot_ReadBackBuffer (912); TransformLevel transcribed; NOTES inline-site rule; 1052 of 1391 |

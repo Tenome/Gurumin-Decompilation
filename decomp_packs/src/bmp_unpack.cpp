@@ -308,10 +308,11 @@ static inline int DequantizeSample(int value, int wholePart, int remainderPart, 
 void DequantizeBand(short *plane0, short *plane1, short *plane2, int width, int height, int stride, int quantScale,
                     int levelScale, int bias0, int bias1, int bias2)
 {
+    int scaledLevel = levelScale << 8;  // level scale in 8.8 fixed point
     int divisor = quantScale * 16;
     int half = (divisor - 1) >> 1;
-    int wholePart = (levelScale << 8) / divisor - 1;
-    int remainderPart = (levelScale << 8) % divisor + divisor;
+    int wholePart = scaledLevel / divisor - 1;
+    int remainderPart = scaledLevel % divisor + divisor;
     int rowStart = 0;
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
@@ -417,7 +418,6 @@ static inline unsigned int PackPixelPair(const unsigned char *rgb)
 // decoded or the position moved, else 0. (exported, called by the game)
 extern "C" int MMV3(int command, unsigned int *pixels, int unused, int *width, unsigned int *height)
 {
-    int blockOffset;
     int nextBlock;
     if (command == MMV3_CLOSE) {
         if (g_mmvFile != 0)
@@ -425,6 +425,7 @@ extern "C" int MMV3(int command, unsigned int *pixels, int unused, int *width, u
         return 0;
     }
     if (command == MMV3_NEXT_FRAME) {
+        int blockOffset;  // offset of the next block, read from the file position
         fread(&blockOffset, 1, 4, g_mmvFile);
         if (blockOffset == 0)
             return 0;
@@ -432,6 +433,7 @@ extern "C" int MMV3(int command, unsigned int *pixels, int unused, int *width, u
         return 1;
     }
     if (command != MMV3_CONTINUE) {
+        int blockOffset;  // the two header words skipped after opening
         if (g_mmvFile != 0)
             fclose(g_mmvFile);
         g_mmvFile = fopen((const char *)command, "rb");
@@ -459,8 +461,9 @@ extern "C" int MMV3(int command, unsigned int *pixels, int unused, int *width, u
     *height = cinfo.output_height;
     int rowBytes = outputWidth * 2;
     int pairsPerRow = outputWidth / 2;
+    JSAMPROW scanline;  // row buffer handed to the JPEG library, one scanline at a time
     while (cinfo.output_scanline < cinfo.output_height) {
-        JSAMPROW scanline = (JSAMPROW)rowStart;
+        scanline = (JSAMPROW)rowStart;
         jpeg_read_scanlines(&cinfo, &scanline, 1);
         if (pairsPerRow > 0) {
             unsigned int *out = rowStart;

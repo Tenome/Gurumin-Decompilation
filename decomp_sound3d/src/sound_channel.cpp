@@ -505,7 +505,10 @@ int SoundChannel::SetPosition(float *x, float *y, float *z, float *vx, float *vy
 int SoundChannel::Open(const char *file, int loop, int startSamples, int loopStartSamples,
                        unsigned int loopEndSamples)
 {
-    if (directSound == 0 || primaryBuffer == 0)
+    IDirectSoundBuffer *created;
+    if (directSound == 0)
+        return 0;
+    if (primaryBuffer == 0)
         return 0;
     if (IsPlaying() != 0)
         Stop();
@@ -521,14 +524,14 @@ int SoundChannel::Open(const char *file, int loop, int startSamples, int loopSta
     }
     int stereo = 1 < fileHeader.channels;
     memset(&format, 0, sizeof(format));
-    format.wf.nBlockAlign = fileHeader.blockAlign;
     format.wf.nChannels = (stereo != 0) + 1;
+    format.wf.nBlockAlign = fileHeader.blockAlign;
     format.wf.nSamplesPerSec = fileHeader.samplesPerSecond;
     format.wBitsPerSample = fileHeader.bitsPerSample;
-    DSBUFFERDESC description;
-    memset(&description, 0, sizeof(description));
     format.wf.wFormatTag = WAVE_FORMAT_PCM;
     format.wf.nAvgBytesPerSec = fileHeader.blockAlign * fileHeader.samplesPerSecond;
+    DSBUFFERDESC description;
+    memset(&description, 0, sizeof(description));
     description.dwSize = sizeof(DSBUFFERDESC);
     if (g_memoryModeA == 2)
         description.dwFlags = DSBCAPS_GETCURRENTPOSITION2 | DSBCAPS_CTRLVOLUME | DSBCAPS_CTRLPAN | DSBCAPS_LOCHARDWARE;
@@ -538,7 +541,6 @@ int SoundChannel::Open(const char *file, int loop, int startSamples, int loopSta
     description.dwBufferBytes = format.wf.nAvgBytesPerSec * CHANNEL_SECTION_COUNT;
     description.lpwfxFormat = (WAVEFORMATEX *)&format;
     if (buffer == 0) {
-        IDirectSoundBuffer *created;
         directSound->CreateSoundBuffer(&description, &created, 0);
         if (created == 0)
             return 0;
@@ -547,14 +549,15 @@ int SoundChannel::Open(const char *file, int loop, int startSamples, int loopSta
         if (buffer == 0)
             return 0;
     }
+    int startBytes = fileHeader.bitsPerSample * startSamples / BITS_PER_BYTE * format.wf.nChannels;
     loopStartBytes = fileHeader.bitsPerSample * loopStartSamples / BITS_PER_BYTE * format.wf.nChannels;
-    loopEndBytes = fileHeader.bitsPerSample * loopEndSamples / BITS_PER_BYTE * format.wf.nChannels;
+    loopEndBytes = fileHeader.bitsPerSample * (int)loopEndSamples / BITS_PER_BYTE * format.wf.nChannels;
     if (loopEndBytes > dataSize)
         loopEndBytes = dataSize;
     endOffset = loopEndBytes + WAV_HEADER_BYTES;
     if (endOffset == WAV_HEADER_BYTES)
         *(char *)0 = 1;
-    Seek(fileHeader.bitsPerSample * startSamples / BITS_PER_BYTE * format.wf.nChannels + WAV_HEADER_BYTES);
+    Seek(startBytes + WAV_HEADER_BYTES);
     isLooping = loop;
     buffer->SetCurrentPosition(0);
     FillSection(format.wf.nAvgBytesPerSec * 2, 0, 0);

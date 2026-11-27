@@ -1,6 +1,6 @@
 # sound3d.dll queue
 
-97 of 117 game functions matched (batch 400). Open functions, closest first (fuzzy % from the build):
+97 of 117 game functions matched (batch 401). Open functions, closest first (fuzzy % from the build):
 
 - 10003640 ?Open@MmioFile@@QAEHPBD0@Z, 1085 bytes, 98%
 - 10006810 ?PlaySE@SoundChannel@@QAEHPBDHPAM11111HM@Z, 4140 bytes, 92%
@@ -31,10 +31,13 @@ Notes:
   (MmioFile::Seek __forceinline, OggStream ctor in-class without throw()), CheckNameKeyA, MixerControls ctor 10008830
   (added via module.json extra_functions; the function list is now 117).
 - InitTrackedAllocator returns int; the original has a /GS cookie with no visible array.
-- ProcessCommandQueue: typed now (SoundCommand *later); the original walks a pointer to .command and reads name at -0x100.
+- ProcessCommandQueue (111 bytes): plain g_commandQueue[other] indexing gives the original's .command pointer walk;
+  the IPlaySEB tail still differs (original shares `lea eax,name; push; call` across both paths).
+- SoundChannel::Open (103 bytes): separate early returns give the shrink-wrapped saves; format field order left.
+- IsPlaying still carries a dead `DWORD idleMs` local from an experiment; remove it unless it matches.
 - MmioFile::Open: original has plainPath at 0x140 and datPath at 0x340 (ours reversed); declaration order has no effect.
 - OggStream::Read: `lastBlock - skipped + position` compiles as (position - skipped) + lastBlock in ours.
-- SoundChannel::Open: shrink-wrapped saves (esi at entry, ebx/edi/ebp later). 
+- 
 - MmioFile::Open: 10 bytes, only the stack order of datPath/plainPath (all three path buffers have 3 references).
 - SoundChannel::PlaySE (src_od/, built /Od /Op-): structurally identical, frame 0x110 vs 0x114 (the /Od slot order with /GS).
 - Mp3Stream::Read: the original shares the two "finish a pending block" tails and keeps the early return out of line,

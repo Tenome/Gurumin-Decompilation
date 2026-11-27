@@ -83,13 +83,15 @@ inline unsigned short GetBits(int count)
 
 // Expands one chunk record into g_unpackChunk: literals, offset/length copies and runs until the end marker.
 // Returns 1 at the end marker, 0 when a copy would pass the original size. (UnpackRecords)
+// Inline note: cl expands GetBit only at call sites it rates as hot (literal flag, offset-type flag, first length
+// flag). The rating follows the loop form: `while (true)` gives these three, `for (;;)` makes it expand a fourth.
 int DecodeChunk(void)
 {
     g_reader.consumed = 4;
     g_reader.bits = g_unpack->in[1];
     g_reader.count = 8;
     g_unpack->in += 2;
-    for (;;) {
+    while (true) {
         if (GetBit() == 0) {
             *g_unpack->out = *g_unpack->in;
             g_unpack->out++;
@@ -104,10 +106,10 @@ int DecodeChunk(void)
             g_reader.consumed++;
         } else {
             unsigned offsetHigh = GetBits(5);
-            offset = offsetHigh * 256 + *g_unpack->in++;
-            if (offset == 0)
+            unsigned offsetCode = offsetHigh * 256 + *g_unpack->in++;
+            if (offsetCode == 0)
                 return 1;
-            if (offset == EXEC_RUN_OFFSET) {
+            if (offsetCode == EXEC_RUN_OFFSET) {
                 unsigned runLength;
                 if (GetBit() == 0) {
                     runLength = GetBits(4);
@@ -123,6 +125,7 @@ int DecodeChunk(void)
                 g_unpack->outCount += runLength + EXEC_MIN_RUN;
                 continue;
             }
+            offset = offsetCode;
         }
         unsigned length;
         if (GetBit() != 0)
@@ -134,7 +137,8 @@ int DecodeChunk(void)
         else if (GetBit() != 0)
             length = 5;
         else if (GetBit() == 0) {
-            length = *g_unpack->in++ + EXEC_MIN_RUN;
+            length = *g_unpack->in++;
+            length += EXEC_MIN_RUN;
             g_reader.consumed++;
         } else
             length = GetBits(3) + 6;
@@ -259,6 +263,8 @@ void AdvanceOverToken(void)
 
 // Compresses the whole chunk into the token stream: at every position find the longest run of one byte or the
 // longest earlier match, emit one token, and move past it. (EncodeStart)
+// Inline note: as in DecodeChunk the loop form decides which flag helpers cl expands. With `while (true)` only the
+// literal flag expands PutZeroBit (a `do ... while` loop makes it expand the short-offset flag too).
 void EncodeChunk(void)
 {
     g_flagWord = (unsigned short *)g_pack->out;
@@ -267,7 +273,7 @@ void EncodeChunk(void)
     g_pack->out += 2;
     g_pack->outCount += 2;
     unsigned short code;
-    do {
+    while (true) {
         unsigned limit = g_pack->inSize - g_inPos;
         const unsigned char *scan = g_pack->in;
         unsigned char first = *scan;
@@ -367,7 +373,9 @@ void EncodeChunk(void)
         AdvanceOverToken();
         if (g_pack->afterToken != 0)
             g_pack->afterToken(g_pack);
-    } while (g_inPos < g_pack->inSize);
+        if (g_inPos >= g_pack->inSize)
+            break;
+    }
     PutBits(0x60, 7);
     *g_pack->out = 0;
     g_pack->out++;

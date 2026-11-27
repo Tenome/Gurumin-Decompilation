@@ -234,77 +234,179 @@ void PackPlanesToWords(short *planeA, short *planeB, short *planeC, unsigned cha
 
 // ---- wavelet transform ----
 
-// The analysis filter has 23 taps: the centre sample and eleven on each side.
-const int FILTER_REACH = 11;
-const int FILTER_TAPS = 2 * FILTER_REACH + 1;
+// The analysis filter has 23 taps: the centre sample c and eleven on each side (l1..l11 to the left, r1..r11 to the
+// right). TransformLevel keeps them in a window of 23 locals that shifts by one sample per output.
 const int FILTER_GAIN = 19600;      // response of the low-pass filter to a constant signal
 const int FILTER_ROUNDING = 9799;   // added to a filter sum's magnitude before the division
+const int WINDOW_AHEAD = 11;        // the newest tap lies this many samples after the centre
 
-// Mirrors an index that falls outside 0..length-1 back into range without repeating the edge sample.
-// (TransformLevel)
-static int ReflectIndex(int index, int length)
+// Low-pass filter of the even positions: a smooth bell with weight 198 at the centre, then 5741, 82 * 29 and so on,
+// summing to FILTER_GAIN. (TransformLevel)
+__forceinline int LowPassSum(int l11, int l10, int l9, int l8, int l7, int l6, int l5, int l4, int l3, int l2, int l1, int c, int r1, int r2, int r3, int r4, int r5, int r6, int r7, int r8, int r9, int r10, int r11)
 {
-    if (index < 0)
-        return -index;
-    if (index >= length)
-        return 2 * (length - 1) - index;
-    return index;
-}
-
-// Low-pass filter of the even positions; taps[FILTER_REACH + k] is the sample k places from the centre.
-// A smooth bell with weights 198 at the centre, then 5741, 82 * 29 and so on, summing to FILTER_GAIN. (TransformLevel)
-static int LowPassSum(const int *taps)
-{
-    const int *centre = taps + FILTER_REACH;
-    return 5 * (14 * (198 * centre[0] - centre[6] - centre[-6]) - 197 * (centre[3] + centre[-3]) + centre[9] + centre[-9]) +
-           2 * (6 * (34 * (centre[4] + centre[-4]) + centre[8] + centre[-8]) - centre[10] - centre[-10]) -
-           29 * (82 * (centre[2] + centre[-2]) + centre[7] + centre[-7]) + 5741 * (centre[1] + centre[-1]) +
-           169 * (centre[5] + centre[-5]) - centre[11] - centre[-11];
+    return 5 * (14 * (198 * c - r6 - l6) - 197 * (r3 + l3) + r9 + l9) +
+           2 * (6 * (34 * (r4 + l4) + r8 + l8) - r10 - l10) - 29 * (82 * (r2 + l2) + r7 + l7) +
+           5741 * (r1 + l1) + 169 * (r5 + l5) - l11 - r11;
 }
 
 // High-pass filter of the odd positions (weights sum to zero). (TransformLevel)
-static int HighPassSum(const int *taps)
+__forceinline int HighPassSum(int l11, int l10, int l9, int l8, int l7, int l6, int l5, int l4, int l3, int l2, int l1, int c, int r1, int r2, int r3, int r4, int r5, int r6, int r7, int r8, int r9, int r10, int r11)
 {
-    const int *centre = taps + FILTER_REACH;
-    return 5 * (14 * (198 * centre[0] - centre[6] - centre[-6]) + 197 * (centre[3] + centre[-3]) - centre[9] - centre[-9]) +
-           29 * (centre[7] + centre[-7] - 82 * (centre[2] + centre[-2])) +
-           2 * (6 * (34 * (centre[4] + centre[-4]) + centre[8] + centre[-8]) - centre[10] - centre[-10]) -
-           5741 * (centre[1] + centre[-1]) - 169 * (centre[5] + centre[-5]) + centre[11] + centre[-11];
+    return 5 * (14 * (198 * c - r6 - l6) + 197 * (r3 + l3) - r9 - l9) + 29 * (r7 + l7 - 82 * (r2 + l2)) +
+           2 * (6 * (34 * (r4 + l4) + r8 + l8) - r10 - l10) - 5741 * (r1 + l1) - 169 * (r5 + l5) + l11 + r11;
 }
 
 // Divides a filter sum by FILTER_GAIN, rounding to nearest with the sign kept symmetric. (TransformLevel)
-static int ScaleFilterSum(int sum)
+__forceinline int ScaleFilterSum(int sum)
 {
-    if (sum < 0)
-        return -((FILTER_ROUNDING - sum) / FILTER_GAIN);
-    return (sum + FILTER_ROUNDING) / FILTER_GAIN;
+    if (sum >= 0)
+        return (sum + FILTER_ROUNDING) / FILTER_GAIN;
+    return -((FILTER_ROUNDING - sum) / FILTER_GAIN);
 }
 
-// Filters every line of one direction: the samples of a line are sampleStep apart and the lines lineStep apart.
-// Even positions go to the first half of the output line, odd positions to the second half. (TransformLevel)
-static void FilterLines(const short *source, short *dest, int length, int lines, int sampleStep, int lineStep)
-{
-    for (int line = 0; line < lines; line++) {
-        const short *in = source + line * lineStep;
-        short *out = dest + line * lineStep;
-        for (int position = 0; position < length; position++) {
-            int taps[FILTER_TAPS];
-            for (int tap = 0; tap < FILTER_TAPS; tap++)
-                taps[tap] = in[ReflectIndex(position + tap - FILTER_REACH, length) * sampleStep];
-            if (position % 2 == 0)
-                out[position / 2 * sampleStep] = ScaleFilterSum(LowPassSum(taps));
-            else
-                out[((length + 1) / 2 + position / 2) * sampleStep] = ScaleFilterSum(HighPassSum(taps));
-        }
-    }
-}
-
-// One level of the two-dimensional analysis: filters the rows of plane into scratch, then the columns of scratch back
-// into plane, leaving the low-pass quarter in the top-left corner. Needs width and height of at least 12. (BMPPack)
+// One level of the two-dimensional analysis of a plane in place (scratch is a plane-sized work buffer): the rows are
+// filtered into scratch, then the columns of scratch back into plane. In each line the even positions become the
+// first half and the odd positions the second half, so the low-pass quarter ends up in the top-left corner. Samples
+// beyond the line ends are mirrored without repeating the edge sample. Needs width and height of at least 12.
+// (BMPPack)
 void TransformLevel(short *plane, short *scratch, int width, int height, int stride)
 {
-    FilterLines(plane, scratch, width, height, 1, stride);
-    FilterLines(scratch, plane, height, width, stride, 1);
+    // Number of low-pass outputs in a row, and the row multiples of the column pass (rows below the top one that the
+    // 12-sample start window and the mirror formula address).
+    const int halfWidth = (width + 1) / 2;
+    const int stride2 = 2 * stride;
+    const int stride3 = 3 * stride;
+    const int stride5 = 5 * stride;
+    const int stride6 = 6 * stride;
+    const int stride7 = 7 * stride;
+    const int stride9 = 9 * stride;
+    const int stride10 = 10 * stride;
+    const int stride11 = 11 * stride;
+    const int stride13 = 13 * stride;
+    // The 23-tap window. Before the first shift it holds the samples around position -1 (mirrored at the line start),
+    // so l11 is dropped unread by that shift.
+    int l11, l10, l9, l8, l7, l6, l5, l4, l3, l2, l1, c, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11;
+    for (int row = 0; row < height; row++) {
+        const short *line = plane + row * stride;
+        // Start window: line[0..11] mirrored about line[0].
+        l10 = line[11];
+        l9 = line[10];
+        l8 = line[9];
+        l7 = line[8];
+        l6 = line[7];
+        l5 = line[6];
+        l4 = line[5];
+        l3 = line[4];
+        l2 = line[3];
+        l1 = line[2];
+        c = line[1];
+        r1 = line[0];
+        r2 = c;
+        r3 = l1;
+        r4 = l2;
+        r5 = l3;
+        r6 = l4;
+        r7 = l5;
+        r8 = l6;
+        r9 = l7;
+        r10 = l8;
+        r11 = l9;
+        int highCount = 0;
+        for (int position = 0; position < width; position++) {
+            l11 = l10;
+            l10 = l9;
+            l9 = l8;
+            l8 = l7;
+            l7 = l6;
+            l6 = l5;
+            l5 = l4;
+            l4 = l3;
+            l3 = l2;
+            l2 = l1;
+            l1 = c;
+            c = r1;
+            r1 = r2;
+            r2 = r3;
+            r3 = r4;
+            r4 = r5;
+            r5 = r6;
+            r6 = r7;
+            r7 = r8;
+            r8 = r9;
+            r9 = r10;
+            r10 = r11;
+            if (position + WINDOW_AHEAD < width)
+                r11 = line[position + WINDOW_AHEAD];
+            else
+                r11 = line[2 * width - position - 13];  // mirror of position + 11 about the last sample
+            if (position % 2 == 0) {
+                scratch[row * stride + highCount] = ScaleFilterSum(LowPassSum(l11, l10, l9, l8, l7, l6, l5, l4, l3, l2, l1, c, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11));
+            } else {
+                scratch[row * stride + halfWidth + highCount] = ScaleFilterSum(HighPassSum(l11, l10, l9, l8, l7, l6, l5, l4, l3, l2, l1, c, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11));
+                highCount++;
+            }
+        }
+    }
+    for (int column = 0; column < width; column++) {
+        // Start window: rows 0..11 of the column mirrored about row 0.
+        l10 = scratch[column + stride11];
+        l9 = scratch[column + stride10];
+        l8 = scratch[column + stride9];
+        l7 = scratch[column + 8 * stride];
+        l6 = scratch[column + stride7];
+        l5 = scratch[column + stride6];
+        l4 = scratch[column + stride5];
+        l3 = scratch[column + 4 * stride];
+        l2 = scratch[column + stride3];
+        l1 = scratch[column + stride2];
+        c = scratch[column + stride];
+        r1 = scratch[column];
+        r2 = c;
+        r3 = l1;
+        r4 = l2;
+        r5 = l3;
+        r6 = l4;
+        r7 = l5;
+        r8 = l6;
+        r9 = l7;
+        r10 = l8;
+        r11 = l9;
+        int highCount = 0;
+        for (int position = 0; position < height; position++) {
+            l11 = l10;
+            l10 = l9;
+            l9 = l8;
+            l8 = l7;
+            l7 = l6;
+            l6 = l5;
+            l5 = l4;
+            l4 = l3;
+            l3 = l2;
+            l2 = l1;
+            l1 = c;
+            c = r1;
+            r1 = r2;
+            r2 = r3;
+            r3 = r4;
+            r4 = r5;
+            r5 = r6;
+            r6 = r7;
+            r7 = r8;
+            r8 = r9;
+            r9 = r10;
+            r10 = r11;
+            if (position + WINDOW_AHEAD < height)
+                r11 = scratch[column + (position + WINDOW_AHEAD) * stride];
+            else
+                r11 = scratch[column + 2 * height * stride - position * stride - stride13];  // row 2 * height - position - 13
+            if (position % 2 == 0) {
+                plane[highCount * stride + column] = ScaleFilterSum(LowPassSum(l11, l10, l9, l8, l7, l6, l5, l4, l3, l2, l1, c, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11));
+            } else {
+                plane[((height + 1) / 2 + highCount) * stride + column] = ScaleFilterSum(HighPassSum(l11, l10, l9, l8, l7, l6, l5, l4, l3, l2, l1, c, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11));
+                highCount++;
+            }
+        }
+    }
 }
 
 // ---- quantisation ----

@@ -14,7 +14,6 @@ extern "C" unsigned char *FUN_1013e9d0(int *width, int *height)
     IDirect3DSurface9Like *copy;
     IDirect3DSurface9Like *backBuffer;
     LockedRect locked;
-    int y;
     if (DAT_10f1fcf0->GetBackBuffer(0, 0, 0, (void **)&backBuffer) != 0)
         return 0;
     long result;
@@ -48,7 +47,7 @@ extern "C" unsigned char *FUN_1013e9d0(int *width, int *height)
     {
         if (DAT_10f65540 != 0)
         {
-            for (y = 0; y < DAT_10202b28; y++)
+            for (int y = 0; y < DAT_10202b28; y++)
             {
                 unsigned char *row = bits + y * locked.pitch;
                 for (int x = 0; x < DAT_10202b24; x++)
@@ -61,7 +60,7 @@ extern "C" unsigned char *FUN_1013e9d0(int *width, int *height)
         }
         else
         {
-            for (y = 0; y < DAT_10202b28; y++)
+            for (int y = 0; y < DAT_10202b28; y++)
             {
                 unsigned char *row = bits + y * locked.pitch;
                 for (int x = 0; x < DAT_10202b24; x++)
@@ -75,7 +74,7 @@ extern "C" unsigned char *FUN_1013e9d0(int *width, int *height)
     }
     else
     {
-        for (y = 0; y < DAT_10202b28; y++)
+        for (int y = 0; y < DAT_10202b28; y++)
         {
             unsigned short *row = (unsigned short *)(bits + y * locked.pitch);
             for (int x = 0; x < DAT_10202b24; x++)

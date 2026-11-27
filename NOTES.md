@@ -659,3 +659,21 @@ other huge drafts (Bs00x_Update, DrawLit, RunScriptFrames) for the same gap.
 - The compared `dx`/`dy` pair of an inline atan2 with float parameters comes out mirrored (first-computed in the low slot)
   when written through an `Atan2(float y, float x)` helper versus named locals (first-computed in the high slot, as the
   original AimedShots): named dy then dx matches the original's dy/dx slots; the helper form does not.
+
+## Inline sites, cross-jumped tails, /GS cookies (helper DLLs, batches 399-401)
+
+- **Inline expansion is per call site, by static hotness.** With /O2 /Ob1, cl 13.00 expands an `inline` helper only
+  at call sites it rates hot; the rest stay calls. Seven straight-line `GetBit()` calls were all calls, the same seven
+  in a loop all expanded. The loop form changes the rating: `for (;;)` rates sites hotter than `while (true)` /
+  `while (1)` (Packs DecodeChunk: `while (true)` gives the original's 3 expansions, `for (;;)` gives 4). Caller size
+  and definition order (forward declaration, later definition) made no difference. A helper the original never
+  expands (PutOneBit) is simply not marked `inline`; marking it changes how its callers schedule around the call.
+- **Duplicated tails are cross-jumped.** Writing the same tail in each branch (free + clear + return) lets the
+  compiler merge them into one block shared by a later branch (sound3d WaveStream::Close). Writing the tail once
+  after an if/else gives a different layout. Which copy survives is not under source control (APP ImeDraw).
+- **/GS cookie means a char array of 8 bytes or more.** Arrays of 4 chars or of single-char structs get no cookie.
+- **Plain `inline` is not always expanded in big callers;** `__forceinline` is (sound3d MmioFile::Seek). A constructor
+  declared `throw()` is not inlined; an in-class definition without it is.
+- **Locals live where their scope says.** `for (int y = 0; ...)` instead of a function-scope `int y` changes the
+  register choice (APP Screenshot_ReadBackBuffer); declaring a block-local in each block that uses it lets two
+  values share one stack slot (Packs MMV3). Dead argument slots are reused last-freed-first (Packs DequantizeBand).

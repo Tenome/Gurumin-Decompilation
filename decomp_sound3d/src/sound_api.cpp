@@ -373,7 +373,6 @@ void ProcessCommandQueue(int unused)
         if (g_commandQueue[index].queuedAt != 0 && g_commandQueue[index].queuedAt < GetTickCount() - COMMAND_EXPIRY_MS)
             g_commandQueue[index].command = CMD_NONE;
         int code = g_commandQueue[index].command;
-        int *commandSlot = &g_commandQueue[index].command;
         if (code == CMD_PLAY_FADE_EX) {
             EnterCriticalSection(&g_audioLock);
             g_bgmChannel[g_commandQueue[index].channel].PlayFadeBEx(g_commandQueue[index].name,
@@ -388,7 +387,7 @@ void ProcessCommandQueue(int unused)
                 g_commandQueue[index].arg4, g_commandQueue[index].arg1, g_commandQueue[index].arg2,
                 g_commandQueue[index].arg3);
             g_bgmChannel[g_commandQueue[index].channel].UpdateFade();
-            *commandSlot = CMD_NONE;
+            g_commandQueue[index].command = CMD_NONE;
             LeaveCriticalSection(&g_audioLock);
         } else if (code == CMD_PLAY) {
             EnterCriticalSection(&g_audioLock);
@@ -396,38 +395,32 @@ void ProcessCommandQueue(int unused)
                 g_commandQueue[index].arg4, g_commandQueue[index].arg1, g_commandQueue[index].arg2,
                 g_commandQueue[index].arg3);
             g_bgmChannel[g_commandQueue[index].channel].UpdateFade();
-            *commandSlot = CMD_NONE;
+            g_commandQueue[index].command = CMD_NONE;
             LeaveCriticalSection(&g_audioLock);
         } else if (code == CMD_SET_LISTENER) {
             g_master.SetListener(g_commandQueue[index].listenerFirst, g_commandQueue[index].value[0],
                 g_commandQueue[index].value[1], g_commandQueue[index].value[2], g_commandQueue[index].value[3],
                 g_commandQueue[index].value[4], g_commandQueue[index].value[5], g_commandQueue[index].value[6],
                 g_commandQueue[index].value[7], g_commandQueue[index].value[8]);
-            *commandSlot = CMD_NONE;
+            g_commandQueue[index].command = CMD_NONE;
             for (int i = 0; i < SE_CHANNEL_COUNT; i++)
                 g_seChannel[i].UpdateSE();
         } else if (code == CMD_PLAY_SE) {
-            if (writeIndex != index) {
-                unsigned char other = index;
-                SoundCommand *later = &g_commandQueue[index];
-                do {
-                    if (other != index && later->command == CMD_PLAY_SE &&
-                        stricmp(g_commandQueue[index].name, later->name) == 0)
-                        later->command = CMD_NONE;
-                    other++;
-                    later++;
-                } while (other != writeIndex);
+            for (unsigned char other = index; writeIndex != other; other++) {
+                if (other != index && g_commandQueue[other].command == CMD_PLAY_SE &&
+                    stricmp(g_commandQueue[index].name, g_commandQueue[other].name) == 0)
+                    g_commandQueue[other].command = CMD_NONE;
             }
+            float volume = g_commandQueue[index].value[5];
             int hasPos = g_commandQueue[index].arg3;
             int loop = g_commandQueue[index].arg4;
-            float volume = g_commandQueue[index].value[5];
             if (hasPos != 0) {
                 IPlaySEB(g_commandQueue[index].name, &g_commandQueue[index].value[0], &g_commandQueue[index].value[1],
                          &g_commandQueue[index].value[2], hasPos, loop, volume);
             } else {
                 IPlaySEB(g_commandQueue[index].name, 0, 0, 0, 0, loop, volume);
             }
-            *commandSlot = CMD_NONE;
+            g_commandQueue[index].command = CMD_NONE;
         }
         if (g_shutdownState != 0) {
             g_shutdownState = 2;

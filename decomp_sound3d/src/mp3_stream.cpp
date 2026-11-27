@@ -147,7 +147,10 @@ unsigned int Mp3Stream::Read(BYTE *buffer, unsigned int count)
         decoder.outputUsed = decoder.outputSize - skipped + position;
         lastPosition = position;
     }
-    while (position + remaining < header.riffSize) {
+    // Loop as "if (more data) do { ... } while (more data)": this lays the zero fill out after the loop like the
+    // original, and the comparisons put the decoded size on the left like the original.
+    if (position + remaining < header.riffSize)
+    do {
         if (remaining >= MP3_SMALL_READ_LIMIT) {
             if (decoder.outputUsed == 0) {
                 int frameOffset;
@@ -164,13 +167,13 @@ unsigned int Mp3Stream::Read(BYTE *buffer, unsigned int count)
                 sourcePtr += decoder.inputSize;
                 decoder.inputPtr = sourcePtr;
                 step = decoder.outputSize;
-                if (remaining < step) {
+                if (step > remaining) {
                     return count;
                 }
                 remaining -= step;
             } else {
                 decoder.outputPtr = (unsigned char *)frameBuffer;
-                if (remaining < decoder.outputSize) {
+                if (decoder.outputSize > remaining) {
                     if (remaining != 0) {
                         memcpy(buffer + (count - remaining), decoder.outputPtr + decoder.outputUsed, remaining);
                     }
@@ -188,7 +191,7 @@ unsigned int Mp3Stream::Read(BYTE *buffer, unsigned int count)
         } else {
             Sleep(MP3_SMALL_READ_SLEEP_MS);
             if (decoder.outputUsed != 0) {
-                if (remaining < decoder.outputSize) {
+                if (decoder.outputSize > remaining) {
                     if (remaining != 0) {
                         memcpy(buffer + (count - remaining), decoder.outputPtr + decoder.outputUsed, remaining);
                     }
@@ -216,7 +219,7 @@ unsigned int Mp3Stream::Read(BYTE *buffer, unsigned int count)
                 }
                 sourcePtr += decoder.inputSize;
                 decoder.inputPtr = sourcePtr;
-                if (remaining < decoder.outputSize) {
+                if (decoder.outputSize > remaining) {
                     if (remaining != 0) {
                         memcpy(buffer + (count - remaining), decoder.outputPtr, remaining);
                     }
@@ -232,7 +235,7 @@ unsigned int Mp3Stream::Read(BYTE *buffer, unsigned int count)
         }
         position += step;
         lastPosition = position;
-    }
+    } while (position + remaining < header.riffSize);
     memset(buffer + (count - remaining), 0, remaining);
     return count;
 }

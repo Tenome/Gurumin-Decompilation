@@ -43,7 +43,6 @@ int OggStream::StartDecoder()
     char **userComment;
     OggStreamState *os;
     OggPacket *op;
-    VorbisInfo *vi;
     VorbisComment *vc;
 
     readPtr = fileData;
@@ -60,76 +59,7 @@ int OggStream::StartDecoder()
     if (ogg_stream_init(os, ogg_page_serialno(&page)) != 0) {
         return 0;
     }
-    vi = &info;
-    vorbis_info_init(vi);
-    vc = &comment;
-    vorbis_comment_init(vc);
-    if (ogg_stream_pagein(os, &page) < 0) {
-        return 0;
-    }
-    op = &packet;
-    if (ogg_stream_packetout(os, op) != 1) {
-        return 0;
-    }
-    if (vorbis_synthesis_headerin(vi, vc, op) < 0) {
-        return 0;
-    }
-    headerPackets = 0;
-    while (headerPackets < OGG_EXTRA_HEADER_PACKETS) {
-        result = ogg_sync_pageout(&sync, &page);
-        if (result == 0) {
-            continue;
-        }
-        if (result == 1) {
-            ogg_stream_pagein(os, &page);
-            while ((result = ogg_stream_packetout(os, op)) != 0) {
-                if (result < 0) {
-                    return 0;
-                }
-                vorbis_synthesis_headerin(&info, vc, op);
-                headerPackets++;
-                if (headerPackets >= OGG_EXTRA_HEADER_PACKETS) {
-                    break;
-                }
-            }
-        }
-    }
-    userComment = vc->userComments;
-    while (*userComment != 0) {
-        userComment++;
-    }
-    samplesPerChunk = OGG_FEED_BYTES / info.channels;
-    vorbis_synthesis_init(&dsp, vi);
-    vorbis_block_init(&dsp, &block);
-    isOpen = 1;
-    return 1;
-}
-
-// Like StartDecoder but only parses the headers again (no vorbis_info_init, no synthesis state): restarts the
-// decoder at the first page when Read seeks. Returns 1 on success, 0 on failure. Called by Read (0x10003e80).
-int OggStream::RewindDecoder()
-{
-    int result;
-    int headerPackets;
-    char **userComment;
-    OggStreamState *os;
-    OggPacket *op;
-    VorbisComment *vc;
-
-    readPtr = fileData;
-    ogg_sync_init(&sync);
-    memcpy(ogg_sync_buffer(&sync, OGG_FEED_BYTES), readPtr, OGG_FEED_BYTES);
-    readPtr += OGG_FEED_BYTES;
-    if (ogg_sync_wrote(&sync, OGG_FEED_BYTES) != 0) {
-        return 0;
-    }
-    if (ogg_sync_pageout(&sync, &page) != 1) {
-        return 0;
-    }
-    os = &stream;
-    if (ogg_stream_init(os, ogg_page_serialno(&page)) != 0) {
-        return 0;
-    }
+    vorbis_info_init(&info);
     vc = &comment;
     vorbis_comment_init(vc);
     if (ogg_stream_pagein(os, &page) < 0) {
@@ -150,19 +80,83 @@ int OggStream::RewindDecoder()
         }
         if (result == 1) {
             ogg_stream_pagein(os, &page);
-            while ((result = ogg_stream_packetout(os, op)) != 0) {
+            do {
+                result = ogg_stream_packetout(os, op);
+                if (result == 0) {
+                    break;
+                }
                 if (result < 0) {
                     return 0;
                 }
                 vorbis_synthesis_headerin(&info, vc, op);
                 headerPackets++;
-                if (headerPackets >= OGG_EXTRA_HEADER_PACKETS) {
-                    break;
-                }
-            }
+            } while (headerPackets < OGG_EXTRA_HEADER_PACKETS);
         }
     }
     userComment = vc->userComments;
+    while (*userComment != 0) {
+        userComment++;
+    }
+    samplesPerChunk = OGG_FEED_BYTES / info.channels;
+    vorbis_synthesis_init(&dsp, &info);
+    vorbis_block_init(&dsp, &block);
+    isOpen = 1;
+    return 1;
+}
+
+// Like StartDecoder but only parses the headers again (no vorbis_info_init, no synthesis state): restarts the
+// decoder at the first page when Read seeks. Returns 1 on success, 0 on failure. Called by Read (0x10003e80).
+int OggStream::RewindDecoder()
+{
+    int result;
+    int headerPackets;
+    char **userComment;
+
+    readPtr = fileData;
+    ogg_sync_init(&sync);
+    memcpy(ogg_sync_buffer(&sync, OGG_FEED_BYTES), readPtr, OGG_FEED_BYTES);
+    readPtr += OGG_FEED_BYTES;
+    if (ogg_sync_wrote(&sync, OGG_FEED_BYTES) != 0) {
+        return 0;
+    }
+    if (ogg_sync_pageout(&sync, &page) != 1) {
+        return 0;
+    }
+    if (ogg_stream_init(&stream, ogg_page_serialno(&page)) != 0) {
+        return 0;
+    }
+    vorbis_comment_init(&comment);
+    if (ogg_stream_pagein(&stream, &page) < 0) {
+        return 0;
+    }
+    if (ogg_stream_packetout(&stream, &packet) != 1) {
+        return 0;
+    }
+    if (vorbis_synthesis_headerin(&info, &comment, &packet) < 0) {
+        return 0;
+    }
+    headerPackets = 0;
+    while (headerPackets < OGG_EXTRA_HEADER_PACKETS) {
+        result = ogg_sync_pageout(&sync, &page);
+        if (result == 0) {
+            continue;
+        }
+        if (result == 1) {
+            ogg_stream_pagein(&stream, &page);
+            do {
+                result = ogg_stream_packetout(&stream, &packet);
+                if (result == 0) {
+                    break;
+                }
+                if (result < 0) {
+                    return 0;
+                }
+                vorbis_synthesis_headerin(&info, &comment, &packet);
+                headerPackets++;
+            } while (headerPackets < OGG_EXTRA_HEADER_PACKETS);
+        }
+    }
+    userComment = comment.userComments;
     while (*userComment != 0) {
         userComment++;
     }
