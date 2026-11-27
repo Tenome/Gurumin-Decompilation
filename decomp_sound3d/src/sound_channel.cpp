@@ -55,8 +55,9 @@ int SoundChannel::IsPlaying()
     if (status & DSBSTATUS_LOOPING)
         return 1;
     if (m_0204 != 0)
-        // The original measured the idle time here but never used it.
-        DWORD idleMs = GetTickCount() - m_0204;
+        // The original read the tick clock against the last check here; the result is unused (the original keeps a
+        // dead reload of m_0204 after the call, which no spelling reproduced).
+        (void)(GetTickCount() - m_0204);
     return 0;
 }
 
@@ -415,10 +416,11 @@ int SoundChannel::Update3DPan()
         else
             pan = (float)(sin(pan) * sin(pan) * SOFT3D_PAN_GAIN);
         float level = VOLUME_SCALE_MAX - attenuation * SOFT3D_VOLUME_STEP;
-        level = 0.0f <= level ? level : 0.0f;
-        ApplyVolume((int)level, 1);
+        // max and min are the windows.h macros: they evaluate their arguments twice, which is the original's shape.
+        float volume = max(0.0f, level);
+        ApplyVolume((int)volume, 1);
         pan = pan * SOFT3D_PAN_SCALE;
-        pan = -PAN_FULL > pan ? -PAN_FULL : (PAN_FULL < pan ? PAN_FULL : pan);
+        pan = min(max(-PAN_FULL, pan), PAN_FULL);
         buffer->SetPan((LONG)pan);
     }
     return 0;
@@ -524,12 +526,13 @@ int SoundChannel::Open(const char *file, int loop, int startSamples, int loopSta
     }
     int stereo = 1 < fileHeader.channels;
     memset(&format, 0, sizeof(format));
+    // Field order found by search: it gives the original's load/store schedule.
     format.wf.nChannels = (stereo != 0) + 1;
-    format.wf.nBlockAlign = fileHeader.blockAlign;
     format.wf.nSamplesPerSec = fileHeader.samplesPerSecond;
-    format.wBitsPerSample = fileHeader.bitsPerSample;
     format.wf.wFormatTag = WAVE_FORMAT_PCM;
     format.wf.nAvgBytesPerSec = fileHeader.blockAlign * fileHeader.samplesPerSecond;
+    format.wBitsPerSample = fileHeader.bitsPerSample;
+    format.wf.nBlockAlign = fileHeader.blockAlign;
     DSBUFFERDESC description;
     memset(&description, 0, sizeof(description));
     description.dwSize = sizeof(DSBUFFERDESC);

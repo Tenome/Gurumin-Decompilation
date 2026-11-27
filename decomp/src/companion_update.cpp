@@ -29,41 +29,42 @@ extern "C" int FUN_1001d8b0(int index, int effect, Vec4 position, int parent, in
 // down to active, 10 and above counts down with effect 0x36d5 at 70 and comes back at 11. Returns 0.
 int Companion0_Update(int index)
 {
-    if (DAT_103153b0[index + 2] > 15)
-        DAT_103153b0[index + 2] = 15;
-    if (DAT_10219770[index + 2] > 5)
-        DAT_10219770[index + 2] = 5;
-    if (DAT_10315350[index + 2] > 0)
-        DAT_10315350[index + 2] = 0;
-    unsigned char level = DAT_102550e0[index + 2];
+    int slot = index;   // companion 0: the companion's own slot is slot + 2, like its twins Companion1/2
+    if (DAT_103153b0[slot + 2] > 15)
+        DAT_103153b0[slot + 2] = 15;
+    if (DAT_10219770[slot + 2] > 5)
+        DAT_10219770[slot + 2] = 5;
+    if (DAT_10315350[slot + 2] > 0)
+        DAT_10315350[slot + 2] = 0;
+    unsigned char level = DAT_102550e0[slot + 2];
     if (level != 0)
     {
         if (DAT_102550e0[index] >= level)
             level = DAT_102550e0[index];
         DAT_102550e0[index] = level;
     }
-    int mode = DAT_1020b430[index + 2].downMode;
+    int mode = DAT_1020b430[slot + 2].downMode;
     if (mode != 0)
     {
         if (mode == 1)
         {
-            DAT_104686b0[index + 2] = 2;
-            if (DAT_1020b430[index + 2].downTimer == 1)
+            DAT_104686b0[slot + 2] = 2;
+            if (DAT_1020b430[slot + 2].downTimer == 1)
                 FUN_10065b10(index, 0x192, 1, 0);
-            if (++DAT_1020b430[index + 2].downTimer == 0x3c)
+            if (++DAT_1020b430[slot + 2].downTimer == 0x3c)
             {
-                DAT_1020b430[index + 2].downMode = 0;
+                DAT_1020b430[slot + 2].downMode = 0;
                 Vec4 position;
                 Matrix4 matrix;
-                if (DAT_1021bdf8[index + 2][1] != 0)
+                if (DAT_1021bdf8[slot + 2][1] != 0)
                 {
-                    DAT_1021bdf8[index + 2][1]->SetFlags(0x20);
-                    matrix = DAT_1021bdf8[index + 2][1]->worldMatrix;
+                    DAT_1021bdf8[slot + 2][1]->SetFlags(0x20);
+                    matrix = DAT_1021bdf8[slot + 2][1]->worldMatrix;
                 }
                 else
                     matrix = RotationZ(DAT_10db6ee8[index].heading);
-                if (DAT_1021bdf8[index + 2][2] != 0)
-                    FUN_1001d8b0(index, 0x36d2, position, -1, -1, &DAT_1021bdf8[index + 2][2]->worldMatrix, 0, 0, &matrix,
+                if (DAT_1021bdf8[slot + 2][2] != 0)
+                    FUN_1001d8b0(index, 0x36d2, position, -1, -1, &DAT_1021bdf8[slot + 2][2]->worldMatrix, 0, 0, &matrix,
                                  0);
                 else
                     FUN_1001d8b0(index, 0x36d2, position, -1, -1, 0, 0, 0, &matrix, 0);
@@ -74,117 +75,118 @@ int Companion0_Update(int index)
         }
         else if (mode == 2)
         {
-            DAT_104686b0[index + 2] = 2;
-            if (--DAT_1020b430[index + 2].downTimer == 0)
-                DAT_1020b430[index + 2].downMode = 0;
+            DAT_104686b0[slot + 2] = 2;
+            if (--DAT_1020b430[slot + 2].downTimer == 0)
+                DAT_1020b430[slot + 2].downMode = 0;
         }
         else if (mode >= 10)
         {
-            DAT_1020b430[index + 2].downMode = mode - 1;
+            DAT_1020b430[slot + 2].downMode = mode - 1;
             if (mode - 1 == 0x46)
             {
                 Vec4 position;
                 Matrix4 matrix;
-                if (DAT_1021bdf8[index + 2][1] != 0)
-                    matrix = DAT_1021bdf8[index + 2][1]->worldMatrix;
+                if (DAT_1021bdf8[slot + 2][1] != 0)
+                    matrix = DAT_1021bdf8[slot + 2][1]->worldMatrix;
                 else
                     matrix = RotationZ(DAT_10db6ee8[index].heading);
-                if (DAT_1021bdf8[index + 2][2] != 0)
-                    FUN_1001d8b0(index, 0x36d5, position, -1, -1, &DAT_1021bdf8[index + 2][2]->worldMatrix, 0, 0, &matrix,
+                if (DAT_1021bdf8[slot + 2][2] != 0)
+                    FUN_1001d8b0(index, 0x36d5, position, -1, -1, &DAT_1021bdf8[slot + 2][2]->worldMatrix, 0, 0, &matrix,
                                  0);
                 else
                     FUN_1001d8b0(index, 0x36d5, position, -1, -1, 0, 0, 0, &matrix, 0);
             }
-            if (DAT_1020b430[index + 2].downMode == 0xb)
+            if (DAT_1020b430[slot + 2].downMode == 0xb)
             {
-                if (DAT_1021bdf8[index + 2][1] != 0)
+                if (DAT_1021bdf8[slot + 2][1] != 0)
                 {
-                    DAT_1021bdf8[index + 2][1]->ClearFlags(0x20);
-                    int health = DAT_10daaae8[index + 2].stats[STAT_HEALTH] + 200;
+                    DAT_1021bdf8[slot + 2][1]->ClearFlags(0x20);
+                    int health = DAT_10daaae8[slot + 2].stats[STAT_HEALTH] + 200;
                     if (DAT_1020b430[index].companionHealthCap + 2000 <= health)
                         health = DAT_1020b430[index].companionHealthCap + 2000;
-                    DAT_1020b430[index + 2].reviveHealth = health;
-                    DAT_10daaae8[index + 2].stats[STAT_HEALTH] = DAT_10daaae8[index + 2].stats[STAT_MAX_HEALTH];
-                    DAT_10db6ee8[index + 2].root->M_10194730(0x2f, 0x400);
-                    DAT_10daaae8[index + 2].m_0141 = 0;
-                    DAT_1021f3c0[index + 2] = 3;
+                    DAT_1020b430[slot + 2].reviveHealth = health;
+                    DAT_10daaae8[slot + 2].stats[STAT_HEALTH] = DAT_10daaae8[slot + 2].stats[STAT_MAX_HEALTH];
+                    DAT_10db6ee8[slot + 2].root->M_10194730(0x2f, 0x400);
+                    DAT_10daaae8[slot + 2].m_0141 = 0;
+                    DAT_1021f3c0[slot + 2] = 3;
                 }
-                DAT_104686b0[index + 2] = 2;
-                DAT_1020b430[index + 2].downMode = 2;
+                DAT_104686b0[slot + 2] = 2;
+                DAT_1020b430[slot + 2].downMode = 2;
             }
         }
     }
     else
     {
-        int health = DAT_10daaae8[index + 2].stats[STAT_HEALTH];
+        int health = DAT_10daaae8[slot + 2].stats[STAT_HEALTH];
         if (health > 70000)
         {
             int special = DAT_104c00e0;
             int area = DAT_104c00e8;
-            if ((special == 0 || (area != 0x13 && area != 0x30)) && DAT_1020b430[index + 2].hideCount == 0 &&
+            if ((special == 0 || (area != 0x13 && area != 0x30)) && DAT_1020b430[slot + 2].hideCount == 0 &&
                 DAT_10c655f0 != 6)
             {
-                DAT_10daaae8[index + 2].held = 1;
-                DAT_10daaae8[index + 2].m_0141 = 0;
-                DAT_10802bf8[index + 2].position.z = 0;
+                DAT_10daaae8[slot + 2].held = 1;
+                DAT_10daaae8[slot + 2].m_0141 = 0;
+                DAT_10802bf8[slot + 2].position.z = 0;
             }
             else
             {
-                DAT_10daaae8[index + 2].held = 0;
-                DAT_10daaae8[index + 2].stats[STAT_VALUE_4] = 999;
-                DAT_10daaae8[index + 2].m_0141 = 0;
+                DAT_10daaae8[slot + 2].held = 0;
+                DAT_10daaae8[slot + 2].stats[STAT_VALUE_4] = 999;
+                DAT_10daaae8[slot + 2].m_0141 = 0;
                 if (DAT_1020b430[index].keepCompanionUp == 0)
-                    DAT_10802bf8[index + 2].position.z = -50.0f;
+                    DAT_10802bf8[slot + 2].position.z = -50.0f;
                 if (special != 0 && (area == 0x13 || area == 0x30))
-                    DAT_1020b430[index + 2].hideCount = 2;
+                    DAT_1020b430[slot + 2].hideCount = 2;
                 else
-                    DAT_1020b430[index + 2].hideCount--;
+                    DAT_1020b430[slot + 2].hideCount--;
             }
-            if (DAT_1042d9e8[index + 2] != 0)
+            if (DAT_1042d9e8[slot + 2] != 0)
             {
-                unsigned char shown = DAT_104686b0[index + 2];
-                DAT_1042d9e8[index + 2] = 0;
-                DAT_10daaae8[index + 2].stats[STAT_HEALTH] = health - 1;
+                unsigned char shown = DAT_104686b0[slot + 2];
+                DAT_1042d9e8[slot + 2] = 0;
+                DAT_10daaae8[slot + 2].stats[STAT_HEALTH] = health - 1;
                 if (shown > 6)
-                    DAT_104686b0[index + 2] = 6;
+                    DAT_104686b0[slot + 2] = 6;
             }
-            if (DAT_10daaae8[index + 2].stats[STAT_HEALTH] < DAT_10daaae8[index + 2].stats[STAT_MAX_HEALTH] - 5 ||
-                (DAT_10c635f8 == 1 && DAT_10daaae8[index + 2].stats[STAT_HEALTH] < DAT_10daaae8[index + 2].stats[STAT_MAX_HEALTH]))
+            if (DAT_10daaae8[slot + 2].stats[STAT_HEALTH] < DAT_10daaae8[slot + 2].stats[STAT_MAX_HEALTH] - 5 ||
+                (DAT_10c635f8 == 1 && DAT_10daaae8[slot + 2].stats[STAT_HEALTH] < DAT_10daaae8[slot + 2].stats[STAT_MAX_HEALTH]))
             {
-                int revived = DAT_1020b430[index + 2].reviveHealth;
-                DAT_1020b430[index + 2].downMode = 1;
-                DAT_10daaae8[index + 2].held = 0;
-                if (revived == 0)
-                    revived = DAT_10daaae8[index].stats[STAT_MAX_HEALTH] + 2000;
-                DAT_10daaae8[index + 2].stats[STAT_HEALTH] = revived;
-                DAT_10daaae8[index + 2].stats[STAT_VALUE_4] = DAT_10daaae8[index].stats[STAT_VALUE_4];
-                DAT_104686b0[index + 2] = 0x1e;
-                DAT_10802bf8[index + 2].position.z = 0;
+                int revived = DAT_1020b430[slot + 2].reviveHealth;
+                DAT_1020b430[slot + 2].downMode = 1;
+                DAT_10daaae8[slot + 2].held = 0;
+                if (revived != 0)
+                    DAT_10daaae8[slot + 2].stats[STAT_HEALTH] = revived;
+                else
+                    DAT_10daaae8[slot + 2].stats[STAT_HEALTH] = DAT_10daaae8[index].stats[STAT_MAX_HEALTH] + 2000;
+                DAT_10daaae8[slot + 2].stats[STAT_VALUE_4] = DAT_10daaae8[index].stats[STAT_VALUE_4];
+                DAT_104686b0[slot + 2] = 0x1e;
+                DAT_10802bf8[slot + 2].position.z = 0;
             }
         }
         else if (health > 2000)
         {
-            DAT_10daaae8[index + 2].m_0141 = 0;
-            if (DAT_104686b0[index + 2] == 7)
+            DAT_10daaae8[slot + 2].m_0141 = 0;
+            if (DAT_104686b0[slot + 2] == 7)
             {
-                if (DAT_1020d4c0[index + 2] > 4)
+                if (DAT_1020d4c0[slot + 2] > 4)
                 {
                     if (DAT_104c00f8 != 0)
                         DAT_10f08080[index].Copy(DAT_10836c74 - DAT_10db6ee8[index].matrix.GetTranslation());
-                    DAT_1020d4c0[index + 2] = 6;
+                    DAT_1020d4c0[slot + 2] = 6;
                 }
                 else
                 {
                     if (DAT_104c00f8 != 0)
                         DAT_10f08080[index].Copy(DAT_10836c74 - DAT_10db6ee8[index].matrix.GetTranslation());
-                    DAT_1020d4c0[index + 2] = 4;
+                    DAT_1020d4c0[slot + 2] = 4;
                 }
             }
         }
         else
         {
-            DAT_10daaae8[index + 2].stats[STAT_HEALTH] = 2000;
-            DAT_10daaae8[index + 2].m_0141 = 1;
+            DAT_10daaae8[slot + 2].stats[STAT_HEALTH] = 2000;
+            DAT_10daaae8[slot + 2].m_0141 = 1;
         }
     }
     return 0;

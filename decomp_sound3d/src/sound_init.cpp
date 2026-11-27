@@ -8,8 +8,9 @@
 
 // ---- SoundChannel::Init -----------------------------------------------------------------------------------------
 
-const float LISTENER_ROLLOFF = 0.2f;
-const float LISTENER_DOPPLER = 1.0f;
+// Float constants are macros so that cl emits immediates (a `const float` object is loaded from memory).
+#define LISTENER_ROLLOFF 0.2f
+#define LISTENER_DOPPLER 1.0f
 
 // SoundChannel::Init: releases what the channel holds, then binds a DirectSound device and primary buffer. With no
 // sharedDevice a new device is created for the window (exclusive level) and a primary buffer with a 3D listener is

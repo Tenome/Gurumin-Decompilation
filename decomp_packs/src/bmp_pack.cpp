@@ -153,9 +153,9 @@ int EncodeStream(unsigned short *plane0, unsigned short *plane1, unsigned short 
     g_planeOffset1 = 0;
     g_planeOffset2 = 0;
     if (levels > 0) {
-        BandModel *rightBand = &models->level[0].band[0];
-        BandModel *bottomBand = &models->level[0].band[1];
-        BandModel *diagonalBand = &models->level[0].band[2];
+        BandModel *rightBand = models->bandModel(0, 0);
+        BandModel *bottomBand = models->bandModel(0, 1);
+        BandModel *diagonalBand = models->bandModel(0, 2);
         for (int level = levels; level > 0; level--) {
             EncodeBandPlanes(plane0, plane1, plane2, out, (widths[level - 1] - widths[level]) * heights[level],
                              length, rightBand);
@@ -563,11 +563,11 @@ void QuantiseBands(short *planeA, short *planeB, short *planeC, const int *width
     }
     int stride = widths[0];
     QuantiseBand(planeA, planeB, planeC, widths[levels], heights[levels], stride, QUALITY_MAX, QUALITY_MAX,
-                 &models->level[0].band[0]);
+                 models->bandModel(0, 0));
     if (levels > 0) {
-        BandModel *rightBand = &models->level[0].band[0];
-        BandModel *bottomBand = &models->level[0].band[1];
-        BandModel *diagonalBand = &models->level[0].band[2];
+        BandModel *rightBand = models->bandModel(0, 0);
+        BandModel *bottomBand = models->bandModel(0, 1);
+        BandModel *diagonalBand = models->bandModel(0, 2);
         for (int level = levels; level > 0; level--) {
             int right = heights[level];
             QuantiseBand(planeA + widths[level], planeB + widths[level], planeC + widths[level],
@@ -627,8 +627,8 @@ int BandStatistics(PlaneModel *model, const unsigned short *words, int count)
         level = (entry >> WORD_LEVEL_SHIFT) & WORD_LEVEL_MASK;
         consumed += run + 1;
         sumCurrent += level;
-        sumProducts += previous * level;
         sumSquares += level * level;
+        sumProducts += previous * level;
         previous = run == 0 ? level : 0;
     }
     if (sumCurrent == 0.0) {
@@ -805,26 +805,26 @@ int EncodeBand(const unsigned short *words, unsigned char *out, int count, int *
 // ---- file writer ----
 
 // Appends one byte; *length is the index of the last byte written (so it starts at 0 after the first byte).
-// (WriteStream)
-__forceinline void PutByte(unsigned char *out, int *length, int value)
+// Callers reduce wider values with % 256 themselves. (WriteStream)
+__forceinline void PutByte(unsigned char *out, int *length, unsigned char value)
 {
-    out[++*length] = value % 256;
+    out[++*length] = value;
 }
 
 // Appends a 16-bit little-endian value. (WriteStream)
 __forceinline void PutWord(unsigned char *out, int *length, int value)
 {
-    PutByte(out, length, value);
-    PutByte(out, length, value / 256);
+    PutByte(out, length, value % 256);
+    PutByte(out, length, value / 256 % 256);
 }
 
 // Appends a 32-bit little-endian value. (WriteStream)
 __forceinline void PutLong(unsigned char *out, int *length, int value)
 {
-    PutByte(out, length, value);
-    PutByte(out, length, value / 256);
-    PutByte(out, length, value / 65536);
-    PutByte(out, length, value / 65536 / 256);
+    PutByte(out, length, value % 256);
+    PutByte(out, length, value / 256 % 256);
+    PutByte(out, length, value / 65536 % 256);
+    PutByte(out, length, value / 65536 / 256 % 256);
 }
 
 // Writes the compressed file into out: signature "HPC@" 3,0, quality, width, height, level count, two zero bytes,
@@ -853,7 +853,7 @@ int WriteStream(const unsigned char *pixelWords, const unsigned char *stream, co
     int length = *streamLength;
     PutLong(out, outLength, length);
     int codedModels = 0;
-    const PlaneModel *model = &models->level[0].band[0].plane[0];
+    const PlaneModel *model = models->firstPlaneModel();
     for (int i = 0; i < levels * 9; i++, model++) {
         PutByte(out, outLength, model->scale);
         codedModels++;
@@ -878,31 +878,32 @@ int WriteStream(const unsigned char *pixelWords, const unsigned char *stream, co
 // stores in *outLength the index of the last byte written. quality scales the quantiser (the coder works with
 // quality << 6). The number of wavelet levels is the deepest one (up to eight) whose plane stays larger than 11
 // pixels and whose scaled quality stays below PACK_QUALITY_LIMIT. Returns 1 on success, 0 when an allocation or the
-// colour conversion fails.
+// colour conversion fails. The pack loop runs PACK_ATTEMPTS (one) time: the original keeps the counter and its
+// `inc; cmp 1; jl` back edge, so the loop was in the source with a bound of one.
 extern "C" int BMPPack(const unsigned char *bgr, int width, int height, int quality, unsigned char *out,
                        int *outLength)
 {
     int widths[PACK_MAX_LEVELS + 1];
     int heights[PACK_MAX_LEVELS + 1];
     int streamLength;
-    LevelModelSet models;
-    int attempt = 0;
+    LevelModelSet models;  // byte array: gives the function its /GS cookie, like the original
 
     g_coderPrecision = 16;
-    for (;;) {
-        int scaledQuality = quality << 6;
+    int scaledQuality = quality << 6;  // the coder's quality scale, passed on to QuantiseBands and WriteStream
+    for (int attempt = 0; attempt < PACK_ATTEMPTS; attempt++) {
+        int levelQuality = scaledQuality;
         int levels = 0;
         widths[0] = width;
         heights[0] = height;
         for (int level = 1; level <= PACK_MAX_LEVELS; level++) {
             widths[level] = (widths[level - 1] + 1) / 2;
             heights[level] = (heights[level - 1] + 1) / 2;
-            scaledQuality *= 2;
+            levelQuality *= 2;
             if (widths[level - 1] > PACK_PLANE_SIZE_FLOOR && heights[level - 1] > PACK_PLANE_SIZE_FLOOR &&
-                scaledQuality < PACK_QUALITY_LIMIT)
+                levelQuality < PACK_QUALITY_LIMIT)
                 levels = level;
         }
-        int pixels = width * height;
+        int pixels = widths[0] * heights[0];  // level 0 is the whole bitmap
         unsigned char *packedWords = (unsigned char *)operator new(widths[levels] * heights[levels] * 4);
         short *buffer;
         if (packedWords == 0 || (buffer = (short *)operator new(pixels * 8)) == 0)
@@ -910,31 +911,28 @@ extern "C" int BMPPack(const unsigned char *bgr, int width, int height, int qual
         short *planeA = buffer + pixels;
         short *planeB = buffer + pixels * 2;
         short *planeC = buffer + pixels * 3;
-        if (pixels * 4 > 0)
-            memset(buffer, 0, pixels * 8);
-        memset(&models, 0, sizeof(models.level));
+        for (int i = 0; i < pixels * 4; i++)  // clear all four planes (the compiler turns this into rep stos)
+            buffer[i] = 0;
+        memset(&models, 0, sizeof(models));
         if (ConvertBgrToPlanes(bgr, buffer, planeA, planeB, planeC, width, height) != 0)
-            break;
+            return 0;
         for (int level = 0; level < levels; level++)
             TransformLevel(planeA, buffer, widths[level], heights[level], width);
         for (int level = 0; level < levels; level++)
             TransformLevel(planeB, buffer, widths[level], heights[level], width);
         for (int level = 0; level < levels; level++)
             TransformLevel(planeC, buffer, widths[level], heights[level], width);
-        QuantiseBands(planeA, planeB, planeC, widths, heights, quality << 6, levels, &models);
+        QuantiseBands(planeA, planeB, planeC, widths, heights, scaledQuality, levels, &models);
         PackPlanesToWords(planeA, planeB, planeC, packedWords, widths[levels], heights[levels], width);
         PackLevels(planeA, (unsigned short *)buffer, widths, heights, levels);
         PackLevels(planeB, (unsigned short *)planeA, widths, heights, levels);
         PackLevels(planeC, (unsigned short *)planeB, widths, heights, levels);
         EncodeStream((unsigned short *)buffer, (unsigned short *)planeA, (unsigned short *)planeB,
                      (unsigned char *)planeC, widths, heights, levels, &streamLength, &models);
-        WriteStream(packedWords, (unsigned char *)planeC, widths, heights, quality << 6, levels, &streamLength,
+        WriteStream(packedWords, (unsigned char *)planeC, widths, heights, scaledQuality, levels, &streamLength,
                     &models, out, outLength);
         free(packedWords);
         free(buffer);
-        attempt++;
-        if (attempt > 0)
-            return 1;
     }
-    return 0;
+    return 1;
 }

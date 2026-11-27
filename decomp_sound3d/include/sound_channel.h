@@ -21,10 +21,10 @@ const int DEBUG_MESSAGE_SIZE = 0x100;      // OutputDebugString text buffer of R
 #define TWO_PI_FLOAT 6.283185f              /* 0x40c90fdb: angle wrap period of the software 3D pan */
 const float SOFT3D_FAR_DISTANCE = 800.0f;   // distance (scaled) at which the software 3D sound is fully attenuated
 const float SOFT3D_VOLUME_DIVISOR = 11.0f;  // (far - distance) / divisor, times 100, is the attenuation in volume steps
-const float SOFT3D_VOLUME_STEP = 100.0f;
+#define SOFT3D_VOLUME_STEP 100.0f
 const double SOFT3D_PAN_GAIN = 1.6;         // pan = sin(angle)^2 * gain, signed
-const float SOFT3D_PAN_SCALE = 1500.0f;     // pan is multiplied by this to get DirectSound pan units
-const float PAN_FULL = 10000.0f;            // DirectSound pan range is -10000..10000
+#define SOFT3D_PAN_SCALE 1500.0f     // pan is multiplied by this to get DirectSound pan units
+#define PAN_FULL 10000.0f            // DirectSound pan range is -10000..10000
 const int CONE_ANGLE_OMNI = 360;            // inside and outside cone angle: the sound is not directional
 #define SE_MIN_DISTANCE 50.0f               /* DirectSound 3D buffer min distance of sound effects (a literal: stored as an immediate) */
 #define SE_MAX_DISTANCE 800.0f              /* DirectSound 3D buffer max distance of sound effects */

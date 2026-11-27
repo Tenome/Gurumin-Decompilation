@@ -113,10 +113,9 @@ long DShowStream::Open(const char *path)
     }
     width = format.width;
     height = format.height;
-    if (height > 0x200 || width > 0x400)
-    {
+    // Oversized movies are closed again; the caller sees 1 for them and the stream's result otherwise.
+    bool tooLarge = height > 0x200 || width > 0x400;
+    if (tooLarge)
         Close();
-        return 1;
-    }
-    return result;
+    return tooLarge ? 1 : result;
 }

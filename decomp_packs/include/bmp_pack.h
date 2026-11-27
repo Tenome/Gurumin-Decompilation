@@ -8,6 +8,9 @@
 // The encoder keeps up to this many decomposition levels (each level halves the plane size).
 const int PACK_MAX_LEVELS = 8;
 
+// BMPPack runs its pack loop this many times (the original left room for retries but does only one pass).
+const int PACK_ATTEMPTS = 1;
+
 // A run/level word holds the zero run in its low four bits and the level above them.
 const int LEVEL_UNIT = 16;
 const int COEFFICIENT_LIMIT = 0x7ff;  // levels saturate to +-this
@@ -26,15 +29,25 @@ struct BandModel {
     PlaneModel plane[3];
 };
 
-// The models of one decomposition level: its three sub-bands.
-struct LevelModel {
-    BandModel band[3];
-};
+// Plane models, band models and levels are laid out back to back, four bytes per plane model, so the whole set is
+// one byte array: BMPPack's /GS cookie (cl 13 guards only locals that hold a char array of 8 or more bytes) shows
+// the original declared it that way, and WriteStream walks it as one run of 4-byte plane models.
+const int PLANE_MODEL_BYTES = 4;
+const int PLANES_PER_BAND = 3;
+const int BANDS_PER_LEVEL = 3;  // right, bottom and diagonal sub-band of a level
+const int BAND_MODEL_BYTES = PLANES_PER_BAND * PLANE_MODEL_BYTES;
+const int LEVEL_MODEL_BYTES = BANDS_PER_LEVEL * BAND_MODEL_BYTES;
 
-// Everything the coder and the stream writer need from the encoding passes.
+// Everything the coder and the stream writer need from the encoding passes: the models of every decomposition
+// level (three sub-bands each, three planes per sub-band).
 struct LevelModelSet {
-    LevelModel level[PACK_MAX_LEVELS];
-    int unused;
+    unsigned char bytes[PACK_MAX_LEVELS * LEVEL_MODEL_BYTES];
+
+    // Models of one sub-band (band 0 = right, 1 = bottom, 2 = diagonal) of a decomposition level.
+    BandModel *bandModel(int level, int band) {
+        return (BandModel *)(bytes + level * LEVEL_MODEL_BYTES + band * BAND_MODEL_BYTES);
+    }
+    const PlaneModel *firstPlaneModel() const { return (const PlaneModel *)bytes; }
 };
 
 // Side of the blocks the run-length coder scans, and the number of cells in one block.

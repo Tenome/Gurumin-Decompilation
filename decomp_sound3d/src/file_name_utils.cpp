@@ -84,7 +84,6 @@ int CheckNameKeyA(char *data, int length, char *name, int expectedSum, unsigned 
 int WaveStream::CheckKey(unsigned char *name, int expectedSum, unsigned int expectedXor)
 {
     unsigned char key[32];
-    unsigned char sharedKeyByte;    // key[6] and key[17] hold the same value
     int sum;
     unsigned int xorSum;
     int i;
@@ -96,8 +95,7 @@ int WaveStream::CheckKey(unsigned char *name, int expectedSum, unsigned int expe
     key[2] = name[5] ^ 0x10;
     key[4] = name[5] ^ 0x11;
     key[3] = name[1] ^ 0x42;
-    sharedKeyByte = name[7] ^ 0x3f;
-    key[6] = sharedKeyByte;
+    key[6] = name[7] ^ 0x3f;
     key[5] = name[3] ^ 0x2a;
     key[8] = name[3] ^ 0x23;
     key[7] = name[2] ^ 0x25;
@@ -108,7 +106,7 @@ int WaveStream::CheckKey(unsigned char *name, int expectedSum, unsigned int expe
     key[11] = name[1] ^ 0x57;
     key[12] = name[1] ^ 0x4d;
     key[19] = name[2] ^ 0x53;
-    key[17] = sharedKeyByte;
+    key[17] = name[7] ^ 0x3f;
     key[18] = name[4] ^ 0xc;
     key[13] = name[4] ^ 0x11;
     key[25] = name[1] ^ 0x3e;

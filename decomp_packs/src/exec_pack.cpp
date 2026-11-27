@@ -265,6 +265,9 @@ void AdvanceOverToken(void)
 // longest earlier match, emit one token, and move past it. (EncodeStart)
 // Inline note: as in DecodeChunk the loop form decides which flag helpers cl expands. With `while (true)` only the
 // literal flag expands PutZeroBit (a `do ... while` loop makes it expand the short-offset flag too).
+// Open (not matched): the original also expands PutOneBit once, at the match flag. Marking PutOneBit inline gives that
+// expansion but changes PutBits; the candidate loop then still differs (original keeps the match length out of a
+// register and hoists g_inBase + candidate and g_pack->in out of the inner loop).
 void EncodeChunk(void)
 {
     g_flagWord = (unsigned short *)g_pack->out;
@@ -340,14 +343,14 @@ void EncodeChunk(void)
                     break;
                 default:
                     PutBits(0, 4);
-                    if (g_matchLength >= EXEC_MIN_RUN) {
+                    if (g_matchLength < EXEC_MIN_RUN) {
+                        PutOneBit();
+                        PutBits(g_matchLength - 6, 3);
+                    } else {
                         PutZeroBit();
                         *g_pack->out = g_matchLength - EXEC_MIN_RUN;
                         g_pack->out++;
                         g_pack->outCount++;
-                    } else {
-                        PutOneBit();
-                        PutBits(g_matchLength - 6, 3);
                     }
                 }
             } else {
@@ -409,10 +412,10 @@ extern "C" int ExecPack(const unsigned char *source, unsigned char *dest, unsign
     unsigned chunksLeft = (size + 0xffef) / EXEC_CHUNK_SIZE;
     *(unsigned *)dest = chunksLeft;
     dest += sizeof(unsigned);
-    unsigned chunkCount = chunksLeft;
     ExecPackStream stream;
     stream.reserved = 8;
     stream.afterToken = 0;
+    unsigned chunkCount = chunksLeft;
     int packedSize = sizeof(ExecPackHeader);
     stream.next = g_nextTable;
     stream.head = g_headTable;

@@ -41,10 +41,9 @@ int Node::BuildMesh(Vertex *vertices, int *indices, int count)
     if (count == 0)
         return 0;
 
-    int material;
-    for (material = 0; material < MESH_MAX_MATERIALS; material++)
+    for (int material = 0; material < MESH_MAX_MATERIALS; material++)
         materialVertexCount[material] = 0;
-    for (material = 0; material < MESH_MAX_MATERIALS; material++)
+    for (int material = 0; material < MESH_MAX_MATERIALS; material++)
         packFill[material] = 0;
 
     if (materialCount == 0) {
@@ -69,6 +68,7 @@ int Node::BuildMesh(Vertex *vertices, int *indices, int count)
 
     // Count the vertices of each material, keeping each vertex's material number as a whole number.
     int i;
+    int material;
     for (i = 0; i < count; i++) {
         material = (int)vertices[i].sourceMaterial;
         materialVertexCount[material]++;
@@ -107,9 +107,11 @@ int Node::BuildMesh(Vertex *vertices, int *indices, int count)
         int fill = packFill[material];
         packs[pack].vertices[fill] = vertices[vertex];
         indexLists[pack].indices[fill] = fill;
-        packs[pack].vertices[fill + 1] = vertices[indices[i + 1]];
+        int second = indices[i + 1];
+        packs[pack].vertices[fill + 1] = vertices[second];
         indexLists[pack].indices[fill + 1] = fill + 1;
-        packs[pack].vertices[fill + 2] = vertices[indices[i + 2]];
+        int third = indices[i + 2];
+        packs[pack].vertices[fill + 2] = vertices[third];
         indexLists[pack].indices[fill + 2] = fill + 2;
         fill += 3;
         packFill[material] = fill;

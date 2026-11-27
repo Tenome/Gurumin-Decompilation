@@ -147,10 +147,12 @@ unsigned int Mp3Stream::Read(BYTE *buffer, unsigned int count)
         decoder.outputUsed = decoder.outputSize - skipped + position;
         lastPosition = position;
     }
-    // Loop as "if (more data) do { ... } while (more data)": this lays the zero fill out after the loop like the
-    // original, and the comparisons put the decoded size on the left like the original.
-    if (position + remaining < header.riffSize)
-    do {
+    // Loop as for (;;) with a break when the data runs out: of the loop forms tried (while, do-while, if + do-while)
+    // this one comes closest to the original's layout, with the zero fill after the loop.
+    for (;;) {
+        if (position + remaining >= header.riffSize) {
+            break;
+        }
         if (remaining >= MP3_SMALL_READ_LIMIT) {
             if (decoder.outputUsed == 0) {
                 int frameOffset;
@@ -235,7 +237,7 @@ unsigned int Mp3Stream::Read(BYTE *buffer, unsigned int count)
         }
         position += step;
         lastPosition = position;
-    } while (position + remaining < header.riffSize);
+    }
     memset(buffer + (count - remaining), 0, remaining);
     return count;
 }

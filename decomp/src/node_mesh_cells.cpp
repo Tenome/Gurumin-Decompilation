@@ -48,8 +48,8 @@ inline float CellOffset(float offset)
 #define CELL_NUMBER ((cellY * CELL_COUNT_X + cellX) * CELL_COUNT_Z + cellBase + cellZ)
 #define CELL_INDEX(offset, last) ((int)CellOffset(offset) / cellSize < (last) ? (int)CellOffset(offset) / cellSize : (last))
 
-// 0x1019c8d0 (Node::SplitIntoCells). NEAR-MISS: all code matches except register choices in the cell counting loop and
-// the operand order of the third vertex copy. Run by BuildMesh when DAT_11b04500 is set, for a node with 1 to 64 packs: drops
+// 0x1019c8d0 (Node::SplitIntoCells). NEAR-MISS: all code matches except that the two induction variables of the copy pass
+// (pack * 0x74 and the cell base) swap their stack slots and registers. Run by BuildMesh when DAT_11b04500 is set, for a node with 1 to 64 packs: drops
 // the node's mesh, finds the centre of every triangle (the corners taken through an identity matrix; a triangle whose
 // corners are far apart gets CELL_REJECTED), then sorts the triangles into cells of DAT_10203478 units, counting
 // the cells used. Every occupied cell gets a new pack (and index list) with the triangles' vertices copied in, with
@@ -89,7 +89,7 @@ int Node::SplitIntoCells()
     {
         Vec4 *list = (Vec4 *)DAT_11b0b938((unsigned int)(indexLists[pack].count << 4) / 3, "vtx[x]");
         centres[pack] = list;
-        for (triangle = 0; triangle < indexLists[pack].count; triangle += 3)
+        for (int triangle = 0; triangle < indexLists[pack].count; triangle += 3)
         {
             float scale = (float)cellSize;
             float xyLimit = scale * CELL_XY_SPREAD;
@@ -108,9 +108,9 @@ int Node::SplitIntoCells()
             point.y = packs[pack].vertices[vertex].position[1];
             point.z = packs[pack].vertices[vertex].position[2];
             corner2.Copy(Project(point, matrix));
-            list[triangle / 3].x = (corner2.x + corner1.x + corner0.x) / 3.0f;
-            list[triangle / 3].y = (corner2.y + corner1.y + corner0.y) / 3.0f;
-            list[triangle / 3].z = (corner2.z + corner1.z + corner0.z) / 3.0f;
+            list[triangle / 3].x = (corner0.x + corner1.x + corner2.x) / 3.0f;
+            list[triangle / 3].y = (corner0.y + corner1.y + corner2.y) / 3.0f;
+            list[triangle / 3].z = (corner0.z + corner1.z + corner2.z) / 3.0f;
             if (fabs(corner0.x - corner1.x) > xyLimit)
                 goto rejected;
             {
@@ -147,7 +147,7 @@ rejected:
     for (pack = 0; pack < packCount; pack++)
     {
         int cellBase = pack * CELLS_PER_PACK;
-        for (triangle = 0; triangle < indexLists[pack].count; triangle += 3)
+        for (int triangle = 0; triangle < indexLists[pack].count; triangle += 3)
         {
             cell.Copy(centres[pack][triangle / 3]);
             float offset = cell.x - minX;
@@ -164,7 +164,10 @@ rejected:
             }
             cellCount[CELL_NUMBER]++;
             if (cellPack[CELL_NUMBER] == 0)
-                cellPack[CELL_NUMBER] = ++newPackCount;
+            {
+                cellPack[CELL_NUMBER] = newPackCount + 1;
+                newPackCount++;
+            }
         }
     }
 
@@ -179,7 +182,7 @@ rejected:
     for (pack = 0; pack < packCount; pack++)
     {
         int cellBase = pack * CELLS_PER_PACK;
-        for (triangle = 0; triangle < indexLists[pack].count; triangle += 3)
+        for (int triangle = 0; triangle < indexLists[pack].count; triangle += 3)
         {
             cell.Copy(centres[pack][triangle / 3]);
             float offset = cell.x - minX;
@@ -215,8 +218,8 @@ rejected:
             newLists[newPack].indices[fill + 2] = fill + 2;
             newPacks[newPack].vertices[fill] = packs[pack].vertices[indexLists[pack].indices[triangle]];
             newPacks[newPack].vertices[fill + 1] = packs[pack].vertices[indexLists[pack].indices[triangle + 1]];
-            Vertex *third = packs[pack].vertices + indexLists[pack].indices[triangle + 2];
-            *(newPacks[newPack].vertices + fill + 2) = *third;
+            int third = indexLists[pack].indices[triangle + 2];
+            newPacks[newPack].vertices[fill + 2] = packs[pack].vertices[third];
             cellCount[CELL_NUMBER] -= 3;
         }
     }

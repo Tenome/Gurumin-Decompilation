@@ -147,8 +147,9 @@ extern "C" void FUN_10023d30(void)
     for (i = 0; i < 0x80; i++)
     {
         memset(&DAT_1020b430[i], 0, sizeof(DAT_1020b430[i]));
-        DAT_10802bf8[i].position.Fill(0.0f);
-        DAT_10802bf8[i].step.Fill(0.0f);
+        // The position and the last step of the slot, as the first two of its four vectors.
+        for (int vectorIndex = 0; vectorIndex < 2; vectorIndex++)
+            LastPositionVector(i * 4 + vectorIndex).Fill(0.0f);
     }
     if (DAT_102028c8 > -1)
     {

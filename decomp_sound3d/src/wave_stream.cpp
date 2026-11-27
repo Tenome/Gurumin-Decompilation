@@ -297,7 +297,7 @@ int WaveStream::Open(const char *path)
 // buffer and converts it through the decode ACM stream, opening and preparing the stream on first use. The result
 // is left in the decode header's destination buffer and seekPending is cleared. Returns 0 when the stream cannot be
 // opened. Used by WaveStream::Read (0x10004c20), which expands it three times.
-inline int WaveStream::DecodeNextBlock()
+__forceinline int WaveStream::DecodeNextBlock()
 {
     DWORD blockBytes;
 
@@ -334,7 +334,6 @@ int WaveStream::Read(BYTE *buffer, int bytes)
 {
     MMIOINFO info;
     DWORD blockBytes;
-    DWORD skippedBytes;
     DWORD streamOffset;
     DWORD blockStart;
     DWORD chunk;
@@ -364,15 +363,17 @@ int WaveStream::Read(BYTE *buffer, int bytes)
         filePosition += bytes;
         return ((OggStream *)decoder)->Read(buffer, bytes);
     }
+    int remaining = bytes;
+    BYTE *dest = buffer;
     if (isCompressed) {
         if ((DWORD)position < (DWORD)WAV_HEADER_BYTES) {
             file.Seek(headerOffset + position, SEEK_SET);
-            file.Read((HPSTR)buffer, 1, bytes);
+            file.Read((HPSTR)dest, 1, remaining);
             filePosition = 0;
             return 1;
         }
         streamOffset = position - ENC_BLOCKS_START;
-        while (bytes > 0) {
+        while (remaining > 0) {
             blockStart = streamOffset / ADPCM_DECODED_BLOCK_BYTES * ADPCM_DECODED_BLOCK_BYTES;
             file.Seek(streamOffset / ADPCM_DECODED_BLOCK_BYTES * (adpcmBlockBytes + ADPCM_BLOCK_OVERHEAD) +
                           headerOffset + ENC_BLOCKS_START,
@@ -384,7 +385,8 @@ int WaveStream::Read(BYTE *buffer, int bytes)
             if (blockBytes > ENC_MAX_BLOCK_BYTES) {
                 return 1;
             }
-            file.Read((HPSTR)&skippedBytes, 1, 4);
+            DWORD paddingBytes;
+            file.Read((HPSTR)&paddingBytes, 1, 4);
             file.Read((HPSTR)compressedBuffer, 1, blockBytes);
             if (acmStreamOpen(&encodeStream, NULL, encodedFormat, pcmFormat2, NULL, 0, 0,
                               ACM_STREAMOPENF_NONREALTIME) != 0) {
@@ -396,12 +398,12 @@ int WaveStream::Read(BYTE *buffer, int bytes)
             acmStreamClose(encodeStream, 0);
             encodeStream = 0;
             chunk = blockStart - streamOffset + ADPCM_DECODED_BLOCK_BYTES;
-            if (chunk > (DWORD)bytes) {
-                chunk = bytes;
+            if (chunk > (DWORD)remaining) {
+                chunk = remaining;
             }
-            memcpy(buffer, decodedBuffer + (streamOffset - blockStart), chunk);
-            bytes -= chunk;
-            buffer += chunk;
+            memcpy(dest, decodedBuffer + (streamOffset - blockStart), chunk);
+            remaining -= chunk;
+            dest += chunk;
             streamOffset += chunk;
             position += chunk;
             filePosition += chunk;
@@ -410,30 +412,30 @@ int WaveStream::Read(BYTE *buffer, int bytes)
     }
     if ((DWORD)position < (DWORD)WAV_HEADER_BYTES) {
         file.Seek(position, SEEK_SET);
-        file.Read((HPSTR)buffer, 1, bytes);
+        file.Read((HPSTR)dest, 1, remaining);
         position += WAV_HEADER_BYTES;
         return 1;
     }
-    while (bytes > 0) {
+    while (remaining > 0) {
         if (blockOffset != 0) {
             copyBytes = decodeHeader.cbDstLengthUsed - blockOffset;
-            if ((DWORD)bytes <= copyBytes) {
-                memcpy(buffer, decodeHeader.pbDst + ADPCM_DECODED_SKIP + blockOffset, bytes);
-                position += bytes;
-                blockOffset += bytes;
-                filePosition += bytes;
+            if ((DWORD)remaining <= copyBytes) {
+                memcpy(dest, decodeHeader.pbDst + ADPCM_DECODED_SKIP + blockOffset, remaining);
+                position += remaining;
+                blockOffset += remaining;
+                filePosition += remaining;
                 return 1;
             }
-            memcpy(buffer, decodeHeader.pbDst + ADPCM_DECODED_SKIP + blockOffset, copyBytes);
-            buffer += copyBytes;
-            bytes -= copyBytes;
+            memcpy(dest, decodeHeader.pbDst + ADPCM_DECODED_SKIP + blockOffset, copyBytes);
+            dest += copyBytes;
+            remaining -= copyBytes;
             position += copyBytes;
             filePosition += copyBytes;
             blockOffset = 0;
         }
         if (seekPending) {
             file.Seek(WAV_HEADER_BYTES, SEEK_SET);
-            skippedBytes = WAV_HEADER_BYTES;
+            DWORD skippedBytes = WAV_HEADER_BYTES;
             while ((int)(position - ADPCM_DECODED_BLOCK_BYTES) > (int)skippedBytes) {
                 file.Read((HPSTR)&length, 1, 4);
                 file.Seek(length, SEEK_CUR);
@@ -448,35 +450,35 @@ int WaveStream::Read(BYTE *buffer, int bytes)
                 } while (skippedBytes < (DWORD)position);
             }
             chunk = skippedBytes - position;
-            if ((DWORD)bytes < chunk) {
-                memcpy(buffer, decodeHeader.pbDst + ADPCM_DECODED_SKIP, bytes);
-                blockOffset = decodeHeader.cbDstLengthUsed - skippedBytes + position + bytes;
-                position += bytes;
-                filePosition += bytes;
+            if ((DWORD)remaining < chunk) {
+                memcpy(dest, decodeHeader.pbDst + ADPCM_DECODED_SKIP, remaining);
+                blockOffset = decodeHeader.cbDstLengthUsed - skippedBytes + position + remaining;
+                position += remaining;
+                filePosition += remaining;
                 return 1;
             }
-            memcpy(buffer, decodeHeader.pbDst + decodeHeader.cbDstLengthUsed - skippedBytes + position +
+            memcpy(dest, decodeHeader.pbDst + decodeHeader.cbDstLengthUsed - skippedBytes + position +
                                ADPCM_DECODED_SKIP,
                    chunk);
-            bytes += position - skippedBytes;
-            buffer += skippedBytes - position;
+            remaining += position - skippedBytes;
+            dest += skippedBytes - position;
             position = skippedBytes;
             blockOffset = 0;
         }
         if (!DecodeNextBlock()) {
             return 0;
         }
-        if (decodeHeader.cbDstLengthUsed > (DWORD)bytes) {
-            memcpy(buffer, decodeHeader.pbDst + ADPCM_DECODED_SKIP, bytes);
-            position += bytes;
-            blockOffset = bytes;
-            filePosition += bytes;
+        if (decodeHeader.cbDstLengthUsed > (DWORD)remaining) {
+            memcpy(dest, decodeHeader.pbDst + ADPCM_DECODED_SKIP, remaining);
+            position += remaining;
+            blockOffset = remaining;
+            filePosition += remaining;
             return 1;
         }
-        memcpy(buffer, decodeHeader.pbDst + ADPCM_DECODED_SKIP, decodeHeader.cbDstLengthUsed);
+        memcpy(dest, decodeHeader.pbDst + ADPCM_DECODED_SKIP, decodeHeader.cbDstLengthUsed);
         copyBytes = decodeHeader.cbDstLengthUsed;
-        bytes -= copyBytes;
-        buffer += copyBytes;
+        remaining -= copyBytes;
+        dest += copyBytes;
         position += copyBytes;
         filePosition += copyBytes;
         blockOffset = 0;

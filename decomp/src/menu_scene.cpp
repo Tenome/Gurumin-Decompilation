@@ -81,7 +81,7 @@ extern "C" void FUN_10166520(void);                    // ModelBank::DrawLensFla
 #define HAZE_X3_PERIOD -2866.0f
 #define HAZE_Y3_PERIOD -4056.0f
 #define HAZE_ALPHA_SECOND 0.75f
-#define HAZE_ALPHA_THIRD 0.7f
+#define HAZE_ALPHA_THIRD 0.35f
 
 // The opaque ARGB colour of a fog colour vector.
 static __forceinline unsigned int FogColourArgb(const Vec4 &fog)

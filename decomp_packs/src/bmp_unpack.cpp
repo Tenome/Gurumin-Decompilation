@@ -208,8 +208,8 @@ void DecodeBand(const unsigned char *data, short *band, int width, int height, i
         if (g_arithBitMask != 0x80) {
             g_arithBitMask <<= 1;
         } else {
-            g_arithBytePos++;
             g_arithBitMask = 1;
+            g_arithBytePos++;
             g_arithByte = data[g_arithBytePos];
         }
         g_arithValue = bitSet + g_arithValue * 2;
@@ -481,82 +481,114 @@ extern "C" int MMV3(int command, unsigned int *pixels, int unused, int *width, u
     return 1;
 }
 
-// base - sum / 2, rounded toward zero. (LiftLine)
-static inline short SubtractHalf(short base, int sum)
+// Stores base - sum / 2 (rounded toward zero) at dst[index]. (InverseWaveletLevel)
+static inline void StoreSubtractHalf(short *dst, int index, short base, int sum)
 {
     if (sum == 0)
-        return base;
-    if (sum > 0)
-        return base - ((unsigned short)sum >> 1);
-    return base + ((unsigned short)-(unsigned short)sum >> 1);
+        dst[index] = base;
+    else if (sum > 0)
+        dst[index] = base - ((unsigned short)sum >> 1);
+    else if (sum < 0)
+        dst[index] = base + ((unsigned short)-(unsigned short)sum >> 1);
 }
 
-// base + sum / 2, rounded toward zero. (LiftLine)
-static inline short AddHalf(short base, int sum)
+// Stores base + sum / 2 (rounded toward zero) at dst[index]. (InverseWaveletLevel)
+static inline void StoreAddHalf(short *dst, int index, short base, int sum)
 {
     if (sum == 0)
-        return base;
-    if (sum > 0)
-        return ((unsigned short)sum >> 1) + base;
-    return base - ((unsigned short)-(unsigned short)sum >> 1);
-}
-
-// One inverse lifting pass over a line of length samples spaced step apart: the first (length + 1) / 2 samples
-// are the low band, the rest the high band, and dst gets them interleaved (even = low minus half the neighbouring
-// highs, odd = high plus half the neighbouring lows). The two last pairs clamp their neighbours to the line.
-// (InverseWaveletLevel)
-static __forceinline void LiftLine(const short *src, short *dst, int length, int step)
-{
-    int half = (length + 1) / 2;
-    const short *high = src + half * step;
-    int out = 0;
-    int lowNext = 1;
-    int highNext = 0;
-    short low = src[0];
-    short prevLow = low;
-    short highValue = high[0];
-    short prevHigh = highValue;
-
-    for (int pairs = half - 2; pairs > 0; pairs--) {
-        low = src[lowNext * step];
-        lowNext++;
-        highValue = high[highNext * step];
-        highNext++;
-        dst[out * step] = SubtractHalf(prevLow, prevHigh + highValue);
-        dst[(out + 1) * step] = AddHalf(highValue, prevLow + low);
-        out += 2;
-        prevLow = low;
-        prevHigh = highValue;
-    }
-
-    int limit = half * 2 - 2;
-    for (int pairs = 2; pairs > 0; pairs--) {
-        short nextLow = src[lowNext * step];
-        if (limit + 1 - half < half - 1)
-            lowNext++;
-        short nextHigh = high[highNext * step];
-        if (limit < length - 1)
-            highNext++;
-        dst[out * step] = SubtractHalf(low, prevHigh + nextHigh);
-        out++;
-        if (out < length) {
-            dst[out * step] = AddHalf(nextHigh, low + nextLow);
-            out++;
-        }
-        limit++;
-        low = nextLow;
-        prevHigh = nextHigh;
-    }
+        dst[index] = base;
+    else if (sum > 0)
+        dst[index] = ((unsigned short)sum >> 1) + base;
+    else if (sum < 0)
+        dst[index] = base - ((unsigned short)-(unsigned short)sum >> 1);
 }
 
 // Inverse of one wavelet level in both directions: undoes the horizontal then the vertical lifting steps on the
-// width x height region of plane, using scratch as the intermediate image (same stride). (BMPUnpack)
+// width x height region of plane, using scratch as the intermediate image (same stride). In each line the first
+// (length + 1) / 2 samples are the low band and the rest the high band; the result is interleaved (even = low minus
+// half the neighbouring highs, odd = high plus half the neighbouring lows). The last two pairs of a line clamp their
+// neighbours to the line. (BMPUnpack)
 void InverseWaveletLevel(short *plane, short *scratch, int width, int height, int stride)
 {
-    for (int y = 0; y < height; y++)
-        LiftLine(plane + y * stride, scratch + y * stride, width, 1);
-    for (int x = 0; x < width; x++)
-        LiftLine(scratch + x, plane + x, height, stride);
+    int halfWidth = (width + 1) / 2;
+    int halfHeight = (height + 1) / 2;
+
+    // Horizontal pass: plane rows into scratch rows.
+    int rowStart = 0;
+    int highStart = halfWidth;
+    for (int y = 0; y < height; y++) {
+        int lowNext = rowStart + 1;
+        int highNext = highStart;
+        int out = rowStart;
+        short low = plane[rowStart];
+        short high = plane[highStart];
+        short prevLow = low;
+        short prevHigh = high;
+        int i;
+        for (i = 0; i < halfWidth - 2; i++) {
+            low = plane[lowNext++];
+            high = plane[highNext++];
+            StoreSubtractHalf(scratch, out++, prevLow, prevHigh + high);
+            StoreAddHalf(scratch, out++, high, prevLow + low);
+            prevLow = low;
+            prevHigh = high;
+        }
+        for (i = halfWidth - 2; i < halfWidth; i++) {
+            short nextLow = plane[lowNext];
+            if (i + 1 < halfWidth - 1)
+                lowNext++;
+            short nextHigh = plane[highNext];
+            if (halfWidth + i < width - 1)
+                highNext++;
+            StoreSubtractHalf(scratch, out++, low, prevHigh + nextHigh);
+            if (out < (width - halfWidth) + highStart)
+                StoreAddHalf(scratch, out++, nextHigh, low + nextLow);
+            low = nextLow;
+            prevHigh = nextHigh;
+        }
+        rowStart += stride;
+        highStart += stride;
+    }
+
+    // Vertical pass: scratch columns back into plane columns.
+    for (int x = 0; x < width; x++) {
+        int lowNext = x + stride;
+        int highNext = halfHeight * stride + x;
+        int out = x;
+        short low = scratch[x];
+        short high = scratch[halfHeight * stride + x];
+        short prevLow = low;
+        short prevHigh = high;
+        int i;
+        for (i = 0; i < halfHeight - 2; i++) {
+            low = scratch[lowNext];
+            lowNext += stride;
+            high = scratch[highNext];
+            highNext += stride;
+            StoreSubtractHalf(plane, out, prevLow, prevHigh + high);
+            out += stride;
+            StoreAddHalf(plane, out, high, prevLow + low);
+            out += stride;
+            prevLow = low;
+            prevHigh = high;
+        }
+        for (i = halfHeight - 2; i < halfHeight; i++) {
+            short nextLow = scratch[lowNext];
+            if (i + 1 < halfHeight - 1)
+                lowNext += stride;
+            short nextHigh = scratch[highNext];
+            if (halfHeight + i < height - 1)
+                highNext += stride;
+            StoreSubtractHalf(plane, out, low, prevHigh + nextHigh);
+            out += stride;
+            if (out < height * stride + x) {
+                StoreAddHalf(plane, out, nextHigh, low + nextLow);
+                out += stride;
+            }
+            low = nextLow;
+            prevHigh = nextHigh;
+        }
+    }
 }
 
 // Unpacks a packed image: header, the raw coarsest level, the arithmetic-coded detail bands, dequantisation, the

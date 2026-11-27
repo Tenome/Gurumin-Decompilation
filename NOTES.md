@@ -677,3 +677,7 @@ other huge drafts (Bs00x_Update, DrawLit, RunScriptFrames) for the same gap.
 - **Locals live where their scope says.** `for (int y = 0; ...)` instead of a function-scope `int y` changes the
   register choice (APP Screenshot_ReadBackBuffer); declaring a block-local in each block that uses it lets two
   values share one stack slot (Packs MMV3). Dead argument slots are reused last-freed-first (Packs DequantizeBand).
+- **A loop the call count proves.** A two-pass `for` stays a loop (one call site) where unrolled calls give two
+  (APP Map_Unload: 24 calls vs 25); BMPPack's original even keeps a one-pass loop (`inc; cmp 1; jl`).
+- **Macros, not `const float`, for literal operands.** A `const float` object makes cl load the constant first and
+  negate at run time; a macro literal gives `fld var; fmul [literal]` and a literal negative (sound3d Update3DPan).
