@@ -2,7 +2,7 @@
 
 Lanes are disjoint by file. Sizes are real extents (bytes). "fp" = x87 instruction count.
 
-## Status after batch 402 (33 of 51 matched)
+## Status after round H11 (34 of 51 matched)
 
 Matched: PackFile ctor/dtor/Tell/Seek/Open/Read/Write, BMPLoad, BMPSave, ExecUnpack, PutZeroBit, PutOneBit, EncodeStart,
 PackBlocks, PackLevels, EmitBit, EncodeBit, ConvertBgrToPlanes, EncodeBandPlanes, DecodeSignedValue, DecodeJpegRgb, GetBit,
@@ -21,7 +21,7 @@ Open, closest first (diffs from build output; all register/slot residues unless 
 - 10001000 BandStatistics (1488 vs 1470: ebx scratch then re-zeroed; previous in edi)
 - 10002180 TransformLevel: transcribed in the original's shape (23 named window locals, 12 column pointers), behaviour
   checked against the loop version on 400 random planes; 2576 vs ~2976 bytes, register/slot allocation differs
-- 10003e60 DecodeBand (40: scan-loop i in edx vs ecx, blockY slot)
+- 10003e60 DecodeBand: MATCH (round H11, see below)
 - 10006e90 ExecPack (403: reload block before the loop top, two epilogues), 10006a40 EncodeChunk (510: the original
   also expands PutOneBit once at the match flag; run length in eax)
 - 10004a70 BMPUnpack (761: original caches the GetTickCount import in edi, data in ebp)
@@ -55,3 +55,20 @@ Round H9 (duplicated tails / in-place reads / inverted tests applied to the open
 - DecodeLevels: reordering the three offset/width/height statements changes nothing.
 - Method note: store/statement order was searched with an instruction-level metric (sbs `*` lines); only the sound3d
   key/header functions respond to it.
+
+Round H11 (named-local-vs-temporary rule, early-return tails, parameter reuse):
+- DecodeBand MATCH (34 of 51). Two levers: (1) `dy` is not a named local: `blockY + g_blockScanY[i]` is written in the
+  bounds test and in the store index (a named dy was the "i/blockY slot" swap); (2) the clamp tail of the inlined
+  ProbabilityFromScale is `if (probability > ARITH_PROB_MAX) return ARITH_PROB_MAX; return probability;` (early return,
+  not an assignment). With the assignment form the compiler reloads the scan offset `i` after the clamp; with the early
+  return it reloads it right after the division, as the original does. Also `magnitude` is its own local instead of
+  negating `coefficient` in place (neutral for the bytes, no reused meaning). Same trick did nothing for ToRgbBytes
+  (SampleToByte: else-arm early return folds 0x10000>>7 to a constant and moves further away), BiasByte,
+  RoundingOffset or QuantiseCoefficient.
+- QuantiseBand: `scale *= QUANT_DIVISOR_PER_SCALE` reuses the parameter (the original keeps the divisor in the dead
+  `scale` argument slot, [esp+0x7c]); 1248 -> 929 differing bytes. Still open: the original frame is 0x4c (ours 0x48),
+  the error sums sit at 0x10..0x18 and the counts at 0x1c..0x24 (ours the other way round), 1954 vs 1904 bytes.
+- No effect: ToRgbBytes without the named sample/plane locals, EncodeJpegRgb/SaveJpeg with `row` in the loop, inline
+  stride, `src` advanced directly (the +2 bias comes with srcRow being merged with the inner loop pointer);
+  BandStatistics second slope as its own local (worse); DequantizeLevels record lookup by `levels - level`;
+  QuantiseBands without `right`, with scales built through a `half` local.

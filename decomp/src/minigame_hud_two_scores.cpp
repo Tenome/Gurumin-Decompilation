@@ -161,8 +161,7 @@ drawScore:
     {
         float grownWidth = (float)DAT_1020e538.TextWidth(scoreText, (float)DAT_1020c2e4 / SCORE_POP_SCALE_DIVISOR +
                                                                         SCORE_BASE_SCALE);
-        float baseWidth = (float)DAT_1020e538.TextWidth(scoreText, SCORE_BASE_SCALE);
-        int growth = (int)((grownWidth - baseWidth) / 2.0f + 0.5f);
+        int growth = (int)((grownWidth - (float)DAT_1020e538.TextWidth(scoreText, SCORE_BASE_SCALE)) / 2.0f + 0.5f);
         float pop = (float)DAT_1020c2e4;
         float rise = pop / SCORE_POP_RISE_DIVISOR;
         int y = SCORE_NUMBER_Y - (int)(rise * SCORE_POP_RISE + 0.5f);

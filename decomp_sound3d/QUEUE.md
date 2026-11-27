@@ -73,3 +73,16 @@ Round H9 (duplicated tails / in-place reads / inverted tests / statement order o
   tests `headerPackets < 2` before the first iteration (no constant fold) and spills `this` to the stack.
 - InitTrackedAllocator: only the unexplained /GS cookie (4 byte slot + xor) separates it; the inlined strcpy("Unknown")
   already matches.
+
+Round H11 (named locals that were temporaries, function-scope address-taken locals, reused variables), no new match:
+- MmioFile::Open: moving every non-buffer local, the address-taken tables, `wanted`, `directory` or all of them into the
+  block that uses them leaves the same 10 bytes (original low to high: directory, plainPath, arcPath, datPath; ours
+  directory, datPath, arcPath, plainPath; declaration order and scope make no difference to the buffer order).
+- Update3DPan: `lowClamped` named local, in-place pan, unnamed clamp or volume, min/max swapped: same bytes. The
+  original loads the pan into ecx before the first compare and keeps the max() result in a copy at [esp+0x1c].
+- FindOrLoadSound: `window` moved into the archived branch (three positions) and one index per loop: same code (the
+  original frame is 4 bytes larger; its `slot` lives at [esp+0x14] and the scan pointer is spilled into [esp+0x10], the
+  `window` bytes).
+- SoundChannel::Open: `stereo`/`startBytes` unnamed or `created` in its block: all worse (the field order found by
+  search stays).
+- LoadSource/BuildWavHeader/GetBaseFileName/CheckKey/InitTrackedAllocator: no named cast/call temporaries to remove; unchanged.

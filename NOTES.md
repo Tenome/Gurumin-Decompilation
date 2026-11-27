@@ -708,3 +708,16 @@ other huge drafts (Bs00x_Update, DrawLit, RunScriptFrames) for the same gap.
 - Slot ordering is not plain reference counts: three variables with four references each (int restart, float speed,
   float delta) come out in an order no declaration order changes, and deleting one reference elsewhere can flip two
   spill slots (AimedShots). Treat equal-count slot order as unexplained.
+
+## Early-return clamps and inlined temporaries (Packs DecodeBand, round H11)
+- DecodeBand matched with two edits. `dy = blockY + g_blockScanY[i]` was written out at both of its uses instead
+  of being a named local; the named local was what swapped the i and blockY slots. The inlined
+  ProbabilityFromScale clamp also became `if (p > MAX) return MAX; return p;` instead of `if (p > MAX) p = MAX;`.
+  With the assignment form the compiler reloads the spilled scan index after the clamp; with the early return it
+  reloads right after the division, as the original does. A ternary in either direction behaves like the
+  assignment. Both edits were needed (each alone left 23-24 diffs). The same early-return change did nothing for
+  ToRgbBytes' clamp helpers.
+- QuantiseBand reuses its dead `scale` parameter for the divisor (`scale *= QUANT_DIVISOR_PER_SCALE`), which
+  puts the spill in the argument slot as in the original. That is a partial gain only.
+- Round 11's sweep of single-use named cast/call locals over all APP DIFF functions found no further exact
+  matches. The rule closes a slot wall only when the named local is the sole cause.

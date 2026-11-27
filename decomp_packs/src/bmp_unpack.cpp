@@ -170,7 +170,7 @@ static inline unsigned int ProbabilityFromScale(unsigned int scale)
 {
     unsigned int probability = (((scale >> 1) - scale) - ARITH_PROB_ROUND) / (scale + ARITH_PROB_ONE) + 1;
     if (probability > ARITH_PROB_MAX)
-        probability = ARITH_PROB_MAX;
+        return ARITH_PROB_MAX;
     return probability;
 }
 
@@ -223,16 +223,14 @@ void DecodeBand(const unsigned char *data, short *band, int width, int height, i
             for (int i = 0; i < 256; i++) {
                 int dx = g_blockScanX[i];
                 if (blockX + dx < width) {
-                    int dy = g_blockScanY[i];
-                    if (blockY + dy < height) {
+                    if (blockY + g_blockScanY[i] < height) {
                         short coefficient = DecodeSignedValue(data, (unsigned short)probability);
-                        band[(blockY + dy) * stride + dx + blockX] = coefficient;
-                        if (coefficient < 0)
-                            coefficient = -coefficient;
+                        band[(blockY + g_blockScanY[i]) * stride + dx + blockX] = coefficient;
+                        short magnitude = coefficient < 0 ? -coefficient : coefficient;
                         scale = (scale >> 16) * weightCurrent + initialShare +
                                 (((scale & 0xffff) * weightCurrent + ARITH_PROB_ROUND) >> 16);
-                        if (coefficient != 0)
-                            scale += coefficient * adaptStep;
+                        if (magnitude != 0)
+                            scale += magnitude * adaptStep;
                         if (scale == 0)
                             scale = 1;
                         probability = ProbabilityFromScale(scale);

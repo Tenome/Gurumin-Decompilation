@@ -468,3 +468,4 @@ Each finished batch adds two new ones, taken from the medium-function section of
 | 404 | 38 | match | round 8: APP Camera_SelectPath, sound queue, Switch_Hold, Char_WalkRoute, Text_Substitute, Plane::Distance (925); sound3d Mp3Stream::Read (101 of 117); Packs parked; 1070 of 1391 |
 | 405 | 38 | match | round 9: APP Circle_Intersect (926); Ime_DrawComposition 4 lines (FontRenderer::DrawTextClipped thiscall), CheckKey 42; walls noted in open.tsv/QUEUE; 1071 of 1391 |
 | 406 | 38 | match | round 10 (3 Opus deep dives): APP Node::ApplyCommandText, Node::ScanChunks, Enemy_StarVolley (929); NOTES: named locals vs unnamed temporaries steer slot groups, SIB order is whole-function allocation; 1074 of 1391 |
+| 407 | 38 | match | round 11 (Sonnet): Packs DecodeBand (34 of 51; early-return clamp, inline dy); near misses Kind43_UpdateShots, HUD timers, QuantiseBand; NOTES early-return clamps; 1075 of 1391 |

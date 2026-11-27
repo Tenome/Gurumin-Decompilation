@@ -494,29 +494,32 @@ __forceinline int BiasByte(int errorSum, int count, int quality, double divisor)
     return bias;
 }
 
+// Quantiser divisor per unit of strength (QuantiseBand's step is 20 * scale).
+const int QUANT_DIVISOR_PER_SCALE = 20;
+
 // Two-pass dead-zone quantiser of one sub-band: pass one measures each plane's mean rounding error, pass two
 // quantises in place with offsets derived from it and records the final biases in model. scale is the quantiser
 // strength (the step is 20 * scale / quality), quality the fixed-point denominator. (BMPPack quantiser driver)
 void QuantiseBand(short *planeA, short *planeB, short *planeC, int width, int height, int stride, int quality,
                   int scale, BandModel *model)
 {
-    int divisor = scale * 20;
-    int roundOffset = (divisor - 1) / 2;
+    scale *= QUANT_DIVISOR_PER_SCALE;  // from here on scale is the quantiser divisor (step), not the strength
+    int roundOffset = (scale - 1) / 2;
     int reconstructionOffset = (quality - 1) / 2;
     int errorSumA = 0, errorSumB = 0, errorSumC = 0;
     int countA = 0, countB = 0, countC = 0;
 
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
-            MeasureCoefficient(planeA[y * stride + x], roundOffset, divisor, quality, reconstructionOffset,
+            MeasureCoefficient(planeA[y * stride + x], roundOffset, scale, quality, reconstructionOffset,
                                &errorSumA, &countA);
-            MeasureCoefficient(planeB[y * stride + x], roundOffset, divisor, quality, reconstructionOffset,
+            MeasureCoefficient(planeB[y * stride + x], roundOffset, scale, quality, reconstructionOffset,
                                &errorSumB, &countB);
-            MeasureCoefficient(planeC[y * stride + x], roundOffset, divisor, quality, reconstructionOffset,
+            MeasureCoefficient(planeC[y * stride + x], roundOffset, scale, quality, reconstructionOffset,
                                &errorSumC, &countC);
         }
     }
-    double divisorValue = (double)divisor;
+    double divisorValue = (double)scale;
     double scaleValue = divisorValue / 20.0;
     double sharpness = (16.0 - log(scaleValue) / log(2.0)) / 16.0;
     int offsetA = RoundingOffset(errorSumA, countA, quality, divisorValue, sharpness);
@@ -527,11 +530,11 @@ void QuantiseBand(short *planeA, short *planeB, short *planeC, int width, int he
     countA = countB = countC = 0;
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
-            planeA[y * stride + x] = QuantiseCoefficient(planeA[y * stride + x], offsetA, divisor, quality,
+            planeA[y * stride + x] = QuantiseCoefficient(planeA[y * stride + x], offsetA, scale, quality,
                                                          reconstructionOffset, &errorSumA, &countA);
-            planeB[y * stride + x] = QuantiseCoefficient(planeB[y * stride + x], offsetB, divisor, quality,
+            planeB[y * stride + x] = QuantiseCoefficient(planeB[y * stride + x], offsetB, scale, quality,
                                                          reconstructionOffset, &errorSumB, &countB);
-            planeC[y * stride + x] = QuantiseCoefficient(planeC[y * stride + x], offsetC, divisor, quality,
+            planeC[y * stride + x] = QuantiseCoefficient(planeC[y * stride + x], offsetC, scale, quality,
                                                          reconstructionOffset, &errorSumC, &countC);
         }
     }

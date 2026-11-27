@@ -11,7 +11,7 @@
 #include "texture_object.h"
 
 #define SECONDS_PER_MINUTE 60
-#define TIMER_START_WORD_FRAMES 0x14fb
+#define TIMER_START_WORD_FRAMES 0x14fa
 
 // The minutes digit and the colon after it, left of the seconds digits.
 #define TIMER_MINUTES_LEFT 0x19e
@@ -45,7 +45,7 @@ static inline int HalfWidth(int width)
 
 // 0x100311b0 (MapMinigame_DrawHudMinuteTimer). Map 0x18 variant: draws the remaining time as M:SS.hh (digits cut from
 // the map's count-down texture), then the banner (count-down digits, the finish word once the timer has run out,
-// or the start word from frame TIMER_START_WORD_FRAMES on), each as a shrinking quad plus an additive copy at
+// or the start word once the timer is past TIMER_START_WORD_FRAMES), each as a shrinking quad plus an additive copy at
 // GLOW_ALPHA of the alpha; then the player's score beside a colon label and a second pink score, each popping larger
 // with a glow while its pop counter runs. Draws no banner when the map holds no textures. Returns 0.
 extern "C" int FUN_100311b0(void)
@@ -126,7 +126,7 @@ extern "C" int FUN_100311b0(void)
         else
         {
             float fade;
-            if (timer >= TIMER_START_WORD_FRAMES)
+            if (timer > TIMER_START_WORD_FRAMES)
             {
                 fade = frames / BANNER_FRAMES_PER_STEP_F;
                 int halfW = SCALED(WORD_BASE, fade, WORD_WIDTH_RATE);

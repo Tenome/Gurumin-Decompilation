@@ -103,8 +103,7 @@ int Kind43_UpdateShots(void)
                         DAT_10255160[slot][SHOT_PITCH] = pitchGoal;
                 }
                 float yawDelta = Atan2(player.x - DAT_10802bf8[slot].position.x,
-                                       player.y - DAT_10802bf8[slot].position.y) + SHOT_ANGLE_HALF_TURN;
-                yawDelta = yawDelta - DAT_10255160[slot][SHOT_YAW];
+                                       player.y - DAT_10802bf8[slot].position.y) + SHOT_ANGLE_HALF_TURN - DAT_10255160[slot][SHOT_YAW];
                 for (; yawDelta > SHOT_ANGLE_HALF_TURN; yawDelta -= SHOT_ANGLE_FULL_TURN)
                 {
                 }
