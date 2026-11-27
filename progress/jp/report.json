@@ -1,25 +1,25 @@
 {
  "measures": {
-  "fuzzy_match_percent": 52.0118,
-  "total_code": "1789623",
-  "matched_code": "435346",
-  "matched_code_percent": 24.3261,
+  "fuzzy_match_percent": 52.263,
+  "total_code": "1789613",
+  "matched_code": "435336",
+  "matched_code_percent": 24.3257,
   "total_data": "0",
   "matched_data": "0",
   "matched_data_percent": 0.0,
-  "total_functions": 1391,
-  "matched_functions": 1075,
-  "matched_functions_percent": 77.2825,
+  "total_functions": 1392,
+  "matched_functions": 1076,
+  "matched_functions_percent": 77.2989,
   "complete_code": "6861",
   "complete_code_percent": 0.3834,
   "complete_data": "0",
   "complete_data_percent": 0.0,
   "total_units": 494,
   "complete_units": 232,
-  "matched_rules_code": "434719",
-  "matched_rules_code_percent": 24.2911,
-  "matched_rules_functions": 1074,
-  "matched_rules_functions_percent": 77.2106
+  "matched_rules_code": "434709",
+  "matched_rules_code_percent": 24.2907,
+  "matched_rules_functions": 1075,
+  "matched_rules_functions_percent": 77.227
  },
  "units": [
   {
@@ -15069,7 +15069,7 @@
   {
    "name": "app/minigame_hud",
    "measures": {
-    "fuzzy_match_percent": 32.1659,
+    "fuzzy_match_percent": 83.028,
     "total_code": "1850",
     "matched_code": "0",
     "matched_code_percent": 0.0,
@@ -15094,14 +15094,14 @@
     {
      "name": ".text",
      "size": "1850",
-     "fuzzy_match_percent": 32.1659
+     "fuzzy_match_percent": 83.028
     }
    ],
    "functions": [
     {
      "name": "_FUN_100301a0",
      "size": "1850",
-     "fuzzy_match_percent": 32.1659,
+     "fuzzy_match_percent": 83.028,
      "metadata": {
       "virtual_address": "268632480"
      }
@@ -15115,7 +15115,7 @@
   {
    "name": "app/minigame_hud_minute_timer",
    "measures": {
-    "fuzzy_match_percent": 54.5283,
+    "fuzzy_match_percent": 86.5566,
     "total_code": "4234",
     "matched_code": "0",
     "matched_code_percent": 0.0,
@@ -15140,14 +15140,14 @@
     {
      "name": ".text",
      "size": "4234",
-     "fuzzy_match_percent": 54.5283
+     "fuzzy_match_percent": 86.5566
     }
    ],
    "functions": [
     {
      "name": "_FUN_100311b0",
      "size": "4234",
-     "fuzzy_match_percent": 54.5283,
+     "fuzzy_match_percent": 86.5566,
      "metadata": {
       "virtual_address": "268636592"
      }
@@ -15161,7 +15161,7 @@
   {
    "name": "app/minigame_hud_timer",
    "measures": {
-    "fuzzy_match_percent": 55.6563,
+    "fuzzy_match_percent": 90.0312,
     "total_code": "3192",
     "matched_code": "0",
     "matched_code_percent": 0.0,
@@ -15186,14 +15186,14 @@
     {
      "name": ".text",
      "size": "3192",
-     "fuzzy_match_percent": 55.6563
+     "fuzzy_match_percent": 90.0312
     }
    ],
    "functions": [
     {
      "name": "_FUN_1002f520",
      "size": "3192",
-     "fuzzy_match_percent": 55.6563,
+     "fuzzy_match_percent": 90.0312,
      "metadata": {
       "virtual_address": "268629280"
      }
@@ -15207,7 +15207,7 @@
   {
    "name": "app/minigame_hud_two_scores",
    "measures": {
-    "fuzzy_match_percent": 32.4468,
+    "fuzzy_match_percent": 74.6897,
     "total_code": "2252",
     "matched_code": "0",
     "matched_code_percent": 0.0,
@@ -15232,14 +15232,14 @@
     {
      "name": ".text",
      "size": "2252",
-     "fuzzy_match_percent": 32.4468
+     "fuzzy_match_percent": 74.6897
     }
    ],
    "functions": [
     {
      "name": "_FUN_100308e0",
      "size": "2252",
-     "fuzzy_match_percent": 32.4468,
+     "fuzzy_match_percent": 74.6897,
      "metadata": {
       "virtual_address": "268634336"
      }
@@ -27545,7 +27545,7 @@
   {
    "name": "packs/bmp_pack",
    "measures": {
-    "fuzzy_match_percent": 41.9447,
+    "fuzzy_match_percent": 42.6111,
     "total_code": "11271",
     "matched_code": "2776",
     "matched_code_percent": 24.6296,
@@ -27570,7 +27570,7 @@
     {
      "name": ".text",
      "size": "11271",
-     "fuzzy_match_percent": 41.9447
+     "fuzzy_match_percent": 42.6111
     }
    ],
    "functions": [
@@ -27641,7 +27641,7 @@
     {
      "name": "?QuantiseBand@@YAXPAF00HHHHHPAUBandModel@@@Z",
      "size": "1954",
-     "fuzzy_match_percent": 51.208,
+     "fuzzy_match_percent": 55.0521,
      "metadata": {
       "virtual_address": "268442064"
      }
@@ -28928,30 +28928,30 @@
    "name": "sound3d/sound_api",
    "measures": {
     "fuzzy_match_percent": 100.0,
-    "total_code": "4851",
-    "matched_code": "4851",
+    "total_code": "4841",
+    "matched_code": "4841",
     "matched_code_percent": 100.0,
     "total_data": "0",
     "matched_data": "0",
     "matched_data_percent": 0.0,
-    "total_functions": 30,
-    "matched_functions": 30,
+    "total_functions": 31,
+    "matched_functions": 31,
     "matched_functions_percent": 100.0,
-    "complete_code": "4851",
+    "complete_code": "4841",
     "complete_code_percent": 100.0,
     "complete_data": "0",
     "complete_data_percent": 0.0,
     "total_units": 1,
     "complete_units": 1,
-    "matched_rules_code": "4851",
+    "matched_rules_code": "4841",
     "matched_rules_code_percent": 100.0,
-    "matched_rules_functions": 30,
+    "matched_rules_functions": 31,
     "matched_rules_functions_percent": 100.0
    },
    "sections": [
     {
      "name": ".text",
-     "size": "4851",
+     "size": "4841",
      "fuzzy_match_percent": 100.0
     }
    ],
@@ -29126,7 +29126,7 @@
     },
     {
      "name": "_IPlayFadeB",
-     "size": "1156",
+     "size": "102",
      "fuzzy_match_percent": 100.0,
      "metadata": {
       "virtual_address": "268474976"
@@ -29194,6 +29194,14 @@
      "fuzzy_match_percent": 100.0,
      "metadata": {
       "virtual_address": "268477104"
+     }
+    },
+    {
+     "name": "_IPlay",
+     "size": "1044",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268475088"
      }
     }
    ],
@@ -29839,7 +29847,7 @@
   {
    "name": "sound3d/sound_play",
    "measures": {
-    "fuzzy_match_percent": 92.1739,
+    "fuzzy_match_percent": 94.0821,
     "total_code": "4140",
     "matched_code": "0",
     "matched_code_percent": 0.0,
@@ -29864,14 +29872,14 @@
     {
      "name": ".text",
      "size": "4140",
-     "fuzzy_match_percent": 92.1739
+     "fuzzy_match_percent": 94.0821
     }
    ],
    "functions": [
     {
      "name": "?PlaySE@SoundChannel@@QAEHPBDHPAM11111HM@Z",
      "size": "4140",
-     "fuzzy_match_percent": 92.1739,
+     "fuzzy_match_percent": 94.0821,
      "metadata": {
       "virtual_address": "268462096"
      }

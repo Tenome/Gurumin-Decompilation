@@ -269,8 +269,7 @@ int Enemy_ShyGhost(int index)
             }
             else
             {
-                float angle = atan2f(toPlayer.x, toPlayer.y);
-            float turn = DAT_10db6ee8[0].heading - angle;
+                float turn = DAT_10db6ee8[0].heading - atan2f(toPlayer.x, toPlayer.y);
                 while (turn > GHOST_PI)
                     turn = turn - GHOST_FULL_TURN;
                 while (turn < -GHOST_PI)

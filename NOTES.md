@@ -721,3 +721,13 @@ other huge drafts (Bs00x_Update, DrawLit, RunScriptFrames) for the same gap.
   puts the spill in the argument slot as in the original. That is a partial gain only.
 - Round 11's sweep of single-use named cast/call locals over all APP DIFF functions found no further exact
   matches. The rule closes a slot wall only when the named local is the sole cause.
+
+## Single-use ftol values sink past calls (minigame HUDs, round 12)
+- cl 13.00 moves a value that is used once (named local, accumulator, inline helper result or plain expression)
+  to just before its use, past any call in between. The minigame HUDs compute HalfWidth before the pop draw and keep it
+  in ebx, which happens only when the value has a second use: the original writes `RIGHT - halfWidth - width` in both
+  the draw and its glow copy. That took DrawHud and DrawHudTwoScores from about 80 diff lines to 8. What is left is
+  the eax/ecx choice for the first _itoa call.
+- `__forceinline` was needed for CopyString in sound3d _IPlay: plain `inline` expanded it at three queue writers
+  but left _IPlay's copy as a call.
+- sound3d's inventory had _IPlay (0x10009ad0) merged into _IPlayFadeB, so it is listed in module.json extra_functions.

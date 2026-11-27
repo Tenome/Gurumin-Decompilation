@@ -86,3 +86,36 @@ Round H11 (named locals that were temporaries, function-scope address-taken loca
 - SoundChannel::Open: `stereo`/`startBytes` unnamed or `created` in its block: all worse (the field order found by
   search stays).
 - LoadSource/BuildWavHeader/GetBaseFileName/CheckKey/InitTrackedAllocator: no named cast/call temporaries to remove; unchanged.
+
+## Round H12 (slot-order and inline-site levers over the open list)
+- _IPlay (0x10009ad0) MATCH. Two levers: (1) `CopyString` is `__forceinline` (a plain `inline` expanded it at the three
+  other queue writers but left IPlay's copy a call; the original has the inline `mov cl,[edx]; mov [esi+edx],cl; inc; test;
+  jne` loop there too). (2) The integrity compare reads `storedSum != sum || storedMask != mask` (stored value first);
+  `sum != storedSum || mask != storedMask` gave the same instructions but swapped the slots of the four address-taken
+  words (original ascending: mask, storedSum, storedMask, sum). Declaration order and local names had no effect on
+  these /O2 slots; only the operand order of the compare did. The function is not in the 117-function triage list, so
+  the module report count stays 101 of 117; the build prints MATCH for it.
+- PlaySE (src_od/, /Od): the frame layout is now understood. /Od assigns frame slots by a hash of the local NAME
+  (colliding names: first declared = higher address), and puts the /GS cookie just above the first struct in that
+  order. A harness (one function with many referenced locals, `cl /Od /GS /FAs`, read the `_name$ = -N` equates)
+  shows the order is stable whatever else is declared, so candidate names can be ranked once and chosen. The original's
+  function-scope order (high to low) is created, mono, dataBytes, slot, flags, cookie, description, stereo, result,
+  unusedFlag, releaseResult; the names dsBuffer, isMono, bufferBytes, index, options, bufferConfig, stereo, ret,
+  loopFlag, refs reproduce it (all offsets down to -0x4c now equal the original's). Block locals still differ: the
+  original orders block A (soft pan) as region1, region2, size2, lockResult, size1, relativeX, attenuation, frontAngle,
+  pi, distance, pan, soundAngle, relativeY and block B as region1, region2, size2, lockResult, size1 (their names
+  are not searched yet). PI_FLOAT was one ulp off (0x40490fdb; the original stores 0x40490fda = 3.1415925f), fixed.
+  The frame is still 0x110 against 0x114: the original has one 4-byte slot at -0x98, between block B's scalars and the
+  DS3DBUFFER, that no instruction references (an unreferenced local in that block). Not added: an unreferenced local is
+  a dummy. 324 -> 245 differing bytes.
+- Tried without effect: RewindDecoder/StartDecoder with named `buffer` (the esi load moves after the call as in the
+  original, but the `this` spill disappears), os/op/vc pointer locals (same bytes), `headerPackets` initialised at the
+  top (worse). In the original `this` is spilled and reloaded at every use because vc (ebx), os (ebp), op (edi) and the
+  counter (esi) all stay in registers; ours rematerialises `this+const` addresses instead of holding os/vc. No spelling
+  found that makes cl hold them.
+- SoundChannel::Init: `device` assigned in each branch (`device = &directSound` after the test, as the original puts the
+  `lea` inside both arms) matches the first 40 bytes, but cl then folds the shared store and rematerialises `device`,
+  where the original keeps it in a stack slot (frame 0x80). Not applied (428 against 434 diffs only).
+- _MixOpen: QueryControlId with an out parameter (`*controlId = ...` in each branch, which would give the original's
+  store-per-branch) was bigger (1792 against 1696 bytes, original 1663); the original also keeps 0x94 and the control
+  address in registers across the sites. Not applied.

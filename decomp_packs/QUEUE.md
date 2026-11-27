@@ -72,3 +72,20 @@ Round H11 (named-local-vs-temporary rule, early-return tails, parameter reuse):
   stride, `src` advanced directly (the +2 bias comes with srcRow being merged with the inner loop pointer);
   BandStatistics second slope as its own local (worse); DequantizeLevels record lookup by `levels - level`;
   QuantiseBands without `right`, with scales built through a `half` local.
+
+## Round H12 (QuantiseBand frame, early returns)
+- QuantiseBand: frame is now 0x4c as in the original (was 0x48) and the double slots (divisor 0x44, strength/sharpness
+  0x4c, temporaries 0x3c/0x54) match. Lever: the strength `divisorValue / 20.0` and the sharpness derived from it are
+  one `double` (`sharpness = divisor / 20.0; sharpness = (16 - log(sharpness) / log(2)) / 16;`); a separate named
+  `scaleValue` let the sharpness take the dead plane-pointer slot 0x34 and cost 4 bytes of frame. Unnamed (inline
+  `log(divisorValue / 20.0)`) is worse (the division result is pushed with `fstp [esp]`, the original uses a named
+  slot). 929 -> 863 differing bytes.
+- Still open there: (1) roundOffset/reconstructionOffset swap ebp/ebx (original: roundOffset ebp, reconstructionOffset
+  ebx; declaration order, init order and unnamed expressions do not move it); (2) the error sums sit at [esp+0x1c..]
+  and the counts at [esp+0x10..] in ours, the other way round in the original (declaration order of the six
+  variables has no effect; `int errorSum[3]; int count[3]` puts both groups at the top of the frame, worse);
+  (3) the original zeroes the quantised level in ONE shared stub (`xor ecx,ecx` after the final jmp, reached by
+  value == 0, level < 0 and level > 0), ours emits three stubs; early returns, `level = 0` first and arm order did not
+  merge them. BiasByte results assigned straight to model->plane[].bias (no reuse of errorSum) is shorter than the
+  original (1888 against 1954), so the reuse stays.
+- ExecPack: unchanged (the original keeps `stream.reserved = 8` as an immediate after `mov eax,8`).

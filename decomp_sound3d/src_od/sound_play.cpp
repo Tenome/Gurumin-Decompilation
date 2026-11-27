@@ -9,7 +9,7 @@
 const int LOCK_WHOLE_BUFFER_OFFSET = 0;
 const BYTE SILENCE_FILL = 0xff;                 // the fill byte that pads a sound shorter than its buffer
 // Float constants are macros: cl emits a literal operand (an immediate store) for them.
-#define PI_FLOAT 3.1415927f                     /* 0x40490fda */
+#define PI_FLOAT 3.1415925f                     /* 0x40490fda: one ulp below the nearest float to pi */
 const float ANGLE_WRAP = 2.0f;                  // angles are wrapped to +-2 pi
 const float ANGLE_WRAP_LOW = -2.0f;
 #define PAN_LIMIT_LOW -10000.0f
@@ -37,16 +37,19 @@ const int MEMORY_MODE_SOFTWARE = 1;
 int SoundChannel::PlaySE(const char *name, int loop, float *x, float *y, float *z, float *vx, float *vy, float *vz,
                          int hasPos, float vol)
 {
-    IDirectSoundBuffer *created;
-    int mono;
-    unsigned dataBytes;
-    int slot;
-    int flags;
-    DSBUFFERDESC description;
+    // /Od frame order: cl sorts the locals by a hash of their names (colliding names by declaration order), and puts
+    // the /GS cookie just above the first struct. These names give the original's order for the function-scope
+    // locals: dsBuffer, isMono, bufferBytes, index, options, cookie, bufferConfig, stereo, ret, loopFlag, refs.
+    IDirectSoundBuffer *dsBuffer;
+    int isMono;
+    unsigned bufferBytes;
+    int index;
+    int options;
+    DSBUFFERDESC bufferConfig;
     int stereo;
-    HRESULT result;
-    int unusedFlag;
-    ULONG releaseResult;
+    HRESULT ret;
+    int loopFlag;
+    ULONG refs;
 
     if (directSound == 0) {
         return 0;
@@ -54,17 +57,17 @@ int SoundChannel::PlaySE(const char *name, int loop, float *x, float *y, float *
     if (primaryBuffer == 0) {
         return 0;
     }
-    slot = FindOrLoadSound(name);
-    if (slot < 0) {
+    index = FindOrLoadSound(name);
+    if (index < 0) {
         return 0;
     }
-    fileHeader = g_waveCacheHeader[slot];
-    dataBytes = fileHeader.dataSize;
+    fileHeader = g_waveCacheHeader[index];
+    bufferBytes = fileHeader.dataSize;
     stereo = 1 < fileHeader.channels;
     if (loop != 0) {
-        unusedFlag = 0;
-        unusedFlag = 0xf;
-        unusedFlag += unusedFlag;
+        loopFlag = 0;
+        loopFlag = 0xf;
+        loopFlag += loopFlag;
     }
     memset(&format, 0, sizeof(format));
     format.wf.wFormatTag = WAVE_FORMAT_PCM;
@@ -73,52 +76,52 @@ int SoundChannel::PlaySE(const char *name, int loop, float *x, float *y, float *
     format.wf.nBlockAlign = fileHeader.blockAlign;
     format.wf.nAvgBytesPerSec = format.wf.nSamplesPerSec * format.wf.nBlockAlign;
     format.wBitsPerSample = fileHeader.bitsPerSample;
-    memset(&description, 0, sizeof(description));
-    description.dwSize = sizeof(DSBUFFERDESC);
-    flags = 0;
+    memset(&bufferConfig, 0, sizeof(bufferConfig));
+    bufferConfig.dwSize = sizeof(DSBUFFERDESC);
+    options = 0;
     if (g_memoryMode == 0) {
-        flags = SE_PLAY_TERMINATE_BY_PRIORITY;
+        options = SE_PLAY_TERMINATE_BY_PRIORITY;
     } else {
-        flags = 0;
+        options = 0;
     }
     if (x != 0 && hasPos == POSITION_MODE_3D) {
         if (g_memoryMode == MEMORY_MODE_HARDWARE) {
-            description.dwFlags = SE_FLAGS_3D_SOFTWARE;
+            bufferConfig.dwFlags = SE_FLAGS_3D_SOFTWARE;
         } else if (g_memoryMode == MEMORY_MODE_SOFTWARE) {
-            description.dwFlags = SE_FLAGS_3D_HARDWARE;
+            bufferConfig.dwFlags = SE_FLAGS_3D_HARDWARE;
         } else {
-            description.dwFlags = SE_FLAGS_3D_DEFAULT;
+            bufferConfig.dwFlags = SE_FLAGS_3D_DEFAULT;
         }
         if (g_memoryModeB == 0) {
-            description.guid3DAlgorithm = DS3DALG_HRTF_LIGHT;
+            bufferConfig.guid3DAlgorithm = DS3DALG_HRTF_LIGHT;
         } else {
-            description.guid3DAlgorithm = DS3DALG_HRTF_FULL;
+            bufferConfig.guid3DAlgorithm = DS3DALG_HRTF_FULL;
         }
     } else {
         if (g_memoryMode == MEMORY_MODE_HARDWARE) {
-            description.dwFlags = SE_FLAGS_SOFTWARE;
+            bufferConfig.dwFlags = SE_FLAGS_SOFTWARE;
         } else if (g_memoryMode == MEMORY_MODE_SOFTWARE) {
-            description.dwFlags = SE_FLAGS_HARDWARE;
+            bufferConfig.dwFlags = SE_FLAGS_HARDWARE;
         } else {
-            description.dwFlags = SE_FLAGS_DEFAULT;
+            bufferConfig.dwFlags = SE_FLAGS_DEFAULT;
         }
     }
-    mono = 0;
-    description.dwBufferBytes = dataBytes;
-    description.lpwfxFormat = (WAVEFORMATEX *)&format;
-    if (hasPos == POSITION_MODE_3D && x != 0 && description.lpwfxFormat->nChannels >= CHANNELS_STEREO) {
-        description.lpwfxFormat->nChannels = 1;
-        description.lpwfxFormat->nAvgBytesPerSec = description.lpwfxFormat->nAvgBytesPerSec >> 1;
-        description.lpwfxFormat->nBlockAlign = description.lpwfxFormat->nBlockAlign / 2;
-        dataBytes = dataBytes >> 1;
-        description.dwBufferBytes = dataBytes;
-        mono = 1;
+    isMono = 0;
+    bufferConfig.dwBufferBytes = bufferBytes;
+    bufferConfig.lpwfxFormat = (WAVEFORMATEX *)&format;
+    if (hasPos == POSITION_MODE_3D && x != 0 && bufferConfig.lpwfxFormat->nChannels >= CHANNELS_STEREO) {
+        bufferConfig.lpwfxFormat->nChannels = 1;
+        bufferConfig.lpwfxFormat->nAvgBytesPerSec = bufferConfig.lpwfxFormat->nAvgBytesPerSec >> 1;
+        bufferConfig.lpwfxFormat->nBlockAlign = bufferConfig.lpwfxFormat->nBlockAlign / 2;
+        bufferBytes = bufferBytes >> 1;
+        bufferConfig.dwBufferBytes = bufferBytes;
+        isMono = 1;
     }
     if (buffer != 0) {
         IsPlaying();
         buffer->Stop();
         m_01c8 = 0;
-        releaseResult = buffer->Release();
+        refs = buffer->Release();
         buffer = 0;
         if (buffer3d != 0) {
             buffer3d->Release();
@@ -126,20 +129,20 @@ int SoundChannel::PlaySE(const char *name, int loop, float *x, float *y, float *
         buffer3d = 0;
         m_0204 = 0;
     }
-    created = 0;
+    dsBuffer = 0;
     if (buffer == 0) {
-        directSound->CreateSoundBuffer(&description, &created, 0);
+        directSound->CreateSoundBuffer(&bufferConfig, &dsBuffer, 0);
     }
-    if (created == 0) {
+    if (dsBuffer == 0) {
         return 0;
     }
-    result = created->QueryInterface(IID_IDirectSoundBuffer8, (void **)&buffer);
-    created->Release();
+    ret = dsBuffer->QueryInterface(IID_IDirectSoundBuffer8, (void **)&buffer);
+    dsBuffer->Release();
     if (buffer == 0) {
         return 0;
     }
     if (x != 0 && hasPos == POSITION_MODE_3D) {
-        result = buffer->QueryInterface(IID_IDirectSound3DBuffer, (void **)&buffer3d);
+        ret = buffer->QueryInterface(IID_IDirectSound3DBuffer, (void **)&buffer3d);
     }
     usesSoftware3D = 0;
     distanceScale = vol;
@@ -149,12 +152,12 @@ int SoundChannel::PlaySE(const char *name, int loop, float *x, float *y, float *
         DWORD size1;
         DWORD size2;
         HRESULT lockResult;
-        lockResult = buffer->Lock(LOCK_WHOLE_BUFFER_OFFSET, dataBytes, (void **)&region1, &size1, (void **)&region2,
+        lockResult = buffer->Lock(LOCK_WHOLE_BUFFER_OFFSET, bufferBytes, (void **)&region1, &size1, (void **)&region2,
                                   &size2, 0);
         if (lockResult == 0) {
-            memcpy(region1, g_waveCache[slot], dataBytes);
-            if (size1 - dataBytes) {
-                memset(region1 + dataBytes, SILENCE_FILL, size1 - dataBytes);
+            memcpy(region1, g_waveCache[index], bufferBytes);
+            if (size1 - bufferBytes) {
+                memset(region1 + bufferBytes, SILENCE_FILL, size1 - bufferBytes);
             }
             buffer->Unlock(region1, size1, region2, size2);
             endOffset = size1;
@@ -206,9 +209,9 @@ int SoundChannel::PlaySE(const char *name, int loop, float *x, float *y, float *
             }
             buffer->Restore();
             if (loop != 0) {
-                buffer->Play(0, 0, flags | DSBPLAY_LOOPING);
+                buffer->Play(0, 0, options | DSBPLAY_LOOPING);
             } else {
-                buffer->Play(0, 0, flags);
+                buffer->Play(0, 0, options);
             }
             m_0204 = GetTickCount() + (size1 / format.wf.nAvgBytesPerSec + 1) * MS_PER_SECOND;
             if (loop != 0) {
@@ -255,7 +258,7 @@ int SoundChannel::PlaySE(const char *name, int loop, float *x, float *y, float *
             params.vPosition.x = (worldPosition[0] - g_listenerPosition[0]) * distanceScale + g_listenerPosition[0];
             params.vPosition.y = (worldPosition[1] - g_listenerPosition[1]) * distanceScale + g_listenerPosition[1];
             params.vPosition.z = (worldPosition[2] - g_listenerPosition[2]) * distanceScale + g_listenerPosition[2];
-            result = buffer3d->SetAllParameters(&params, DS3D_IMMEDIATE);
+            ret = buffer3d->SetAllParameters(&params, DS3D_IMMEDIATE);
         }
         {
             BYTE *region1;
@@ -263,23 +266,23 @@ int SoundChannel::PlaySE(const char *name, int loop, float *x, float *y, float *
             DWORD size1;
             DWORD size2;
             HRESULT lockResult;
-            lockResult = buffer->Lock(LOCK_WHOLE_BUFFER_OFFSET, dataBytes, (void **)&region1, &size1,
+            lockResult = buffer->Lock(LOCK_WHOLE_BUFFER_OFFSET, bufferBytes, (void **)&region1, &size1,
                                       (void **)&region2, &size2, 0);
             if (lockResult == 0) {
-                if (mono != 0) {
-                    WORD *source = (WORD *)g_waveCache[slot];
+                if (isMono != 0) {
+                    WORD *source = (WORD *)g_waveCache[index];
                     WORD *destination = (WORD *)region1;
                     unsigned i;
-                    for (i = 0; i < dataBytes >> 1; i++) {
+                    for (i = 0; i < bufferBytes >> 1; i++) {
                         destination[i] = source[i * 2];
                     }
-                    if (size1 - dataBytes) {
-                        memset(region1 + dataBytes, SILENCE_FILL, size1 - dataBytes);
+                    if (size1 - bufferBytes) {
+                        memset(region1 + bufferBytes, SILENCE_FILL, size1 - bufferBytes);
                     }
                 } else {
-                    memcpy(region1, g_waveCache[slot], dataBytes);
-                    if (size1 - dataBytes) {
-                        memset(region1 + dataBytes, SILENCE_FILL, size1 - dataBytes);
+                    memcpy(region1, g_waveCache[index], bufferBytes);
+                    if (size1 - bufferBytes) {
+                        memset(region1 + bufferBytes, SILENCE_FILL, size1 - bufferBytes);
                     }
                 }
                 buffer->Unlock(region1, size1, region2, size2);
@@ -290,9 +293,9 @@ int SoundChannel::PlaySE(const char *name, int loop, float *x, float *y, float *
                 }
                 buffer->Restore();
                 if (loop != 0) {
-                    buffer->Play(0, 0, flags | DSBPLAY_LOOPING);
+                    buffer->Play(0, 0, options | DSBPLAY_LOOPING);
                 } else {
-                    buffer->Play(0, 0, flags);
+                    buffer->Play(0, 0, options);
                 }
                 m_0204 = GetTickCount() + (size1 / format.wf.nAvgBytesPerSec + 1) * MS_PER_SECOND;
                 if (loop != 0) {

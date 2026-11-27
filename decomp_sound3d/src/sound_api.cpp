@@ -9,7 +9,7 @@
 #include "sound_engine.h"
 
 // Copies a zero-terminated string (the file name of a queued command).
-inline void CopyString(char *dest, const char *src)
+__forceinline void CopyString(char *dest, const char *src)
 {
     while ((*dest++ = *src++) != 0)
         ;
@@ -517,8 +517,10 @@ extern "C" int IPlay(int channel, const char *name, int a, int b, int c, int d)
     char directory[MAX_PATH_BUFFER];
     char checkedPath[MAX_PATH_BUFFER];
     char storePath[MAX_PATH_BUFFER];
-    int sum, storedSum;
-    unsigned mask, storedMask;
+    int sum;
+    unsigned storedMask;
+    int storedSum;
+    unsigned mask;
     GetModuleFileName(0, directory, sizeof(directory));
     char *last = directory + strlen(directory) - 1;
     if (*last != '\\') {
@@ -533,7 +535,7 @@ extern "C" int IPlay(int channel, const char *name, int a, int b, int c, int d)
         sprintf(storePath, "%s%s%s%s", directory, "soun", "darc.d", "ll");
         ComputeFileChecksum(checkedPath, &sum, &mask);
         ReadFileWords(storePath, INTEGRITY_TABLE_OFFSET, 0, &storedSum, &storedMask);
-        if (sum != storedSum || mask != storedMask) {
+        if (storedSum != sum || storedMask != mask) {
             PostMessage(g_window, WM_CLOSE, 0, 0);
             return 0;
         }
@@ -542,7 +544,7 @@ extern "C" int IPlay(int channel, const char *name, int a, int b, int c, int d)
         sprintf(storePath, "%s%s%s%s", directory, "sou", "nda", "rc.dll");
         ComputeFileChecksum(checkedPath, &sum, &mask);
         ReadFileWords(storePath, INTEGRITY_TABLE_OFFSET, 1, &storedSum, &storedMask);
-        if (sum != storedSum || mask != storedMask) {
+        if (storedSum != sum || storedMask != mask) {
             PostMessage(g_window, WM_CLOSE, 0, 0);
             return 0;
         }
@@ -551,7 +553,7 @@ extern "C" int IPlay(int channel, const char *name, int a, int b, int c, int d)
         sprintf(storePath, "%s%s%s%s", directory, "sound", "arc.d", "ll");
         ComputeFileChecksum(checkedPath, &sum, &mask);
         ReadFileWords(storePath, INTEGRITY_TABLE_OFFSET, 2, &storedSum, &storedMask);
-        if (sum != storedSum || mask != storedMask) {
+        if (storedSum != sum || storedMask != mask) {
             PostMessage(g_window, WM_CLOSE, 0, 0);
             return 0;
         }
@@ -560,7 +562,7 @@ extern "C" int IPlay(int channel, const char *name, int a, int b, int c, int d)
         sprintf(storePath, "%s%s%s%s", directory, "sou", "ndar", "c.dll");
         ComputeFileChecksum(checkedPath, &sum, &mask);
         ReadFileWords(storePath, INTEGRITY_TABLE_OFFSET, 3, &storedSum, &storedMask);
-        if (sum != storedSum || mask != storedMask) {
+        if (storedSum != sum || storedMask != mask) {
             PostMessage(g_window, WM_CLOSE, 0, 0);
             return 0;
         }

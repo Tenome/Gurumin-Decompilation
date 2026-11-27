@@ -75,6 +75,12 @@
 // Draws the additive copy of the banner at GLOW_ALPHA of `alpha`, restoring the blend mode afterwards.
 #define BANNER_GLOW(halfW, halfH, u0, v0, u1, v1, alpha)                                                              {                                                                                                                     int previousMode = DAT_10202b14;                                                                                  FUN_1013f070(RENDER_BLEND_MODE, BLEND_ADD, 0);                                                                    BANNER_QUAD(DAT_102028cc, halfW, halfH, u0, v0, u1, v1, (alpha) * GLOW_ALPHA);                                    FUN_1013f070(RENDER_BLEND_MODE, previousMode, 0);                                                             }
 
+// Half of a text width, rounded to the nearest pixel.
+static inline int HalfWidth(int width)
+{
+    return (int)(((float)width + 0.5f) / 2.0f);
+}
+
 // 0x100301a0 (MapMinigame_DrawHud). Draws the mini game's start banner (count-down digits, then the start word) and,
 // once the map timer has run out, the finish word; each as a shrinking quad plus an additive copy at GLOW_ALPHA.
 // Then draws the score with a growing glow while it pops. Draws nothing when the map holds no textures. Returns 0.
@@ -86,7 +92,7 @@ extern "C" int FUN_100301a0(void)
         return 0;
     int timer = DAT_10c6505c;
     int slot = DAT_102028cc;
-    if (slot != -1 || (slot = DAT_102028cc = FUN_10161920("minigm"), slot != -1))
+    if (slot != -1 || (slot = FUN_10161920("minigm"), DAT_102028cc = slot, slot != -1))
     {
         if (DAT_1020c2e8 < BANNER_DIGIT_FRAMES && DAT_1020c2e8 > 0)
         {
@@ -109,10 +115,8 @@ extern "C" int FUN_100301a0(void)
             BANNER_QUAD(slot, halfW, halfH, WORD_U0, START_V0, WORD_U1, START_V1, fade);
             BANNER_GLOW(glowHalfW, glowHalfH, WORD_U0, START_V0, WORD_U1, START_V1, fade);
         }
-        else
+        else if (timer < 0)
         {
-            if (timer >= 0)
-                goto drawScore;
             if (timer > -BANNER_FRAMES_PER_STEP)
                 fade = (float)(timer + BANNER_FRAMES_PER_STEP) / BANNER_FRAMES_PER_STEP_F;
             else
@@ -125,26 +129,25 @@ extern "C" int FUN_100301a0(void)
             BANNER_GLOW(glowHalfW, glowHalfH, WORD_U0, FINISH_V0, WORD_U1, FINISH_V1, fade);
         }
     }
-drawScore:
     _itoa(DAT_10c65060, scoreText, SCORE_RADIX);
     int width = DAT_1020e538.TextWidth(scoreText, SCORE_SIZING_SCALE);
     DAT_1020e538.DrawOutlined(SCORE_LABEL_X, SCORE_LABEL_Y, SCORE_LABEL_TEXT, COLOUR_WHITE, 0, 1.0f, 1.0f);
     if (DAT_1020c2ec != 0)
     {
-        int x = (int)(((float)width + 0.5f) / 2.0f);
-        int grownHalf = (int)(((float)DAT_1020e538.TextWidth(scoreText, (float)DAT_1020c2ec / SCORE_POP_SCALE_DIVISOR +
-                                                                            SCORE_BASE_SCALE) +
-                               0.5f) /
-                              2.0f);
+        // Both half widths are used by the pop draw and by its glow copy, which keeps the first one ahead of the grown
+        // TextWidth call; `width` is reused for the half width of the grown text.
+        int halfWidth = HalfWidth(width);
+        width =
+            HalfWidth(DAT_1020e538.TextWidth(scoreText, (float)DAT_1020c2ec / SCORE_POP_SCALE_DIVISOR + SCORE_BASE_SCALE));
         float pop = (float)DAT_1020c2ec;
         float rise = pop / SCORE_POP_RISE_DIVISOR;
-        x = SCORE_NUMBER_RIGHT - x - grownHalf;
         int y = SCORE_NUMBER_Y - (int)(rise * SCORE_POP_RISE + 0.5f);
-        DAT_1020e538.DrawOutlined(x, y, scoreText, COLOUR_WHITE, 0, 1.0f, pop / SCORE_POP_SCALE_DIVISOR + SCORE_BASE_SCALE);
+        DAT_1020e538.DrawOutlined(SCORE_NUMBER_RIGHT - halfWidth - width, y, scoreText, COLOUR_WHITE, 0, 1.0f,
+                                  pop / SCORE_POP_SCALE_DIVISOR + SCORE_BASE_SCALE);
         int previousMode = DAT_10202b14;
         FUN_1013f070(RENDER_BLEND_MODE, BLEND_ADD, 0);
-        DAT_1020e538.DrawOutlined(x, y, scoreText, COLOUR_WHITE, 0, rise * SCORE_POP_GLOW,
-                                  (float)DAT_1020c2ec / SCORE_POP_SCALE_DIVISOR + SCORE_BASE_SCALE);
+        DAT_1020e538.DrawOutlined(SCORE_NUMBER_RIGHT - halfWidth - width, y, scoreText, COLOUR_WHITE, 0,
+                                  rise * SCORE_POP_GLOW, (float)DAT_1020c2ec / SCORE_POP_SCALE_DIVISOR + SCORE_BASE_SCALE);
         FUN_1013f070(RENDER_BLEND_MODE, previousMode, 0);
     }
     else

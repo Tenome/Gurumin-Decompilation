@@ -520,8 +520,10 @@ void QuantiseBand(short *planeA, short *planeB, short *planeC, int width, int he
         }
     }
     double divisorValue = (double)scale;
-    double scaleValue = divisorValue / 20.0;
-    double sharpness = (16.0 - log(scaleValue) / log(2.0)) / 16.0;
+    // One double: first the strength (divisor / 20), then the sharpness derived from it; the original keeps both in
+    // one frame slot (a separate scaleValue made the frame 4 bytes smaller).
+    double sharpness = divisorValue / 20.0;
+    sharpness = (16.0 - log(sharpness) / log(2.0)) / 16.0;
     int offsetA = RoundingOffset(errorSumA, countA, quality, divisorValue, sharpness);
     int offsetB = RoundingOffset(errorSumB, countB, quality, divisorValue, sharpness);
     int offsetC = RoundingOffset(errorSumC, countC, quality, divisorValue, sharpness);

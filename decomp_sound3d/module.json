@@ -4,7 +4,8 @@
   "game_start": "10001000",
   "game_end": "1000a800",
   "extra_functions": {
-    "10008830": "MixerControls::MixerControls"
+    "10008830": "MixerControls::MixerControls",
+    "10009ad0": "_IPlay"
   },
   "title": "Gurumin (JP PC) sound3d.dll matching decompilation"
 }

@@ -83,7 +83,7 @@ extern "C" int FUN_100311b0(void)
     DRAW_TIMER_DIGIT(TIMER_HUNDREDTHS_ONES_LEFT, TIMER_SMALL_DIGIT_TOP, TIMER_HUNDREDTHS_END, TIMER_DIGIT_BOTTOM,
                      hundredthsOnes);
     int slot = DAT_102028cc;
-    if (slot != -1 || (slot = DAT_102028cc = FUN_10161920("minigm"), slot != -1))
+    if (slot != -1 || (slot = FUN_10161920("minigm"), DAT_102028cc = slot, slot != -1))
     {
         if (DAT_1020c2e8 < BANNER_DIGIT_FRAMES && DAT_1020c2e8 > 0)
         {
@@ -136,10 +136,8 @@ extern "C" int FUN_100311b0(void)
                 BANNER_QUAD(slot, halfW, halfH, WORD_U0, START_V0, WORD_U1, START_V1, fade);
                 BANNER_GLOW(glowHalfW, glowHalfH, WORD_U0, START_V0, WORD_U1, START_V1, fade);
             }
-            else
+            else if (timer < 0)
             {
-                if (timer >= 0)
-                    goto drawScore;
                 if (timer > -BANNER_FRAMES_PER_STEP)
                     fade = (float)(timer + BANNER_FRAMES_PER_STEP) / BANNER_FRAMES_PER_STEP_F;
                 else
@@ -153,22 +151,25 @@ extern "C" int FUN_100311b0(void)
             }
         }
     }
-drawScore:
     _itoa(DAT_10c65060, scoreText, SCORE_RADIX);
     int width = DAT_1020e538.TextWidth(scoreText, SCORE_SIZING_SCALE);
     DAT_1020e538.DrawOutlined(SCORE_LABEL_X, SCORE_LABEL_Y, SCORE_LABEL_TEXT, COLOUR_WHITE, 0, 1.0f, SCORE_BASE_SCALE);
     if (DAT_1020c2ec != 0)
     {
-        int x = SCORE_NUMBER_RIGHT - HalfWidth(width) -
-                HalfWidth(DAT_1020e538.TextWidth(scoreText, (float)DAT_1020c2ec / SCORE_POP_SCALE_DIVISOR + SCORE_BASE_SCALE));
+        // Both half widths are used by the pop draw and by its glow copy, which keeps the first one ahead of the grown
+        // TextWidth call; `width` is reused for the half width of the grown text.
+        int halfWidth = HalfWidth(width);
+        width =
+            HalfWidth(DAT_1020e538.TextWidth(scoreText, (float)DAT_1020c2ec / SCORE_POP_SCALE_DIVISOR + SCORE_BASE_SCALE));
         float pop = (float)DAT_1020c2ec;
         float rise = pop / SCORE_POP_RISE_DIVISOR;
         int y = SCORE_NUMBER_Y - (int)(rise * SCORE_POP_RISE + 0.5f);
-        DAT_1020e538.DrawOutlined(x, y, scoreText, COLOUR_WHITE, 0, 1.0f, pop / SCORE_POP_SCALE_DIVISOR + SCORE_BASE_SCALE);
+        DAT_1020e538.DrawOutlined(SCORE_NUMBER_RIGHT - halfWidth - width, y, scoreText, COLOUR_WHITE, 0, 1.0f,
+                                  pop / SCORE_POP_SCALE_DIVISOR + SCORE_BASE_SCALE);
         int previousMode = DAT_10202b14;
         FUN_1013f070(RENDER_BLEND_MODE, BLEND_ADD, 0);
-        DAT_1020e538.DrawOutlined(x, y, scoreText, COLOUR_WHITE, 0, rise * SCORE_POP_GLOW,
-                                  (float)DAT_1020c2ec / SCORE_POP_SCALE_DIVISOR + SCORE_BASE_SCALE);
+        DAT_1020e538.DrawOutlined(SCORE_NUMBER_RIGHT - halfWidth - width, y, scoreText, COLOUR_WHITE, 0,
+                                  rise * SCORE_POP_GLOW, (float)DAT_1020c2ec / SCORE_POP_SCALE_DIVISOR + SCORE_BASE_SCALE);
         FUN_1013f070(RENDER_BLEND_MODE, previousMode, 0);
     }
     else
@@ -186,12 +187,12 @@ drawScore:
         float pop = (float)DAT_1020c2e4;
         float rise = pop / SCORE_POP_RISE_DIVISOR;
         int y = SCORE_NUMBER_Y - (int)(rise * SCORE_POP_RISE + 0.5f);
-        int x = SECOND_SCORE_X - growth;
-        DAT_1020e538.DrawOutlined(x, y, scoreText, COLOUR_PINK, 0, 1.0f, pop / SCORE_POP_SCALE_DIVISOR + SCORE_BASE_SCALE);
+        DAT_1020e538.DrawOutlined(SECOND_SCORE_X - growth, y, scoreText, COLOUR_PINK, 0, 1.0f,
+                                  pop / SCORE_POP_SCALE_DIVISOR + SCORE_BASE_SCALE);
         int previousMode = DAT_10202b14;
         FUN_1013f070(RENDER_BLEND_MODE, BLEND_ADD, 0);
-        DAT_1020e538.DrawOutlined(x, y, scoreText, COLOUR_WHITE, 0, rise * SCORE_POP_GLOW,
-                                  (float)DAT_1020c2e4 / SCORE_POP_SCALE_DIVISOR + SCORE_BASE_SCALE);
+        DAT_1020e538.DrawOutlined(SECOND_SCORE_X - growth, y, scoreText, COLOUR_WHITE, 0,
+                                  rise * SCORE_POP_GLOW, (float)DAT_1020c2e4 / SCORE_POP_SCALE_DIVISOR + SCORE_BASE_SCALE);
         FUN_1013f070(RENDER_BLEND_MODE, previousMode, 0);
     }
     else
