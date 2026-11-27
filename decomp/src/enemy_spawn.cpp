@@ -65,7 +65,8 @@ int FUN_10049650(void)
             {
                 position.Copy(DAT_10db6ee8[chosen].matrix.GetTranslation());
                 DAT_10453008[chosen] = -1;
-                position.x = position.x * -1.0f - 100000.0f;
+                position.x *= -1.0f;
+                position.x -= 100000.0f;
                 DAT_10db6ee8[chosen].SetPosition(position.x, position.y, position.z);
                 DAT_10db6ee8[chosen].PlayMotion(2, 0, 5, 1.0f);
                 DAT_104c4438[chosen].Copy(DAT_10db6ee8[chosen].matrix.GetTranslation());

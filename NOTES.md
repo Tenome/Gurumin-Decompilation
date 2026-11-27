@@ -685,3 +685,9 @@ other huge drafts (Bs00x_Update, DrawLit, RunScriptFrames) for the same gap.
   they stay live; interleaving the stores as the original did fixed an eax/ecx/edx rotation (APP Render_FillRect).
 - **Use the CRT's own inlines.** VC7 math.h `sinf` (an inline over `sin`) gives the original's double store/reload;
   a hand-written `(float)sin(x)` wrapper does not (APP Region_WaveVertex).
+- **/Od stack slots follow local names.** In /Od code (sound3d src_od) the slot order comes from the locals'
+  names (hash order), not only declaration order; colliding names keep declaration order (first declared = higher
+  address). Unused declared locals still take 4 bytes.
+- **Write the tail in every branch** (again): Switch_Hold, Text_Substitute, Mp3Stream::Read and OggStream::Read all
+  matched once each branch ended with its own copy of the shared statements; an inverted test (`== 0`) also moves
+  which arm the compiler places out of line.

@@ -63,6 +63,8 @@ int OggStream::Open(const char *fileName)
 // block. A read at a position other than the one the current block was decoded for rewinds the decoder and decodes
 // forward to that position first. Returns the byte count requested, 0 when the decoder runs out of data, and 0x2c
 // for the header read. Called by WaveStream::Read (0x10004c20) for Ogg streams.
+// Shape: every branch of the decode loop finishes its own position updates, so the compiler merges the identical
+// tails (same as Mp3Stream::Read).
 int OggStream::Read(BYTE *buffer, int bytes)
 {
     int remaining = bytes;

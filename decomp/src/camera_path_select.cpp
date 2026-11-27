@@ -45,7 +45,8 @@ extern "C" int FUN_1016b050(int id)
         float nearest = 0.0f;
         Vec4 point;
         Vec4 target;
-        target.Copy(DAT_1101d884->world.GetTranslation());
+        CameraTarget *camera = DAT_1101d884;
+        target.Copy(camera->world.GetTranslation());
         float length = (float)DAT_118e69f8[path].frames[DAT_118e69f8[path].count - 1];
         float bestFrame;
         int bestPath;

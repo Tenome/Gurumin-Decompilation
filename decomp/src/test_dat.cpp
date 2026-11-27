@@ -112,16 +112,20 @@ extern "C" int FUN_1000c020(char *out, const char *text)
                 strcat(out, DAT_1032d870[bestGroup][pick]);
                 out += DAT_104487e8[bestGroup][pick];
                 text += best;
+                *out = 0;
             }
             else
             {
                 *out++ = *text++;
                 *out++ = *text++;
+                *out = 0;
             }
         }
         else
+        {
             *out++ = *text++;
-        *out = 0;
+            *out = 0;
+        }
     }
     *out = 0;
     return 0;

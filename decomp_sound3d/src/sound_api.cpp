@@ -365,6 +365,7 @@ extern "C" int IFadeOutEx(int channel, int durationMs)
 // the music channels. Called by TimerCallback every 10 ms. Commands older than a second are dropped. Queued effect
 // plays of the same file are merged (only the last one of a burst plays). Stops early, acknowledging with
 // g_shutdownState = 2, when IRelease asked for shutdown.
+// Shape: queue entries are read in place (no local copy), and each command arm ends by clearing its own slot.
 void ProcessCommandQueue(int unused)
 {
     unsigned char writeIndex = g_commandWrite;

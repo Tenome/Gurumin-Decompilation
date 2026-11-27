@@ -19,6 +19,28 @@
 extern "C" int FUN_100286d0(int slot, int *state, int point, int *nextPoint, Vec4 *target, int *group, int *value,
                             int *action);
 
+// Looks up the route target of character `slot` for its current route point and moves the point on (the route
+// lookup also reports the point's group, value and action, which this caller does not need). On the first call the
+// character is placed at the target and listed in DAT_1032d5b8. Written as a helper expanded at its one call site:
+// the lookup's output variables then live only for this part of Char_WalkRoute.
+static __forceinline void LookUpRouteTarget(int slot, int *state, Vec4 *target)
+{
+    int next;
+    int group;
+    int value;
+    int action;
+    FUN_100286d0(slot, state, DAT_1020b430[slot].targetPoint, &next, target, &group, &value, &action);
+    if (DAT_1020b430[slot].placed == 0)
+    {
+        DAT_1032d5b8[DAT_1049f0f0] = &DAT_10db6ee8[slot].matrix.translation;
+        DAT_1021bbc0[DAT_1049f0f0] = 0;
+        DAT_1049f0f0++;
+        DAT_1020b430[slot].placed = 1;
+        DAT_10db6ee8[slot].SetPosition(target->x, target->y, target->z);
+    }
+    DAT_1020b430[slot].targetPoint = next;
+}
+
 // 0x1002a110 (Char_WalkRoute). Moves character `slot` one step along its route: it is unlocked and flagged as
 // walking, the route target looked up (on the first call the character is placed at it and listed in
 // DAT_1032d5b8), and unless it is stopped it steps 5 units (12 with `run`) towards the target. Returns 0.
@@ -27,25 +49,12 @@ extern "C" int FUN_1002a110(int slot, int run)
     Vec4 target;
     Vec4 step;
     int state = 0;
-    int next;
-    int group;
-    int value;
-    int action;
     target.Copy(DAT_10db6ee8[slot].matrix.GetTranslation());
     DAT_10db6ee8[slot].mode = 0;
     DAT_10db6ee8[slot].walkingRoute = 1;
     DAT_10db6ee8[slot].motionFrame = 0x1e;
     DAT_10db6ee8[slot].M_10161be0(0, 0);
-    FUN_100286d0(slot, &state, DAT_1020b430[slot].targetPoint, &next, &target, &group, &value, &action);
-    if (DAT_1020b430[slot].placed == 0)
-    {
-        DAT_1032d5b8[DAT_1049f0f0] = &DAT_10db6ee8[slot].matrix.translation;
-        DAT_1021bbc0[DAT_1049f0f0] = 0;
-        DAT_1049f0f0++;
-        DAT_1020b430[slot].placed = 1;
-        DAT_10db6ee8[slot].SetPosition(target.x, target.y, target.z);
-    }
-    DAT_1020b430[slot].targetPoint = next;
+    LookUpRouteTarget(slot, &state, &target);
     DAT_10802bf8[slot].step.Fill(0.0f);
     if (DAT_1020b430[slot].routeStopped == 0)
     {

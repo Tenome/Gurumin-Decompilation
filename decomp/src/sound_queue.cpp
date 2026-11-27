@@ -9,7 +9,7 @@ extern "C" int FUN_1003ad20(int sound, const Vec4 *position, float volume);
 
 // Queues `sound` to play after `delay` frames, at `position` (0 = not positional). When all slots are in use, the
 // sound that would play soonest is played now and its slot is reused (its position flag stays as it was).
-// Returns 0. Not byte-identical yet: the original keeps &DAT_1021a398[soonest] in edi (see open.tsv).
+// Returns 0.
 extern "C" int FUN_10054550(int sound, int delay, const Vec4 *position)
 {
     int soonest = 0;
@@ -35,12 +35,11 @@ extern "C" int FUN_10054550(int sound, int delay, const Vec4 *position)
             soonest = i;
         }
     }
-    int *slotSound = &DAT_1021a398[soonest];
     if (DAT_1042d870[soonest] != 0)
-        FUN_1003ad20(*slotSound, &DAT_10f08a00[soonest], 1.0f);
+        FUN_1003ad20(DAT_1021a398[soonest], &DAT_10f08a00[soonest], 1.0f);
     else
-        FUN_1003ad20(*slotSound, 0, 1.0f);
-    *slotSound = sound;
+        FUN_1003ad20(DAT_1021a398[soonest], 0, 1.0f);
     DAT_10447310[soonest] = delay;
+    DAT_1021a398[soonest] = sound;
     return 0;
 }

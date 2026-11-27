@@ -330,6 +330,8 @@ __forceinline int WaveStream::DecodeNextBlock()
 // next read continues inside it (blockOffset). The first 0x2c bytes of a stream are read from the file as they are.
 // Returns 1 on success, 0 when the stream is not ready or ACM fails (MP3 and Ogg return their decoder's result).
 // Called by SoundChannel's refill code (0x10006250 and the mixer 0x10007dd0).
+// Shape: the block decoder (DecodeNextBlock) is expanded inline three times; the slot sharing of its locals follows
+// the declaration order below.
 int WaveStream::Read(BYTE *buffer, int bytes)
 {
     MMIOINFO info;

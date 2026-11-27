@@ -268,10 +268,11 @@ Vec4 Cross(const Vec4 &a, const Vec4 &b)
 }
 
 // Distance from `point` to the plane (always positive; the plane normal need not be unit length).
-// Not byte-identical yet: the original multiplies z, y, x in that order (see open.tsv).
+// The dot product is written y, x, then the z term in its own parentheses: the compiler orders the products itself and
+// this grouping gives the original's order (z product loaded first).
 float Plane::Distance(const Vec4 *point)
 {
-    return (float)fabs((point->x * a + point->y * b + point->z * c + d) / sqrt(LengthSquared(a, b, c)));
+    return (float)fabs((point->y * b + point->x * a + (point->z * c) + d) / sqrt(LengthSquared(a, b, c)));
 }
 
 // Tilts `v` by `angle` radians about the horizontal axis at right angles to its heading: turns it to heading 0,

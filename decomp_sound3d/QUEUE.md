@@ -44,3 +44,9 @@ Notes:
 - Mp3Stream::Read: the original shares the two "finish a pending block" tails and keeps the early return out of line,
   which suggests a common tail or inline helper in the source.
 - WaveStream::Open tests "2"/"3" twice: kept (the binary pairs every suffix as lower/upper case; digits repeat).
+
+## Round S8 notes
+- Mp3Stream::Read MATCH. Levers: test `outputUsed == 0` (then-arm inline, else-arm out of line); each branch ends with its own `position += step; lastPosition = position;` (tails cross-jump); statement order inside arms changes store scheduling.
+- /Od (src_od) stack slot order depends on local NAMES (hash-table order), not only declaration order; colliding names follow declaration order (first declared = higher address). Unused locals still reserve 4 bytes.
+- PlaySE: original has one extra unreferenced 4-byte slot (frame 0x114 vs ours 0x110). A dummy `int spare;` fixes the frame (score 303 -> 121) but is a fake local, not applied.
+- Walls: SoundChannel::Open (scheduler), Update3DPan (/Op ternary temp), LoadSource, BuildWavHeader, GetBaseFileName (register assignment), MmioFile::Open (slot order), WaveStream::Read (slot sharing; `file.Read(buf, bytes, 1)` push order improves 146->144), RewindDecoder (esi/edi swap), Init (device spill).

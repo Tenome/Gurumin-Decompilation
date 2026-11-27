@@ -147,8 +147,9 @@ unsigned int Mp3Stream::Read(BYTE *buffer, unsigned int count)
         decoder.outputUsed = decoder.outputSize - skipped + position;
         lastPosition = position;
     }
-    // Loop as for (;;) with a break when the data runs out: of the loop forms tried (while, do-while, if + do-while)
-    // this one comes closest to the original's layout, with the zero fill after the loop.
+    // One pass per block of output: a block delivered whole advances position itself in every branch (the compiler
+    // merges the identical tails, as it does for the pending-block copies), a block that does not fit returns after
+    // a partial copy, and when the data runs out the rest of buffer is zeroed after the loop.
     for (;;) {
         if (position + remaining >= header.riffSize) {
             break;
@@ -157,8 +158,8 @@ unsigned int Mp3Stream::Read(BYTE *buffer, unsigned int count)
             if (decoder.outputUsed == 0) {
                 int frameOffset;
 
-                decoder.inputSize = MP3_DECODE_WINDOW;
                 decoder.outputPtr = buffer + (count - remaining);
+                decoder.inputSize = MP3_DECODE_WINDOW;
                 while (!mp3_decode_frame(&decoder)) {
                     sourcePtr++;
                     while (!Mp3FindFrameStart(sourcePtr, sourceBytesRead, &frameOffset)) {
@@ -173,6 +174,8 @@ unsigned int Mp3Stream::Read(BYTE *buffer, unsigned int count)
                     return count;
                 }
                 remaining -= step;
+                position += step;
+                lastPosition = position;
             } else {
                 decoder.outputPtr = (unsigned char *)frameBuffer;
                 if (decoder.outputSize > remaining) {
@@ -189,25 +192,12 @@ unsigned int Mp3Stream::Read(BYTE *buffer, unsigned int count)
                 remaining += decoder.outputUsed - decoder.outputSize;
                 step = decoder.outputSize - decoder.outputUsed;
                 decoder.outputUsed = 0;
+                position += step;
+                lastPosition = position;
             }
         } else {
             Sleep(MP3_SMALL_READ_SLEEP_MS);
-            if (decoder.outputUsed != 0) {
-                if (decoder.outputSize > remaining) {
-                    if (remaining != 0) {
-                        memcpy(buffer + (count - remaining), decoder.outputPtr + decoder.outputUsed, remaining);
-                    }
-                    position += remaining;
-                    lastPosition = position;
-                    decoder.outputUsed += remaining;
-                    return count;
-                }
-                memcpy(buffer + (count - remaining), decoder.outputPtr + decoder.outputUsed,
-                       decoder.outputSize - decoder.outputUsed);
-                remaining += decoder.outputUsed - decoder.outputSize;
-                step = decoder.outputSize - decoder.outputUsed;
-                decoder.outputUsed = 0;
-            } else {
+            if (decoder.outputUsed == 0) {
                 int frameOffset;
 
                 decoder.inputSize = MP3_DECODE_WINDOW;
@@ -225,18 +215,35 @@ unsigned int Mp3Stream::Read(BYTE *buffer, unsigned int count)
                     if (remaining != 0) {
                         memcpy(buffer + (count - remaining), decoder.outputPtr, remaining);
                     }
+                    decoder.outputUsed += remaining;
                     position += remaining;
                     lastPosition = position;
-                    decoder.outputUsed += remaining;
                     return count;
                 }
                 memcpy(buffer + (count - remaining), decoder.outputPtr, decoder.outputSize);
                 step = decoder.outputSize;
                 remaining -= step;
+                position += step;
+                lastPosition = position;
+            } else {
+                if (decoder.outputSize > remaining) {
+                    if (remaining != 0) {
+                        memcpy(buffer + (count - remaining), decoder.outputPtr + decoder.outputUsed, remaining);
+                    }
+                    position += remaining;
+                    lastPosition = position;
+                    decoder.outputUsed += remaining;
+                    return count;
+                }
+                memcpy(buffer + (count - remaining), decoder.outputPtr + decoder.outputUsed,
+                       decoder.outputSize - decoder.outputUsed);
+                remaining += decoder.outputUsed - decoder.outputSize;
+                step = decoder.outputSize - decoder.outputUsed;
+                decoder.outputUsed = 0;
+                position += step;
+                lastPosition = position;
             }
         }
-        position += step;
-        lastPosition = position;
     }
     memset(buffer + (count - remaining), 0, remaining);
     return count;

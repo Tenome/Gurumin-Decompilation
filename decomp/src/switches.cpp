@@ -97,7 +97,8 @@ extern "C" int FUN_1005f640(int slot)
 // holder's own model) with effect kind `kind`: the object must not be held yet and needs a free slot. A character
 // gets hold bit 1 (kinds 0 and 1) or 2 (kind 2) and, for slot kind 0x60, its switch node turned on; an object gets
 // its "held" bonus of 1000. Returns 1, or 0 when the object is already held or no slot is free. (Without an
-// explicit object the original treats slot 0x40 as "none free", a leftover of a smaller table.)
+// explicit object the original treats slot 0x40 as "none free", a leftover of a smaller table. Each branch stores the
+// object into its slot itself: the duplicated tail is what makes the compiler repeat the slot test per loop exit.)
 extern "C" int FUN_10057c40(int holder, SwitchObject *object, int kind)
 {
     int slot;
@@ -115,6 +116,7 @@ extern "C" int FUN_10057c40(int holder, SwitchObject *object, int kind)
         }
         if (slot == 0x80)
             return 0;
+        DAT_1030bbf8[slot] = object;
     }
     else
     {
@@ -131,8 +133,8 @@ extern "C" int FUN_10057c40(int holder, SwitchObject *object, int kind)
         }
         if (slot == 0x40)
             return 0;
+        DAT_1030bbf8[slot] = object;
     }
-    DAT_1030bbf8[slot] = object;
     DAT_10255b08[slot] = holder;
     if (kind == 0)
     {
