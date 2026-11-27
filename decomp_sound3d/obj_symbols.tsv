@@ -120,7 +120,7 @@ _IPlay	10009ad0
 ?TrackedFree@@YAXPAX@Z	10008560
 ?ComputeFileChecksum@@YAHPBDPAHPAI@Z	10009310
 ?ReadFileWords@@YAHPBDHHPAX1@Z	100093a0
-?InitTrackedAllocator@@YAXXZ	10008790
+?InitTrackedAllocator@@YAHXZ	10008790
 _MixOpen	10008890
 _MixClose	10008f10
 _GetParam	10008f30
@@ -130,3 +130,4 @@ _SetParam	100090f0
 ?FreeWaveCache@@YAHXZ	100092e0
 ?FindOrLoadSound@@YAHPBD@Z	10006250
 ?PlaySE@SoundChannel@@QAEHPBDHPAM11111HM@Z	10006810
+??0MixerControls@@QAE@XZ	10008830

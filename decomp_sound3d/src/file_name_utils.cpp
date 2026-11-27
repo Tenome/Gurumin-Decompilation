@@ -44,28 +44,29 @@ const unsigned int NAME_CHECK_XOR_SEED_A = 0xde2f;
 const unsigned int NAME_CHECK_XOR_SEED_B = 0x37;
 // Length of the key stream the name check cycles through (the 15 characters of the second key).
 const int NAME_KEY_PERIOD = 15;
+// Offset in the 64 byte key table at which the base name is spliced in.
+const int NAME_TABLE_OFFSET = 8;
 // Mask that cycles the first key (64 entries).
 const int NAME_TABLE_MASK = 0x3f;
 
 // Decodes a data block in place with a key built from the file's base name and compares two checksums with the
 // expected ones: the sum and the XOR of the decoded bytes. The name (upper cased, first 8 characters) is spliced into
-// the 64 byte key table at offset 16. Returns 1 when both checksums match, else 0. Called by the stream loader
+// the 64 byte key table at offset 8. Returns 1 when both checksums match, else 0. Called by the stream loader
 // 0x10006250.
 int CheckNameKeyA(char *data, int length, char *name, int expectedSum, unsigned int expectedXor)
 {
-    char table[70] = "!~_Q#xDRgd-d&yfg&'(8)(5(594er2f4asf5f6e5f4s5fvwyjk%fgqTUCFD4568r";
-    char key[16] = "GURUguruMinmIN_";
     int sum;
-    unsigned int xorSum;
     int i;
-    unsigned char decoded;
+    unsigned int xorSum;
 
     sum = 0;
     xorSum = NAME_CHECK_XOR_SEED_A;
+    char table[70] = "!~_Q#xDRgd-d&yfg&'(8)(5(594er2f4asf5f6e5f4s5fvwyjk%fgqTUCFD4568r";
+    char key[16] = "GURUguruMinmIN_";
     _strupr(name);
-    strncpy(table + 16, name, BASE_NAME_SIZE);
+    strncpy(table + NAME_TABLE_OFFSET, name, BASE_NAME_SIZE);
     for (i = 0; i < length; i++) {
-        decoded = (unsigned char)((key[i % NAME_KEY_PERIOD] + (i & 7)) * table[i & NAME_TABLE_MASK])
+        unsigned char decoded = (unsigned char)((key[i % NAME_KEY_PERIOD] + (i & 7)) * table[i & NAME_TABLE_MASK])
             ^ (unsigned char)~data[i];
         data[i] = decoded;
         sum += decoded;

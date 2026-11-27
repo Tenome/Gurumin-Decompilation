@@ -39,6 +39,7 @@ int Mp3Stream::Close()
 void Mp3Stream::BuildWavHeader(const WavSourceFormat *format)
 {
     unsigned int dataBytes;
+    unsigned int sampleCount;
     WORD blockAlign;
 
     dataBytes = frameCount * info.samplesPerFrame;
@@ -60,12 +61,13 @@ void Mp3Stream::BuildWavHeader(const WavSourceFormat *format)
     header.fmtTag[1] = 'm';
     header.fmtTag[2] = 't';
     header.fmtTag[3] = ' ';
+    sampleCount = dataBytes / ((format->bitsPerSample) / 8);
     header.channels = PCM_OUTPUT_CHANNELS;
     header.samplesPerSecond = PCM_OUTPUT_RATE;
     header.bytesPerSecond = PCM_OUTPUT_BYTES_PER_SECOND;
     header.blockAlign = PCM_OUTPUT_BLOCK_ALIGN;
     header.formatTag = 0;
-    header.dataSize = dataBytes / ((format->bitsPerSample) / 8);
+    header.dataSize = sampleCount;
     header.fmtSize = WAV_FORMAT_CHUNK_SIZE;
     header.bitsPerSample = PCM_OUTPUT_BITS;
 }

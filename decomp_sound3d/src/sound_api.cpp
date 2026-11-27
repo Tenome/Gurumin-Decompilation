@@ -408,30 +408,25 @@ void ProcessCommandQueue(int unused)
                 g_seChannel[i].UpdateSE();
         } else if (code == CMD_PLAY_SE) {
             if (writeIndex != index) {
-                int *laterCommand = commandSlot;
                 unsigned char other = index;
+                SoundCommand *later = &g_commandQueue[index];
                 do {
-                    if (other != index && *laterCommand == CMD_PLAY_SE &&
-                        stricmp(g_commandQueue[index].name, (char *)(laterCommand - 0x40)) == 0)
-                        *laterCommand = CMD_NONE;
+                    if (other != index && later->command == CMD_PLAY_SE &&
+                        stricmp(g_commandQueue[index].name, later->name) == 0)
+                        later->command = CMD_NONE;
                     other++;
-                    laterCommand += sizeof(SoundCommand) / sizeof(int);
+                    later++;
                 } while (other != writeIndex);
             }
             int hasPos = g_commandQueue[index].arg3;
-            float *x, *y, *z;
-            if (hasPos == 0) {
-                hasPos = 0;
-                x = 0;
-                y = 0;
-                z = 0;
+            int loop = g_commandQueue[index].arg4;
+            float volume = g_commandQueue[index].value[5];
+            if (hasPos != 0) {
+                IPlaySEB(g_commandQueue[index].name, &g_commandQueue[index].value[0], &g_commandQueue[index].value[1],
+                         &g_commandQueue[index].value[2], hasPos, loop, volume);
             } else {
-                x = &g_commandQueue[index].value[0];
-                y = &g_commandQueue[index].value[1];
-                z = &g_commandQueue[index].value[2];
+                IPlaySEB(g_commandQueue[index].name, 0, 0, 0, 0, loop, volume);
             }
-            IPlaySEB(g_commandQueue[index].name, x, y, z, hasPos, g_commandQueue[index].arg4,
-                     g_commandQueue[index].value[5]);
             *commandSlot = CMD_NONE;
         }
         if (g_shutdownState != 0) {

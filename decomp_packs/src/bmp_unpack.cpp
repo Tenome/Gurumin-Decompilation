@@ -179,30 +179,32 @@ static inline unsigned int ProbabilityFromScale(unsigned int scale)
 // coefficient. (UnpackBands)
 void DecodeBand(const unsigned char *data, short *band, int width, int height, int stride, const unsigned char *record)
 {
-    int startPos = g_arithBytePos;
     unsigned int gain = record[RECORD_GAIN];
     if (gain == 0) {
         for (int y = 0; y < height; y++) {
+            short *row = band + y * stride;
             for (int x = 0; x < width; x++)
-                band[x] = 0;
-            band += stride;
+                row[x] = 0;
         }
         return;
     }
 
-    unsigned char adaptWeight = record[RECORD_ADAPT_WEIGHT];
+    unsigned int adaptWeight = record[RECORD_ADAPT_WEIGHT];
+    unsigned int decayWeight = record[RECORD_DECAY_WEIGHT];
     unsigned int scale = gain * gain * gain * gain;
     int keep = 0x100 - adaptWeight;
-    int weightInitial = (0x100 - record[RECORD_DECAY_WEIGHT]) * keep;
-    int weightCurrent = keep * record[RECORD_DECAY_WEIGHT];
+    int weightInitial = (0x100 - decayWeight) * keep;
     unsigned int initialShare = (((scale & 0xffff) * weightInitial + ARITH_PROB_ROUND) >> 16) + (scale >> 16) * weightInitial;
+    int weightCurrent = keep * decayWeight;
+    int adaptStep = adaptWeight << 8;  // how much one unit of coefficient magnitude raises the scale
 
+    int startPos = g_arithBytePos;
     g_arithBitsRead = 0;
     g_arithBitMask = 1;
     g_arithByte = data[g_arithBytePos];
     g_arithValue = 0;
     for (int bit = g_arithBits; bit > 0; bit--) {
-        unsigned char bitSet = g_arithByte & g_arithBitMask;
+        int bitSet = (g_arithByte & g_arithBitMask) != 0;
         if (g_arithBitMask != 0x80) {
             g_arithBitMask <<= 1;
         } else {
@@ -210,7 +212,7 @@ void DecodeBand(const unsigned char *data, short *band, int width, int height, i
             g_arithBitMask = 1;
             g_arithByte = data[g_arithBytePos];
         }
-        g_arithValue = (bitSet != 0) + g_arithValue * 2;
+        g_arithValue = bitSet + g_arithValue * 2;
     }
     g_arithHigh = g_arithTop;
     g_arithLow = 0;
@@ -230,7 +232,7 @@ void DecodeBand(const unsigned char *data, short *band, int width, int height, i
                         scale = (scale >> 16) * weightCurrent + initialShare +
                                 (((scale & 0xffff) * weightCurrent + ARITH_PROB_ROUND) >> 16);
                         if (coefficient != 0)
-                            scale += coefficient * adaptWeight * 0x100;
+                            scale += coefficient * adaptStep;
                         if (scale == 0)
                             scale = 1;
                         probability = ProbabilityFromScale(scale);
@@ -239,7 +241,7 @@ void DecodeBand(const unsigned char *data, short *band, int width, int height, i
             }
         }
     }
-    g_arithBytePos = ((g_arithBits + 8 + g_arithBitsRead) >> 3) + startPos;
+    g_arithBytePos = ((unsigned int)(g_arithBits + 8 + g_arithBitsRead) >> 3) + startPos;
 }
 
 // Window a reconstructed sample is clamped to before it becomes a byte (bits 7..14 of the clamped value).
@@ -400,12 +402,12 @@ void DecodeLevels(const unsigned char *data, short *plane0, short *plane1, short
     }
 }
 
-// Packs one decoded RGB pixel into the 32-bit word MMV3 stores per pixel pair: 5 bits red, 6 bits green, 5 bits blue,
-// repeated across the two halves of the word. (MMV3)
-static inline unsigned int PackPixelPair(unsigned int red, unsigned int green, unsigned int blue)
+// Packs the RGB pixel at rgb (three bytes, red first) into the 32-bit word MMV3 stores per pixel pair: 5 bits red,
+// 6 bits green, 5 bits blue, repeated across the two halves of the word. The masks ~7 and ~3 drop the low 3 bits
+// of red and blue and the low 2 of green; the green/blue term is repeated for the upper half. (MMV3)
+static inline unsigned int PackPixelPair(const unsigned char *rgb)
 {
-    unsigned int blueHigh = (blue & 0xf8) << 5;
-    return ((((green & 0xfc) | blueHigh) << 6 | (red & 0xf8)) << 10 | blueHigh | (green & 0xfc)) << 3 | (red >> 3);
+    return ((((rgb[1] & ~3) | ((rgb[2] & ~7) << 5)) << 6 | (rgb[0] & ~7)) << 10 | ((((rgb[2] & ~7) << 5) | rgb[1]) & ~3)) << 3 | (rgb[0] >> 3);
 }
 
 // Reads Gurumin's movie-frame container (MMV3 is the format's tag). command is MMV3_CLOSE, MMV3_NEXT_FRAME,
@@ -451,24 +453,24 @@ extern "C" int MMV3(int command, unsigned int *pixels, int unused, int *width, u
     jpeg_stdio_src(&cinfo, g_mmvFile);
     jpeg_read_header(&cinfo, 1);
     jpeg_start_decompress(&cinfo);
+    unsigned int *rowStart = pixels;  // start of the row being converted; the JPEG scanline lands here first
     int outputWidth = cinfo.output_width;
     *width = outputWidth;
     *height = cinfo.output_height;
     int rowBytes = outputWidth * 2;
     int pairsPerRow = outputWidth / 2;
     while (cinfo.output_scanline < cinfo.output_height) {
-        unsigned int *rowStart = pixels;
-        JSAMPROW scanline = (JSAMPROW)pixels;
+        JSAMPROW scanline = (JSAMPROW)rowStart;
         jpeg_read_scanlines(&cinfo, &scanline, 1);
         if (pairsPerRow > 0) {
-            const unsigned char *rgb = (const unsigned char *)pixels;
+            unsigned int *out = rowStart;
+            const unsigned char *rgb = (const unsigned char *)rowStart;
             for (int pairs = pairsPerRow; pairs > 0; pairs--) {
-                *pixels = PackPixelPair(rgb[0], rgb[1], rgb[2]);
-                pixels++;
+                *out++ = PackPixelPair(rgb);
                 rgb += 6;
             }
         }
-        pixels = (unsigned int *)((char *)rowStart + rowBytes);
+        rowStart = (unsigned int *)((char *)rowStart + rowBytes);
     }
     jpeg_finish_decompress(&cinfo);
     jpeg_destroy_decompress(&cinfo);
@@ -482,7 +484,7 @@ static inline short SubtractHalf(short base, int sum)
     if (sum == 0)
         return base;
     if (sum > 0)
-        return base - (sum >> 1);
+        return base - ((unsigned short)sum >> 1);
     return base + ((unsigned short)-(unsigned short)sum >> 1);
 }
 
@@ -492,7 +494,7 @@ static inline short AddHalf(short base, int sum)
     if (sum == 0)
         return base;
     if (sum > 0)
-        return (sum >> 1) + base;
+        return ((unsigned short)sum >> 1) + base;
     return base - ((unsigned short)-(unsigned short)sum >> 1);
 }
 
@@ -572,30 +574,33 @@ extern "C" int BMPUnpack(const unsigned char *data, int unused, unsigned char *o
     position = 0;
     for (int pass = 1; pass < 2; pass++) {
         ReadStreamHeader(&info, widths, heights, &flags, records, data, &position);
-        int pixels = heights[0] * widths[0];
+        int pixels = widths[0] * heights[0];
         short *plane0 = (short *)operator new(pixels * 8);
         if (plane0 == 0)
             return 0;
         short *plane1 = plane0 + pixels;
-        short *plane2 = plane1 + pixels;
-        short *scratch = plane2 + pixels;
+        short *plane2 = plane0 + pixels * 2;
+        short *scratch = plane0 + pixels * 3;
 
         if (heights[info.levels] > 0) {
             int coarseWidth = widths[info.levels];
             int coarseHeight = heights[info.levels];
+            short *row0 = plane0;
             short *row1 = plane1;
+            short *row2 = plane2;
             for (int y = 0; y < coarseHeight; y++) {
                 for (int x = 0; x < coarseWidth; x++) {
-                    unsigned short b0 = data[position];
-                    unsigned short b1 = data[position + 1];
-                    unsigned short b2 = data[position + 2];
-                    unsigned short b3 = data[position + 3];
-                    position += 4;
-                    plane0[(row1 - plane1) + x] = (((b1 & 7) - 2) * 0x100 + b0) * 16;
+                    unsigned char b0 = data[position++];
+                    unsigned char b1 = data[position++];
+                    unsigned char b2 = data[position++];
+                    unsigned char b3 = data[position++];
+                    row0[x] = (((b1 & 7) - 2) * 0x100 + b0) * 16;
                     row1[x] = (((b2 & 0x3f) - 0x20) * 0x20 + (b1 >> 3)) * 16;
-                    plane2[(row1 - plane1) + x] = (((b2 >> 6) - 0x200) + b3 * 4) * 16;
+                    row2[x] = (((b2 >> 6) - 0x200) + b3 * 4) * 16;
                 }
+                row0 += widths[0];
                 row1 += widths[0];
+                row2 += widths[0];
             }
         }
         GetTickCount();

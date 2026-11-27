@@ -20,7 +20,7 @@ extern char g_allocFlag;                                            // 0x1028719
 extern void (*g_freeHook)(void *block);                             // 0x10297290, TrackedFree once installed
 extern char g_allocUnknownLabel[8];                                 // 0x10297298
 
-void InitTrackedAllocator(void);
+int InitTrackedAllocator(void);   // returns 1 (nothing checks it)
 void *AllocateNamed(unsigned size, const char *label);
 void TrackedFree(void *block);
 void DumpTrackedAllocations(const char *path);

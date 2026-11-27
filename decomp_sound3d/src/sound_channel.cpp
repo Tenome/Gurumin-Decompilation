@@ -136,23 +136,24 @@ int SoundChannel::GetPosition()
         return 0;
     if (prepared == 0)
         return 0;
+    // One buffer section is format.wf.nAvgBytesPerSec bytes (one second of PCM). The play cursor is in section 0, 1
+    // or 2 and base shifts it by the sections already refilled. The member is used directly, not copied to a local:
+    // the original reloads it where a local would be cached in a register.
     int base;
-    unsigned int section = format.wf.nAvgBytesPerSec;
-    unsigned int cursor = playCursor;
-    if (cursor < section && sectionFilled[0] == 0)
-        base = cursor - section * 2;
-    if (cursor < section && sectionFilled[0] == 1)
-        base = cursor - section * 3;
-    if (cursor >= section && cursor < section * 2 && sectionFilled[1] == 0)
-        base = cursor - section * 3;
-    if (cursor >= section && cursor < section * 2 && sectionFilled[1] == 1)
-        base = cursor - section * 4;
-    if (cursor >= section * 2 && cursor < section * 3 && sectionFilled[2] == 0)
-        base = cursor - section * 4;
-    if (cursor >= section * 2 && cursor < section * 3 && sectionFilled[2] == 1)
-        base = cursor - section * 5;
+    if (playCursor < format.wf.nAvgBytesPerSec && sectionFilled[0] == 0)
+        base = playCursor - format.wf.nAvgBytesPerSec * 2;
+    if (playCursor < format.wf.nAvgBytesPerSec && sectionFilled[0] == 1)
+        base = playCursor - format.wf.nAvgBytesPerSec * 3;
+    if (playCursor >= format.wf.nAvgBytesPerSec && playCursor < format.wf.nAvgBytesPerSec * 2 && sectionFilled[1] == 0)
+        base = playCursor - format.wf.nAvgBytesPerSec * 3;
+    if (playCursor >= format.wf.nAvgBytesPerSec && playCursor < format.wf.nAvgBytesPerSec * 2 && sectionFilled[1] == 1)
+        base = playCursor - format.wf.nAvgBytesPerSec * 4;
+    if (playCursor >= format.wf.nAvgBytesPerSec * 2 && playCursor < format.wf.nAvgBytesPerSec * 3 && sectionFilled[2] == 0)
+        base = playCursor - format.wf.nAvgBytesPerSec * 4;
+    if (playCursor >= format.wf.nAvgBytesPerSec * 2 && playCursor < format.wf.nAvgBytesPerSec * 3 && sectionFilled[2] == 1)
+        base = playCursor - format.wf.nAvgBytesPerSec * 5;
     unsigned int streamed = filePosition;
-    if (streamed < section * 2)
+    if (streamed < format.wf.nAvgBytesPerSec * 2)
         streamed += endOffset;
     return (int)(streamed + base) / format.wf.nChannels * BITS_PER_BYTE / fileHeader.bitsPerSample;
 }

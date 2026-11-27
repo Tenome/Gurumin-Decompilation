@@ -55,7 +55,14 @@ public:
     BYTE *readPtr;                    // +0x2740 next byte of fileData to hand to libogg
     int fileSize;                     // +0x2744 bytes in fileData
 
-    OggStream() throw();              // 0x10001bc0 (uncalled: the original WaveStream::Open has it expanded in place)
+    // Starts closed (the member constructor), then clears the fields Open and Close test. Expanded in place by
+    // WaveStream::Open (0x10004860); the out-of-line copy (0x10001bc0) is never called.
+    OggStream()
+    {
+        pcmBuffer = 0;
+        fileData = 0;
+        isOpen = 0;
+    }
     int FeedChunk();                  // 0x10001be0 feeds libogg, 0 at the end of the file
     int StartDecoder();               // 0x10001ce0 parses the header packets and sets up the synthesis state
     int RewindDecoder();              // 0x10001ec0 restarts the decoder at the first page (headers only)

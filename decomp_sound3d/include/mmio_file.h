@@ -101,8 +101,10 @@ public:
     int Open(const char *path, const char *mode);           // 0x10003640, defined with the file opener
 
     // fseek-like: a whole file passes the request to mmioSeek; a slice maps SEEK_SET and SEEK_END onto absolute
-    // archive positions. Every caller expands it in place (the out-of-line copy 0x10001210 is dead code).
-    int Seek(LONG offset, int origin)
+    // archive positions. Every caller expands it in place (the out-of-line copy 0x10001210 is dead code); the
+    // compiler only does so at every site with __forceinline (plain inline gave up on the later sites of the bigger
+    // functions).
+    __forceinline int Seek(LONG offset, int origin)
     {
         LONG target;
 

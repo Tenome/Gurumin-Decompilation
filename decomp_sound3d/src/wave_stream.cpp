@@ -345,15 +345,7 @@ int WaveStream::Read(BYTE *buffer, int bytes)
         if (!ready) {
             return 0;
         }
-        if (file.handle != 0) {
-            mmioGetInfo(file.handle, &info, 0);
-            filePosition = info.lBufOffset;
-            if (!file.isWholeFile) {
-                filePosition -= file.baseOffset;
-            }
-        } else {
-            filePosition = 0;
-        }
+        filePosition = file.Tell();
         if (filePosition == 0) {
             file.Seek(dataOffset + WAV_HEADER_BYTES, SEEK_SET);
             memcpy(buffer, &header, bytes);

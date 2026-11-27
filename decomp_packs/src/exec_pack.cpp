@@ -99,7 +99,10 @@ int DecodeChunk(void)
             continue;
         }
         unsigned offset;
-        if (GetBit() != 0) {
+        if (GetBit() == 0) {
+            offset = *g_unpack->in++;
+            g_reader.consumed++;
+        } else {
             unsigned offsetHigh = GetBits(5);
             offset = offsetHigh * 256 + *g_unpack->in++;
             if (offset == 0)
@@ -115,14 +118,11 @@ int DecodeChunk(void)
                     g_reader.consumed += 0x10 + runLength;
                 }
                 unsigned char fill = *g_unpack->in++;
-                for (unsigned n = runLength + EXEC_MIN_RUN; n != 0; n--)
+                for (unsigned n = runLength + EXEC_MIN_RUN; n > 0; n--)
                     *g_unpack->out++ = fill;
                 g_unpack->outCount += runLength + EXEC_MIN_RUN;
                 continue;
             }
-        } else {
-            offset = *g_unpack->in++;
-            g_reader.consumed++;
         }
         unsigned length;
         if (GetBit() != 0)
@@ -141,7 +141,7 @@ int DecodeChunk(void)
         const unsigned char *from = g_unpack->out - offset;
         if (g_unpackLimit < g_unpack->outCount + length)
             return 0;
-        for (unsigned n = length; n != 0; n--)
+        for (unsigned n = length; n > 0; n--)
             *g_unpack->out++ = *from++;
         g_unpack->outCount += length;
     }
@@ -173,13 +173,11 @@ int UnpackRecords(ExecUnpackStream *stream)
                 return 0;
             memcpy(g_unpackDest, g_unpackChunkStart, chunkBytes);
             g_unpackDest += chunkBytes;
+            consumed++;
             g_unpack->out = g_unpackChunkStart;
             progress += EXEC_PROGRESS_STEP;
             g_unpack->outCount = 0;
-            unsigned char moreChunks = *g_unpack->in;
-            consumed++;
-            g_unpack->in++;
-            if (moreChunks == 0)
+            if (*g_unpack->in++ == 0)
                 return 0;
         } while (consumed < g_unpack->inSize);
     }
@@ -207,8 +205,9 @@ inline void PutZeroBit(void)
     *g_flagWord &= ~g_flagMask;
 }
 
-// Appends a 1 flag bit to the token stream. (EncodeChunk, PutBits)
-inline void PutOneBit(void)
+// Appends a 1 flag bit to the token stream. PutBits calls it (the original does not expand it there, unlike
+// PutZeroBit), so it is not declared inline. (EncodeChunk, PutBits)
+void PutOneBit(void)
 {
     g_flagMask <<= 1;
     if (g_flagMask == 0)
@@ -399,66 +398,62 @@ extern "C" int ExecPack(const unsigned char *source, unsigned char *dest, unsign
     g_cancelled = 0;
     *(unsigned *)dest = size;
     dest += sizeof(unsigned);
-    unsigned chunkCount = (size + 0xffef) / EXEC_CHUNK_SIZE;
-    *(unsigned *)dest = chunkCount;
+    unsigned chunksLeft = (size + 0xffef) / EXEC_CHUNK_SIZE;
+    *(unsigned *)dest = chunksLeft;
     dest += sizeof(unsigned);
-    unsigned char *record = dest;
-    int packedSize = sizeof(ExecPackHeader);
-    unsigned chunksLeft = chunkCount;
+    unsigned chunkCount = chunksLeft;
     ExecPackStream stream;
     stream.reserved = 8;
     stream.afterToken = 0;
+    int packedSize = sizeof(ExecPackHeader);
     stream.next = g_nextTable;
     stream.head = g_headTable;
     stream.tail = g_tailTable;
-    stream.inSize = size;
-    if (chunksLeft != 0) {
-        for (;;) {
-            unsigned rest;
-            chunksLeft--;
-            if ((int)stream.inSize >= EXEC_CHUNK_SIZE) {
-                memcpy(g_packChunk, source, EXEC_CHUNK_SIZE);
-                source += EXEC_CHUNK_SIZE;
-                rest = stream.inSize - EXEC_CHUNK_SIZE;
-                stream.inSize = EXEC_CHUNK_SIZE;
-            } else {
-                memcpy(g_packChunk, source, stream.inSize);
-                source += stream.inSize;
-                rest = 0;
-            }
-            // empty all three hash tables, 32 KB at a time
-            memset(g_nextTable, 0xff, EXEC_CLEAR_BYTES);
-            memset(g_nextTable + EXEC_CLEAR_ENTRIES, 0xff, EXEC_CLEAR_BYTES);
-            memset(g_headTable, 0xff, EXEC_CLEAR_BYTES);
-            memset(g_headTable + EXEC_CLEAR_ENTRIES, 0xff, EXEC_CLEAR_BYTES);
-            memset(g_headTable + EXEC_CLEAR_ENTRIES * 2, 0xff, EXEC_CLEAR_BYTES);
-            memset(g_headTable + EXEC_CLEAR_ENTRIES * 3, 0xff, EXEC_CLEAR_BYTES);
-            memset(g_tailTable, 0xff, EXEC_CLEAR_BYTES);
-            memset(g_tailTable + EXEC_CLEAR_ENTRIES, 0xff, EXEC_CLEAR_BYTES);
-            memset(g_tailTable + EXEC_CLEAR_ENTRIES * 2, 0xff, EXEC_CLEAR_BYTES);
-            memset(g_tailTable + EXEC_CLEAR_ENTRIES * 3, 0xff, EXEC_CLEAR_BYTES);
-            stream.outCount = 0;
-            stream.out = g_encodeBuffer;
-            stream.in = g_packChunk;
-            EncodeStart(&stream);
-            *(unsigned short *)g_encodeBuffer = stream.outCount;
-            memcpy(record, g_encodeBuffer, stream.outCount);
-            record += stream.outCount;
-            *record++ = chunksLeft != 0;
-            packedSize += stream.outCount;
-            stream.out = 0;
-            if (g_packProgress != 0)
-                g_cancelled = g_packProgress(g_progressUser, stream.outCount,
-                    ((chunkCount - chunksLeft) * EXEC_PROGRESS_STEP + g_progressStage * EXEC_PROGRESS_STAGE) /
-                    (g_progressStageCount * EXEC_PROGRESS_STAGE_WEIGHT + chunkCount * EXEC_PROGRESS_CHUNK_WEIGHT));
-            if (g_cancelled != 0)
-                break;
-            packedSize++;
-            if (chunksLeft == 0)
-                return packedSize;
-            stream.inSize = rest;
+    int remaining = size;
+    if (chunksLeft == 0)
+        return packedSize;
+    do {
+        chunksLeft--;
+        if (remaining >= EXEC_CHUNK_SIZE) {
+            memcpy(g_packChunk, source, EXEC_CHUNK_SIZE);
+            stream.inSize = EXEC_CHUNK_SIZE;
+            source += EXEC_CHUNK_SIZE;
+            remaining -= EXEC_CHUNK_SIZE;
+        } else {
+            memcpy(g_packChunk, source, remaining);
+            stream.inSize = remaining;
+            source += remaining;
+            remaining = 0;
         }
-    }
+        // empty all three hash tables, 32 KB at a time
+        memset(g_nextTable, 0xff, EXEC_CLEAR_BYTES);
+        memset(g_nextTable + EXEC_CLEAR_ENTRIES, 0xff, EXEC_CLEAR_BYTES);
+        memset(g_headTable, 0xff, EXEC_CLEAR_BYTES);
+        memset(g_headTable + EXEC_CLEAR_ENTRIES, 0xff, EXEC_CLEAR_BYTES);
+        memset(g_headTable + EXEC_CLEAR_ENTRIES * 2, 0xff, EXEC_CLEAR_BYTES);
+        memset(g_headTable + EXEC_CLEAR_ENTRIES * 3, 0xff, EXEC_CLEAR_BYTES);
+        memset(g_tailTable, 0xff, EXEC_CLEAR_BYTES);
+        memset(g_tailTable + EXEC_CLEAR_ENTRIES, 0xff, EXEC_CLEAR_BYTES);
+        memset(g_tailTable + EXEC_CLEAR_ENTRIES * 2, 0xff, EXEC_CLEAR_BYTES);
+        memset(g_tailTable + EXEC_CLEAR_ENTRIES * 3, 0xff, EXEC_CLEAR_BYTES);
+        stream.outCount = 0;
+        stream.out = g_encodeBuffer;
+        stream.in = g_packChunk;
+        EncodeStart(&stream);
+        *(unsigned short *)g_encodeBuffer = stream.outCount;
+        memcpy(dest, g_encodeBuffer, stream.outCount);
+        dest += stream.outCount;
+        packedSize += stream.outCount;
+        *dest++ = chunksLeft != 0;
+        stream.out = 0;
+        if (g_packProgress != 0)
+            g_cancelled = g_packProgress(g_progressUser, stream.outCount,
+                ((chunkCount - chunksLeft) * EXEC_PROGRESS_STEP + g_progressStage * EXEC_PROGRESS_STAGE) /
+                (g_progressStageCount * EXEC_PROGRESS_STAGE_WEIGHT + chunkCount * EXEC_PROGRESS_CHUNK_WEIGHT));
+        if (g_cancelled != 0)
+            return packedSize;
+        packedSize++;
+    } while (chunksLeft != 0);
     return packedSize;
 }
 

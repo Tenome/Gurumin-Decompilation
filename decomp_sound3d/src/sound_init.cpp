@@ -147,8 +147,9 @@ int AllocatorReturnArgument(int value)
     return value;
 }
 
-// InitTrackedAllocator: clears the table and the labels and installs the hook pointers. Called by IInit.
-void InitTrackedAllocator(void)
+// InitTrackedAllocator: clears the table and the labels and installs the hook pointers. Called by IInit, which ignores
+// the result (always 1). The original also carries a /GS cookie here although the function has no visible buffer.
+int InitTrackedAllocator(void)
 {
     for (int slot = 0; slot < ALLOC_TABLE_SIZE; slot++)
         g_allocTable[slot] = 0;
@@ -161,6 +162,7 @@ void InitTrackedAllocator(void)
     g_memcopyHook = memcpy;
     g_allocateHook = AllocateNamed;
     g_freeHook = TrackedFree;
+    return 1;
 }
 
 // TrackedFree: forgets the block in the table (if present) and frees it.

@@ -7,15 +7,6 @@
 #include <string.h>
 #include "ogg_stream.h"
 
-// Constructor: the file starts closed (the member constructor), then the fields Open and Close test are cleared.
-// Nothing calls this copy: the original WaveStream::Open (0x10004860) has it expanded in place.
-OggStream::OggStream() throw()
-{
-    pcmBuffer = 0;
-    fileData = 0;
-    isOpen = 0;
-}
-
 // Feeds the next piece of the file to libogg: 4096 bytes while at least 8192 bytes remain, otherwise whatever is
 // left. Returns 1 when something was fed, 0 at the end of the file. Called by Read (0x10003e80).
 int OggStream::FeedChunk()

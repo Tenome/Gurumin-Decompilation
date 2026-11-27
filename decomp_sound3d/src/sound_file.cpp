@@ -113,10 +113,7 @@ void WaveStream::Seek(unsigned int newPosition)
 int WaveStream::Tell()
 {
     if (isWav != 0) {
-        if (file.Tell() - dataOffset < 0) {
-            return 0;
-        }
-        return file.Tell() - dataOffset;
+        return file.Tell() - dataOffset < 0 ? 0 : file.Tell() - dataOffset;
     }
     if (kind == STREAM_OGG) {
         return ((OggStream *)decoder)->position - ((OggStream *)decoder)->m_2734;
