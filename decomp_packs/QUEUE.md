@@ -37,3 +37,21 @@ Notes: encoder globals (0x1003afe0..) and decoder globals (0x1003b008..) are sep
 Globals are extern only (relocations are masked). Helpers need external linkage for compare_obj to see them.
 Declaration position of a later-initialised local changes register assignment; try it before expression rewrites.
 A permuter adapter for this tree: compile.cmd/score.py pointed at decomp_packs (see ../tools/gurumin_permuter).
+
+Round H9 (duplicated tails / in-place reads / inverted tests applied to the open functions; none newly matched):
+- ToRgbBytes: the original's three low-clamp stubs (`mov reg,0x10000; jmp tail`) sit after the ret and the high-clamp
+  path falls into one shared store tail. Tried: `<=` first with else-if, nested ternary, early returns, a store helper
+  that puts `out[(*pos)++]` in each branch: the layout stays "else arm inline after a jmp", so the stub placement is not
+  reachable by arm order. Register residue as before (outPosition ebx vs esi).
+- EncodeJpegRgb: the original copies from[0], from[1], from[2] without a bias; ours biases srcRow by +2 (ecx-2,-1,0)
+  whatever the inline loop spelling (for/while/countdown/indexed/end pointer, const source, store order of srcRow/row).
+- DecodeBand: in-place dx/dy reads (133 diffs), local for by, unsigned i, do-while: all worse or equal; the scan index
+  stays in edx (original ecx) and blockY/i swap slots.
+- ExecPack: loop-exit return written inside the loop (`if (chunksLeft == 0) return packedSize;` with `while (true)`) and
+  150 random orders of the stream setup statements do not change the first difference: the original stores
+  `stream.reserved = 8` as an immediate after `mov eax,8` (packedSize) while ours shares eax.
+- EncodeStream: one induction `band` with band+1/band+2 shortens the code (352 -> 320, original 345) but diverges more;
+  original keeps two hoisted band differences plus the width/height difference, with an 8 byte frame.
+- DecodeLevels: reordering the three offset/width/height statements changes nothing.
+- Method note: store/statement order was searched with an instruction-level metric (sbs `*` lines); only the sound3d
+  key/header functions respond to it.

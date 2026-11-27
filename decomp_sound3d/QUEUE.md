@@ -50,3 +50,26 @@ Notes:
 - /Od (src_od) stack slot order depends on local NAMES (hash-table order), not only declaration order; colliding names follow declaration order (first declared = higher address). Unused locals still reserve 4 bytes.
 - PlaySE: original has one extra unreferenced 4-byte slot (frame 0x114 vs ours 0x110). A dummy `int spare;` fixes the frame (score 303 -> 121) but is a fake local, not applied.
 - Walls: SoundChannel::Open (scheduler), Update3DPan (/Op ternary temp), LoadSource, BuildWavHeader, GetBaseFileName (register assignment), MmioFile::Open (slot order), WaveStream::Read (slot sharing; `file.Read(buf, bytes, 1)` push order improves 146->144), RewindDecoder (esi/edi swap), Init (device spill).
+
+Round H9 (duplicated tails / in-place reads / inverted tests / statement order over the open functions):
+- WaveStream::CheckKey: 127 -> 42 differing bytes. The 31 key assignments are order-independent; a move sweep (single
+  moves, then random walk) found that swapping key[25]/key[16] and moving key[24] behind key[27] gets the whole first half
+  and most of the second byte-identical. Remaining: the CSE temps of name[6]/name[3] (slots 0x17/0x18 and two reloads of
+  name[6] in the original) and the final eax/ecx of the checksum compare. Applied (two lines of file_name_utils.cpp).
+- BuildWavHeader: instruction-level metric 16 -> 11 with a reordered header store sequence (riffTag bytes, fmtTag,
+  waveTag shuffled); not applied: the order is unreadable and still not a match. The original keeps `(WORD)channels`,
+  `(WORD)bitsPerSample` in dx/ax and multiplies by sampleRate before the first store; WORD/int locals for them made it
+  worse (189-227 diffs).
+- LoadSource: all 24 orders of the four format stores and in-place `info.samplesPerFrame` tried; best 36 diffs (bits first,
+  then sampleRate/channels), original 47 -> no match; the second hunk (argument registers of mp3_decoder_start) follows.
+- MmioFile::Open: datPath/arcPath/lookup declaration order, plainPath at function top: no effect (still 10 bytes, only
+  the datPath/plainPath slot swap).
+- GetBaseFileName (and Packs ExtractBaseName, same helper): the original keeps baseName in ebx and nameStart/dot/i in
+  ebp/edi/esi, zero-stores through the zero register; all 24 orders of the four initialisations and pointer-difference
+  spellings of nameStart give the same bytes (ours already emits the pointer-difference form).
+- Update3DPan: min/max argument orders (8 variants) are the same bytes; the original keeps the first max() result in a
+  float temp (slot 0x1c) before the min compare, ours folds it.
+- RewindDecoder/StartDecoder: `for` header, dropped `continue`, pointer locals os/op/vc removed: no change. The original
+  tests `headerPackets < 2` before the first iteration (no constant fold) and spills `this` to the stack.
+- InitTrackedAllocator: only the unexplained /GS cookie (4 byte slot + xor) separates it; the inlined strcpy("Unknown")
+  already matches.

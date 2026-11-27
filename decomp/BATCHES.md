@@ -466,3 +466,4 @@ Each finished batch adds two new ones, taken from the medium-function section of
 | 402 | 38 | match | round 6: APP DShowStream::Open, Node::BuildMesh, Map_Unload, Companion0_Update (916); Packs BMPPack (33 of 51); InverseWaveletLevel transcribed, WaveStream::Read closer; 1057 of 1391 |
 | 403 | 38 | match | round 7: APP Render_DrawGradientQuad, Render_FillRect, Char_PutOnEquipment (919); sound3d IsPlaying, ProcessCommandQueue, OggStream::Read (100 of 117); 1063 of 1391 |
 | 404 | 38 | match | round 8: APP Camera_SelectPath, sound queue, Switch_Hold, Char_WalkRoute, Text_Substitute, Plane::Distance (925); sound3d Mp3Stream::Read (101 of 117); Packs parked; 1070 of 1391 |
+| 405 | 38 | match | round 9: APP Circle_Intersect (926); Ime_DrawComposition 4 lines (FontRenderer::DrawTextClipped thiscall), CheckKey 42; walls noted in open.tsv/QUEUE; 1071 of 1391 |

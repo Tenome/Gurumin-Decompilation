@@ -29,9 +29,10 @@ extern "C" int __stdcall FUN_10194a10(const double *a, const double *b, int unus
         out[1] = py;
         return 1;
     }
-    double h = sqrt(disc) * (0.5 / d2);
-    double ox = h * dx;
-    double oy = h * dy;
+    // two intersections: the discriminant is reused in place for the half-chord scale h = sqrt(disc) / (2 * d2)
+    disc = sqrt(disc) * (0.5 / d2);
+    double ox = disc * dx;
+    double oy = disc * dy;
     double x1 = px - oy;
     double y1 = ox + py;
     double x2 = oy + px;

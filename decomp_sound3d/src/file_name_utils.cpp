@@ -109,9 +109,8 @@ int WaveStream::CheckKey(unsigned char *name, int expectedSum, unsigned int expe
     key[17] = name[7] ^ 0x3f;
     key[18] = name[4] ^ 0xc;
     key[13] = name[4] ^ 0x11;
-    key[25] = name[1] ^ 0x3e;
     key[16] = name[6] ^ 0x3f;
-    key[24] = name[5] ^ 0x18;
+    key[25] = name[1] ^ 0x3e;
     key[20] = name[5] ^ 0x35;
     key[28] = name[3] ^ 1;
     key[31] = name[4] ^ 0x17;
@@ -119,6 +118,7 @@ int WaveStream::CheckKey(unsigned char *name, int expectedSum, unsigned int expe
     key[22] = 0xe;
     key[27] = 0x49;
     key[29] = 0x2c;
+    key[24] = name[5] ^ 0x18;
     key[23] = name[3] ^ 0x49;
     key[30] = name[0] ^ 0x71;
     sum = 0;
