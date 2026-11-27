@@ -8,7 +8,10 @@ REPORT = "progress/jp/report.json"
 
 
 def matched(report):
-    return {f["name"] for u in report["units"] for f in u.get("functions", []) if f.get("fuzzy_match_percent") == 100}
+    """matched functions keyed by (module, address) -> name: a signature change renames a symbol, not the function,
+    and APP.dll and Packs.dll share the 0x10000000 base"""
+    return {(u["name"].split("/")[0], f.get("metadata", {}).get("virtual_address", f["name"])): u["name"].split("/")[0] + " " + f["name"]
+            for u in report["units"] for f in u.get("functions", []) if f.get("fuzzy_match_percent") == 100}
 
 
 rev = sys.argv[sys.argv.index("--against") + 1] if "--against" in sys.argv else "HEAD"
@@ -16,7 +19,8 @@ old = json.loads(subprocess.run(["git", "show", "%s:%s" % (rev, REPORT)], cwd=RO
                                 text=True, check=True).stdout)
 new = json.load(open(os.path.join(ROOT, REPORT)))
 before, after = matched(old), matched(new)
-lost, gained = sorted(before - after), sorted(after - before)
+lost = sorted(before[k] for k in set(before) - set(after))
+gained = sorted(after[k] for k in set(after) - set(before))
 print("matched %d -> %d (%+d)" % (len(before), len(after), len(after) - len(before)))
 for name in gained:
     print("  new   " + name)

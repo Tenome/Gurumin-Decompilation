@@ -23,8 +23,9 @@ From `decomp_packs/`:
 
 1. `python tools/triage.py` once (writes `triage.tsv`; it is derived from the game binary and stays local).
 2. `cmd /c build.bat <file.cpp>` builds one file and prints `MATCH`/`DIFF` per function.
-3. Gate: `python tools/build_all.py` (writes `../progress/jp/packs.json`), then `python tools/check_matches.py`
-   (exits 1 if a match was lost against HEAD).
+3. Module check: `python tools/build_all.py` (writes `build/report.json`), then `python tools/check_matches.py`
+   (exits 1 if a match was lost against the committed `progress/jp/report.json`). The real gate is APP.dll's:
+   `python decomp/tools/build_all.py --report progress/jp/report.json` builds this tree too and merges its units.
 
 `tools/asm.py <addr>` disassembles, `tools/fn.py <addr>` prints Ghidra's decompilation. Functions whose names carry
 no address (methods, exports) are mapped in `obj_symbols.tsv`. The hard rules of `../AGENTS.md` apply unchanged;

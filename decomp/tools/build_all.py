@@ -4,6 +4,9 @@ usage: python tools/build_all.py [--report progress/jp/report.json] [--version j
 
 --report writes an objdiff-format progress report (function names, addresses, sizes and match percentages only)
 for ByteMatch / decomp.dev, plus progress.svg (README meter) next to it. Functions not yet decompiled are listed in the unit "app/unmatched" at 0 %.
+With --version jp the report covers the whole JP game: the helper-DLL trees in MODULES (Packs.dll, SoundArc.dll) are
+built with their own tools/build_all.py and their units ("packs/...", "soundarc/...") are added; the measures are the
+sums over APP.dll and the modules.
 "Matched under the rules" counts the matched functions whose file declares no struct/class/union and no extern
 global of its own (AGENTS.md rule 2; tools/rule_check.py decides): printed as RULES and added to the measures.
 Percentages: MATCH = 100, EQUIV (cl 13.00 encoding quirks only) = 99, DIFF = share of identical bytes, capped at 98.
@@ -15,6 +18,7 @@ from rule_check import file_violations
 
 here = os.path.dirname(os.path.abspath(__file__))
 root = os.path.join(here, "..")
+MODULES = ["decomp_packs", "decomp_soundarc"]  # helper-DLL trees (module.json) merged into the JP report
 
 
 def load_game_functions():
@@ -81,6 +85,51 @@ def unit_entry(name, source, functions):
                        "metadata": {"virtual_address": str(int(f["address"], 16))}} for f in functions],
         "metadata": {"complete": m["complete_units"] == 1, "source_path": source},
     }
+
+
+def build_module_report(module):
+    """Run a helper-DLL tree's build_all.py into its build folder; return (units, measures) of its report."""
+    module_root = os.path.join(root, "..", module)
+    out = os.path.join(module_root, "build", "report.json")
+    run = subprocess.run([sys.executable, os.path.join(module_root, "tools", "build_all.py"), "--report", out],
+                         capture_output=True, text=True)
+    for line in run.stdout.splitlines():
+        if line.startswith(("PROGRESS", "RULES")):
+            print(module, line)
+    if run.returncode != 0:
+        print(run.stdout[-2000:], run.stderr[-2000:])
+        raise SystemExit("%s: build_all failed" % module)
+    report = json.load(open(out, encoding="utf-8"))
+    return report["units"], report["measures"]
+
+
+def add_measures(a, b):
+    """Measures of two reports taken together (sums, percentages recomputed)."""
+    def total(key):
+        return int(a[key]) + int(b[key])
+    code, functions = total("total_code"), a["total_functions"] + b["total_functions"]
+    matched_code, ruled_code = total("matched_code"), total("matched_rules_code")
+    matched_functions = a["matched_functions"] + b["matched_functions"]
+    ruled_functions = a["matched_rules_functions"] + b["matched_rules_functions"]
+    complete_code = total("complete_code")
+    fuzzy = (a["fuzzy_match_percent"] * int(a["total_code"]) + b["fuzzy_match_percent"] * int(b["total_code"])) / code
+    m = dict(a)
+    m.update({
+        "fuzzy_match_percent": round(fuzzy, 4),
+        "total_code": str(code),
+        "matched_code": str(matched_code),
+        "matched_code_percent": round(100.0 * matched_code / code, 4),
+        "total_functions": functions,
+        "matched_functions": matched_functions,
+        "matched_functions_percent": round(100.0 * matched_functions / functions, 4),
+        "complete_code": str(complete_code),
+        "complete_code_percent": round(100.0 * complete_code / code, 4),
+        "matched_rules_code": str(ruled_code),
+        "matched_rules_code_percent": round(100.0 * ruled_code / code, 4),
+        "matched_rules_functions": ruled_functions,
+        "matched_rules_functions_percent": round(100.0 * ruled_functions / functions, 4),
+    })
+    return m
 
 
 def main():
@@ -152,6 +201,11 @@ def main():
         everything = [{"size": f["size"], "percent": round(f["percent"], 4), "rules_clean": f.get("rules_clean")}
                       for f in all_functions + rest]
         total = measures(everything)
+        if version == "jp":
+            for module in MODULES:
+                module_units, module_total = build_module_report(module)
+                units += module_units
+                total = add_measures(total, module_total)
         total["total_units"] = len(units)
         total["complete_units"] = sum(1 for u in units if u["metadata"]["complete"])
         report = {"measures": total, "units": units}

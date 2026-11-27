@@ -1,6 +1,7 @@
 """build_all.py : compile every src/*.cpp of this module with build.bat and print per-file and total matches.
 
-usage: python tools/build_all.py [--report <report.json>]   (default report: module.json "report")
+usage: python tools/build_all.py [--report <report.json>]   (default: build/report.json; decomp/tools/build_all.py
+--version jp runs this and merges the units into progress/jp/report.json)
 
 Same scoring as decomp/tools/build_all.py (APP.dll): MATCH = 100, EQUIV = 99, DIFF = share of identical bytes capped
 at 98; "matched under the rules" uses decomp/tools/rule_check.py. The game functions are triage.tsv (module.json
@@ -46,7 +47,7 @@ def address_of(name, symbols):
 
 def main():
     args = sys.argv[1:]
-    report_path = args[args.index("--report") + 1] if "--report" in args else os.path.join(repo, MODULE["report"])
+    report_path = args[args.index("--report") + 1] if "--report" in args else os.path.join(root, "build", "report.json")
     prefix = MODULE["unit_prefix"]
     game = load_game_functions()
     symbols = load_symbol_addresses()

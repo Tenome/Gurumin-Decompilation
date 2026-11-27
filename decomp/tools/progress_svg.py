@@ -3,7 +3,7 @@ The title follows the version folder the meter is written to (progress/jp or pro
 import json, os, sys
 
 TITLES = {
-    "jp": "Gurumin (JP PC) APP.dll matching decompilation",
+    "jp": "Gurumin (JP PC) matching decompilation",
     "en": "Gurumin (EN Steam) game_en_steam.exe matching decompilation",
 }
 

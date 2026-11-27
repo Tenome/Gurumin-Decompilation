@@ -3,7 +3,8 @@
 # Gurumin decompilation and modding
 
 A matching decompilation of **Gurumin** (Japanese PC release, 2006) together with tools and documentation for
-modding it. The target is the game code in `bin\APP.dll`. The goals, in order:
+modding it. The target is the game code in `bin\APP.dll` and the helper DLLs next to it (`Packs.dll`, `SoundArc.dll`,
+`sound3d.dll`). The goals, in order:
 
 1. **Moddability:** readable source, named functions and documented file formats, so changes are easy to make.
 2. **Modern hardware:** lift the 2006-era limits (frame rate, resolution, text rendering, input) on today's PCs.
@@ -13,9 +14,13 @@ No game files are included. Point the tools at your own copy of the game.
 
 ## Progress
 
-### Japanese PC release (APP.dll, Visual C++ .NET 2002)
+### Japanese PC release (APP.dll and helper DLLs, Visual C++ .NET 2002)
 
 <p align="center"><img src="progress/jp/progress.svg" alt="JP decompilation progress" width="600"></p>
+
+The JP meter counts the whole game: APP.dll (`decomp/`) plus the helper DLLs, each in its own tree with the same
+compiler: Packs.dll, the image and archive codec (`decomp_packs/`), and SoundArc.dll, the sound server
+(`decomp_soundarc/`). Statically linked libraries (the C runtime, libjpeg) are not counted.
 
 ### English Steam release (game_en_steam.exe, Visual C++ 2013)
 

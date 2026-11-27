@@ -1,25 +1,25 @@
 {
  "measures": {
-  "fuzzy_match_percent": 50.8651,
-  "total_code": "1720206",
-  "matched_code": "368660",
-  "matched_code_percent": 21.4312,
+  "fuzzy_match_percent": 50.9689,
+  "total_code": "1751598",
+  "matched_code": "379793",
+  "matched_code_percent": 21.6827,
   "total_data": "0",
   "matched_data": "0",
   "matched_data_percent": 0.0,
-  "total_functions": 1212,
-  "matched_functions": 911,
-  "matched_functions_percent": 75.165,
-  "complete_code": "0",
-  "complete_code_percent": 0.0,
+  "total_functions": 1274,
+  "matched_functions": 946,
+  "matched_functions_percent": 74.2543,
+  "complete_code": "6861",
+  "complete_code_percent": 0.3917,
   "complete_data": "0",
   "complete_data_percent": 0.0,
-  "total_units": 467,
-  "complete_units": 209,
-  "matched_rules_code": "368033",
-  "matched_rules_code_percent": 21.3947,
-  "matched_rules_functions": 910,
-  "matched_rules_functions_percent": 75.0825
+  "total_units": 475,
+  "complete_units": 210,
+  "matched_rules_code": "379166",
+  "matched_rules_code_percent": 21.6469,
+  "matched_rules_functions": 945,
+  "matched_rules_functions_percent": 74.1758
  },
  "units": [
   {
@@ -27459,6 +27459,804 @@
      }
     }
    ],
+   "metadata": {
+    "complete": false,
+    "source_path": ""
+   }
+  },
+  {
+   "name": "packs/bmp_file",
+   "measures": {
+    "fuzzy_match_percent": 93.0528,
+    "total_code": "2377",
+    "matched_code": "1473",
+    "matched_code_percent": 61.9689,
+    "total_data": "0",
+    "matched_data": "0",
+    "matched_data_percent": 0.0,
+    "total_functions": 5,
+    "matched_functions": 3,
+    "matched_functions_percent": 60.0,
+    "complete_code": "0",
+    "complete_code_percent": 0.0,
+    "complete_data": "0",
+    "complete_data_percent": 0.0,
+    "total_units": 1,
+    "complete_units": 0,
+    "matched_rules_code": "1473",
+    "matched_rules_code_percent": 61.9689,
+    "matched_rules_functions": 3,
+    "matched_rules_functions_percent": 60.0
+   },
+   "sections": [
+    {
+     "name": ".text",
+     "size": "2377",
+     "fuzzy_match_percent": 93.0528
+    }
+   ],
+   "functions": [
+    {
+     "name": "?DecodeJpegRgb@@YAHPAU_iobuf@@PAEHPAH2H@Z",
+     "size": "305",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268458240"
+     }
+    },
+    {
+     "name": "?EncodeJpegRgb@@YAHPAU_iobuf@@PAEHHHH@Z",
+     "size": "439",
+     "fuzzy_match_percent": 91.0714,
+     "metadata": {
+      "virtual_address": "268458560"
+     }
+    },
+    {
+     "name": "_SaveJpeg",
+     "size": "465",
+     "fuzzy_match_percent": 72.9167,
+     "metadata": {
+      "virtual_address": "268457072"
+     }
+    },
+    {
+     "name": "?BMPLoad@@YAHPBDPAE1H@Z",
+     "size": "588",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268459008"
+     }
+    },
+    {
+     "name": "?BMPSave@@YAHPBDPAE1HH@Z",
+     "size": "580",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268459600"
+     }
+    }
+   ],
+   "metadata": {
+    "complete": false,
+    "source_path": "decomp_packs/src/bmp_file.cpp"
+   }
+  },
+  {
+   "name": "packs/bmp_pack",
+   "measures": {
+    "fuzzy_match_percent": 30.3268,
+    "total_code": "11271",
+    "matched_code": "1227",
+    "matched_code_percent": 10.8863,
+    "total_data": "0",
+    "matched_data": "0",
+    "matched_data_percent": 0.0,
+    "total_functions": 16,
+    "matched_functions": 7,
+    "matched_functions_percent": 43.75,
+    "complete_code": "0",
+    "complete_code_percent": 0.0,
+    "complete_data": "0",
+    "complete_data_percent": 0.0,
+    "total_units": 1,
+    "complete_units": 0,
+    "matched_rules_code": "1227",
+    "matched_rules_code_percent": 10.8863,
+    "matched_rules_functions": 7,
+    "matched_rules_functions_percent": 43.75
+   },
+   "sections": [
+    {
+     "name": ".text",
+     "size": "11271",
+     "fuzzy_match_percent": 30.3268
+    }
+   ],
+   "functions": [
+    {
+     "name": "?StoreCoefficient@@YAXPAGGF@Z",
+     "size": "124",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268441936"
+     }
+    },
+    {
+     "name": "?PackBlocks@@YAXPBFPAGHHH@Z",
+     "size": "201",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268450528"
+     }
+    },
+    {
+     "name": "?PackLevels@@YAXPBFPAGPBH2H@Z",
+     "size": "168",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268453008"
+     }
+    },
+    {
+     "name": "?EmitBit@@YAXHPAE@Z",
+     "size": "159",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268450368"
+     }
+    },
+    {
+     "name": "?EncodeBit@@YAXHGPAE@Z",
+     "size": "222",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268452784"
+     }
+    },
+    {
+     "name": "?ConvertBgrToPlanes@@YAHPBEPAXPAF22HH@Z",
+     "size": "206",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268451216"
+     }
+    },
+    {
+     "name": "?PackPlanesToWords@@YAXPAF00PAEHHH@Z",
+     "size": "340",
+     "fuzzy_match_percent": 16.3043,
+     "metadata": {
+      "virtual_address": "268446656"
+     }
+    },
+    {
+     "name": "?TransformLevel@@YAXPAF0HHH@Z",
+     "size": "2611",
+     "fuzzy_match_percent": 12.5,
+     "metadata": {
+      "virtual_address": "268444032"
+     }
+    },
+    {
+     "name": "?QuantiseBand@@YAXPAF00HHHHHPAUBandModel@@@Z",
+     "size": "1954",
+     "fuzzy_match_percent": 34.4538,
+     "metadata": {
+      "virtual_address": "268442064"
+     }
+    },
+    {
+     "name": "?QuantiseBands@@YAXPAF00PBH1HHPAULevelModelSet@@@Z",
+     "size": "471",
+     "fuzzy_match_percent": 43.3333,
+     "metadata": {
+      "virtual_address": "268450736"
+     }
+    },
+    {
+     "name": "?BandStatistics@@YAHPAUPlaneModel@@PBGH@Z",
+     "size": "1470",
+     "fuzzy_match_percent": 34.4086,
+     "metadata": {
+      "virtual_address": "268439552"
+     }
+    },
+    {
+     "name": "?EncodeBand@@YAHPBGPAEHPAHPAUPlaneModel@@@Z",
+     "size": "737",
+     "fuzzy_match_percent": 17.7989,
+     "metadata": {
+      "virtual_address": "268453184"
+     }
+    },
+    {
+     "name": "?WriteStream@@YAHPBE0PBH1HH1PBULevelModelSet@@PAEPAH@Z",
+     "size": "907",
+     "fuzzy_match_percent": 5.5556,
+     "metadata": {
+      "virtual_address": "268441024"
+     }
+    },
+    {
+     "name": "?EncodeBandPlanes@@YAHPAG00PAEHPAHPAUBandModel@@@Z",
+     "size": "147",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268455344"
+     }
+    },
+    {
+     "name": "?EncodeStream@@YAHPAG00PAEPBH2HPAHPAULevelModelSet@@@Z",
+     "size": "345",
+     "fuzzy_match_percent": 23.0114,
+     "metadata": {
+      "virtual_address": "268455504"
+     }
+    },
+    {
+     "name": "_BMPPack",
+     "size": "1209",
+     "fuzzy_match_percent": 13.6667,
+     "metadata": {
+      "virtual_address": "268455856"
+     }
+    }
+   ],
+   "metadata": {
+    "complete": false,
+    "source_path": "decomp_packs/src/bmp_pack.cpp"
+   }
+  },
+  {
+   "name": "packs/bmp_unpack",
+   "measures": {
+    "fuzzy_match_percent": 42.1374,
+    "total_code": "6749",
+    "matched_code": "558",
+    "matched_code_percent": 8.2679,
+    "total_data": "0",
+    "matched_data": "0",
+    "matched_data_percent": 0.0,
+    "total_functions": 10,
+    "matched_functions": 1,
+    "matched_functions_percent": 10.0,
+    "complete_code": "0",
+    "complete_code_percent": 0.0,
+    "complete_data": "0",
+    "complete_data_percent": 0.0,
+    "total_units": 1,
+    "complete_units": 0,
+    "matched_rules_code": "558",
+    "matched_rules_code_percent": 8.2679,
+    "matched_rules_functions": 1,
+    "matched_rules_functions_percent": 10.0
+   },
+   "sections": [
+    {
+     "name": ".text",
+     "size": "6749",
+     "fuzzy_match_percent": 42.1374
+    }
+   ],
+   "functions": [
+    {
+     "name": "?ReadStreamHeader@@YAHPAUPackStreamInfo@@PAH1PAIPAY2223EPBE1@Z",
+     "size": "594",
+     "fuzzy_match_percent": 94.9013,
+     "metadata": {
+      "virtual_address": "268449760"
+     }
+    },
+    {
+     "name": "?DecodeSignedValue@@YAFPBEG@Z",
+     "size": "558",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268448352"
+     }
+    },
+    {
+     "name": "?DecodeBand@@YAXPBEPAFHHH0@Z",
+     "size": "689",
+     "fuzzy_match_percent": 43.892,
+     "metadata": {
+      "virtual_address": "268451424"
+     }
+    },
+    {
+     "name": "?ToRgbBytes@@YAXPBF00PBH1PAEPAH@Z",
+     "size": "359",
+     "fuzzy_match_percent": 34.375,
+     "metadata": {
+      "virtual_address": "268448912"
+     }
+    },
+    {
+     "name": "?DequantizeBand@@YAXPAF00HHHHHHHH@Z",
+     "size": "474",
+     "fuzzy_match_percent": 97.9167,
+     "metadata": {
+      "virtual_address": "268449280"
+     }
+    },
+    {
+     "name": "?DequantizeLevels@@YAXPAF00PBH1HHPAY2223$$CBE@Z",
+     "size": "656",
+     "fuzzy_match_percent": 11.0417,
+     "metadata": {
+      "virtual_address": "268452128"
+     }
+    },
+    {
+     "name": "?DecodeLevels@@YAXPBEPAF11PBH2HPAY2223$$CBE@Z",
+     "size": "576",
+     "fuzzy_match_percent": 18.75,
+     "metadata": {
+      "virtual_address": "268453936"
+     }
+    },
+    {
+     "name": "_MMV3",
+     "size": "682",
+     "fuzzy_match_percent": 70.4545,
+     "metadata": {
+      "virtual_address": "268457552"
+     }
+    },
+    {
+     "name": "?InverseWaveletLevel@@YAXPAF0HHH@Z",
+     "size": "1338",
+     "fuzzy_match_percent": 3.7829,
+     "metadata": {
+      "virtual_address": "268447008"
+     }
+    },
+    {
+     "name": "_BMPUnpack",
+     "size": "823",
+     "fuzzy_match_percent": 14.6591,
+     "metadata": {
+      "virtual_address": "268454512"
+     }
+    }
+   ],
+   "metadata": {
+    "complete": false,
+    "source_path": "decomp_packs/src/bmp_unpack.cpp"
+   }
+  },
+  {
+   "name": "packs/exec_pack",
+   "measures": {
+    "fuzzy_match_percent": 57.2629,
+    "total_code": "3606",
+    "matched_code": "699",
+    "matched_code_percent": 19.3844,
+    "total_data": "0",
+    "matched_data": "0",
+    "matched_data_percent": 0.0,
+    "total_functions": 12,
+    "matched_functions": 6,
+    "matched_functions_percent": 50.0,
+    "complete_code": "0",
+    "complete_code_percent": 0.0,
+    "complete_data": "0",
+    "complete_data_percent": 0.0,
+    "total_units": 1,
+    "complete_units": 0,
+    "matched_rules_code": "699",
+    "matched_rules_code_percent": 19.3844,
+    "matched_rules_functions": 6,
+    "matched_rules_functions_percent": 50.0
+   },
+   "sections": [
+    {
+     "name": ".text",
+     "size": "3606",
+     "fuzzy_match_percent": 57.2629
+    }
+   ],
+   "functions": [
+    {
+     "name": "?GetBit@@YAGXZ",
+     "size": "85",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268460784"
+     }
+    },
+    {
+     "name": "?GetBits@@YAGH@Z",
+     "size": "109",
+     "fuzzy_match_percent": 84.8214,
+     "metadata": {
+      "virtual_address": "268460880"
+     }
+    },
+    {
+     "name": "?DecodeChunk@@YAHXZ",
+     "size": "771",
+     "fuzzy_match_percent": 51.6827,
+     "metadata": {
+      "virtual_address": "268460992"
+     }
+    },
+    {
+     "name": "?UnpackRecords@@YAHPAUExecUnpackStream@@@Z",
+     "size": "321",
+     "fuzzy_match_percent": 67.5,
+     "metadata": {
+      "virtual_address": "268461776"
+     }
+    },
+    {
+     "name": "?PutZeroBit@@YAXXZ",
+     "size": "80",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268462112"
+     }
+    },
+    {
+     "name": "?PutOneBit@@YAXXZ",
+     "size": "89",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268462192"
+     }
+    },
+    {
+     "name": "?PutBits@@YAXEH@Z",
+     "size": "125",
+     "fuzzy_match_percent": 42.1875,
+     "metadata": {
+      "virtual_address": "268462288"
+     }
+    },
+    {
+     "name": "?AdvanceOverToken@@YAXXZ",
+     "size": "235",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268462416"
+     }
+    },
+    {
+     "name": "?EncodeChunk@@YAXXZ",
+     "size": "996",
+     "fuzzy_match_percent": 46.2148,
+     "metadata": {
+      "virtual_address": "268462656"
+     }
+    },
+    {
+     "name": "?EncodeStart@@YAHPAUExecPackStream@@@Z",
+     "size": "81",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268463664"
+     }
+    },
+    {
+     "name": "_ExecPack",
+     "size": "585",
+     "fuzzy_match_percent": 24.8311,
+     "metadata": {
+      "virtual_address": "268463760"
+     }
+    },
+    {
+     "name": "_ExecUnpack",
+     "size": "129",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268464352"
+     }
+    }
+   ],
+   "metadata": {
+    "complete": false,
+    "source_path": "decomp_packs/src/exec_pack.cpp"
+   }
+  },
+  {
+   "name": "packs/pack_file",
+   "measures": {
+    "fuzzy_match_percent": 73.2354,
+    "total_code": "528",
+    "matched_code": "315",
+    "matched_code_percent": 59.6591,
+    "total_data": "0",
+    "matched_data": "0",
+    "matched_data_percent": 0.0,
+    "total_functions": 8,
+    "matched_functions": 7,
+    "matched_functions_percent": 87.5,
+    "complete_code": "0",
+    "complete_code_percent": 0.0,
+    "complete_data": "0",
+    "complete_data_percent": 0.0,
+    "total_units": 1,
+    "complete_units": 0,
+    "matched_rules_code": "315",
+    "matched_rules_code_percent": 59.6591,
+    "matched_rules_functions": 7,
+    "matched_rules_functions_percent": 87.5
+   },
+   "sections": [
+    {
+     "name": ".text",
+     "size": "528",
+     "fuzzy_match_percent": 73.2354
+    }
+   ],
+   "functions": [
+    {
+     "name": "?ExtractBaseName@@YAHPADPBD@Z",
+     "size": "213",
+     "fuzzy_match_percent": 33.6538,
+     "metadata": {
+      "virtual_address": "268460192"
+     }
+    },
+    {
+     "name": "??0PackFile@@QAE@XZ",
+     "size": "9",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268460416"
+     }
+    },
+    {
+     "name": "??1PackFile@@QAE@XZ",
+     "size": "26",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268460432"
+     }
+    },
+    {
+     "name": "?Open@PackFile@@QAEHPBD0@Z",
+     "size": "85",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268460464"
+     }
+    },
+    {
+     "name": "?Read@PackFile@@QAEIPAXII@Z",
+     "size": "121",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268460608"
+     }
+    },
+    {
+     "name": "?Write@PackFile@@QAEIPBXII@Z",
+     "size": "38",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268460736"
+     }
+    },
+    {
+     "name": "?Tell@PackFile@@QAEJXZ",
+     "size": "12",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268460560"
+     }
+    },
+    {
+     "name": "?Seek@PackFile@@QAEHJH@Z",
+     "size": "24",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268460576"
+     }
+    }
+   ],
+   "metadata": {
+    "complete": false,
+    "source_path": "decomp_packs/src/pack_file.cpp"
+   }
+  },
+  {
+   "name": "packs/unmatched",
+   "measures": {
+    "fuzzy_match_percent": 0.0,
+    "total_code": "0",
+    "matched_code": "0",
+    "matched_code_percent": 0.0,
+    "total_data": "0",
+    "matched_data": "0",
+    "matched_data_percent": 0.0,
+    "total_functions": 0,
+    "matched_functions": 0,
+    "matched_functions_percent": 0.0,
+    "complete_code": "0",
+    "complete_code_percent": 0.0,
+    "complete_data": "0",
+    "complete_data_percent": 0.0,
+    "total_units": 1,
+    "complete_units": 0,
+    "matched_rules_code": "0",
+    "matched_rules_code_percent": 0.0,
+    "matched_rules_functions": 0,
+    "matched_rules_functions_percent": 0.0
+   },
+   "sections": [
+    {
+     "name": ".text",
+     "size": "0",
+     "fuzzy_match_percent": 0.0
+    }
+   ],
+   "functions": [],
+   "metadata": {
+    "complete": false,
+    "source_path": ""
+   }
+  },
+  {
+   "name": "soundarc/sound_server",
+   "measures": {
+    "fuzzy_match_percent": 100.0,
+    "total_code": "6861",
+    "matched_code": "6861",
+    "matched_code_percent": 100.0,
+    "total_data": "0",
+    "matched_data": "0",
+    "matched_data_percent": 0.0,
+    "total_functions": 11,
+    "matched_functions": 11,
+    "matched_functions_percent": 100.0,
+    "complete_code": "6861",
+    "complete_code_percent": 100.0,
+    "complete_data": "0",
+    "complete_data_percent": 0.0,
+    "total_units": 1,
+    "complete_units": 1,
+    "matched_rules_code": "6861",
+    "matched_rules_code_percent": 100.0,
+    "matched_rules_functions": 11,
+    "matched_rules_functions_percent": 100.0
+   },
+   "sections": [
+    {
+     "name": ".text",
+     "size": "6861",
+     "fuzzy_match_percent": 100.0
+    }
+   ],
+   "functions": [
+    {
+     "name": "??0SoundArcApp@@QAE@XZ",
+     "size": "22",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "4204224"
+     }
+    },
+    {
+     "name": "??1SoundArcApp@@QAE@XZ",
+     "size": "19",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "4204256"
+     }
+    },
+    {
+     "name": "_WinMain@16",
+     "size": "630",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "4198400"
+     }
+    },
+    {
+     "name": "?PumpOneMessage@@YAXXZ",
+     "size": "66",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "4199040"
+     }
+    },
+    {
+     "name": "?MyRegisterClass@@YAGPAUHINSTANCE__@@@Z",
+     "size": "134",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "4199120"
+     }
+    },
+    {
+     "name": "?InitInstance@@YAHPAUHINSTANCE__@@H@Z",
+     "size": "147",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "4199264"
+     }
+    },
+    {
+     "name": "?LogLine@@YAHPBD@Z",
+     "size": "78",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "4199424"
+     }
+    },
+    {
+     "name": "?WndProc@@YGJPAUHWND__@@IIJ@Z",
+     "size": "4585",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "4199504"
+     }
+    },
+    {
+     "name": "?About@@YGJPAUHWND__@@IIJ@Z",
+     "size": "114",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "4204096"
+     }
+    },
+    {
+     "name": "?LoadSound3D@@YAHH@Z",
+     "size": "1002",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "4204288"
+     }
+    },
+    {
+     "name": "?ReleaseSound3D@@YAHXZ",
+     "size": "64",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "4205296"
+     }
+    }
+   ],
+   "metadata": {
+    "complete": true,
+    "source_path": "decomp_soundarc/src/sound_server.cpp"
+   }
+  },
+  {
+   "name": "soundarc/unmatched",
+   "measures": {
+    "fuzzy_match_percent": 0.0,
+    "total_code": "0",
+    "matched_code": "0",
+    "matched_code_percent": 0.0,
+    "total_data": "0",
+    "matched_data": "0",
+    "matched_data_percent": 0.0,
+    "total_functions": 0,
+    "matched_functions": 0,
+    "matched_functions_percent": 0.0,
+    "complete_code": "0",
+    "complete_code_percent": 0.0,
+    "complete_data": "0",
+    "complete_data_percent": 0.0,
+    "total_units": 1,
+    "complete_units": 0,
+    "matched_rules_code": "0",
+    "matched_rules_code_percent": 0.0,
+    "matched_rules_functions": 0,
+    "matched_rules_functions_percent": 0.0
+   },
+   "sections": [
+    {
+     "name": ".text",
+     "size": "0",
+     "fuzzy_match_percent": 0.0
+    }
+   ],
+   "functions": [],
    "metadata": {
     "complete": false,
     "source_path": ""

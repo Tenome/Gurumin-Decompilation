@@ -14,4 +14,4 @@ probe of `ISetSEVol` and `IReset`).
 | 0x100482d0–end | more CRT/MFC |
 
 The tools are the module-driven copies from `decomp_packs/` (see its README); `module.json` selects this module.
-The gate writes `../progress/jp/sound3d.json`.
+Its report goes to `build/report.json` until the tree joins `MODULES` in `decomp/tools/build_all.py`.

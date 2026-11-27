@@ -1,7 +1,6 @@
 {
   "dll": "sound3d.dll",
   "unit_prefix": "sound3d/",
-  "report": "progress/jp/sound3d.json",
   "game_start": "10001000",
   "game_end": "1000a800",
   "title": "Gurumin (JP PC) sound3d.dll matching decompilation"

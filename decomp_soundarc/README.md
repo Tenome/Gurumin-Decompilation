@@ -14,4 +14,4 @@ same as APP.dll and Packs.dll.
 | 0x402c38–end | static CRT |
 
 The tools are the module-driven copies from `decomp_packs/` (see its README for the workflow); `module.json` selects
-this module. The gate writes `../progress/jp/soundarc.json`.
+this module. Its units are merged into `progress/jp/report.json` by `decomp/tools/build_all.py`.
