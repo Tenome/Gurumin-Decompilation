@@ -210,18 +210,20 @@ void PackPlanesToWords(short *planeA, short *planeB, short *planeC, unsigned cha
             else if ((short)a > 0x7ff)
                 a = 0x7ff;
             out[outIndex++] = a % 256;
+            unsigned short carryFromA = a >> 8;  // bits 8..10 of A continue in the next byte
             unsigned short b = planeB[y * stride + x] + 0x400;
             if ((short)b < 0)
                 b = 0;
             else if ((short)b > 0x7ff)
                 b = 0x7ff;
-            out[outIndex++] = (b % 32) * 8 + (a >> 8);
+            out[outIndex++] = (b % 32) * 8 + carryFromA;
+            unsigned short carryFromB = b >> 5;  // bits 5..10 of B continue in the next byte
             unsigned short c = planeC[y * stride + x] + 0x200;
             if ((short)c < 0)
                 c = 0;
             else if ((short)c > 0x3ff)
                 c = 0x3ff;
-            out[outIndex++] = (c % 4) * 64 + (b >> 5);
+            out[outIndex++] = (c % 4) * 64 + carryFromB;
             out[outIndex++] = c >> 2;
             planeA[y * stride + x] = 0;
             planeB[y * stride + x] = 0;
@@ -462,8 +464,8 @@ void QuantiseBands(short *planeA, short *planeB, short *planeC, const int *width
                  &models->level[0].band[0]);
     if (levels > 0) {
         BandModel *rightBand = &models->level[0].band[0];
-        BandModel *diagonalBand = &models->level[0].band[2];
         BandModel *bottomBand = &models->level[0].band[1];
+        BandModel *diagonalBand = &models->level[0].band[2];
         for (int level = levels; level > 0; level--) {
             int right = heights[level];
             QuantiseBand(planeA + widths[level], planeB + widths[level], planeC + widths[level],
@@ -637,8 +639,8 @@ int EncodeBand(const unsigned short *words, unsigned char *out, int count, int *
     remainingStep = remainingStep * escapeRatio;
     int magnitudeStep = zeroRatio << 8;
     g_coderHigh = g_coderMax;
-    offset = ((estimate & 0xffff) * offset + 0x8000 >> 16) + (estimate >> 16) * offset;
     unsigned int probability = (((estimate >> 1) - estimate) - 0x8000) / (estimate + 0x10000) + 1;
+    offset = ((estimate & 0xffff) * offset + 0x8000 >> 16) + (estimate >> 16) * offset;
     g_outputByte = 0;
     g_outputBitMask = 1;
     g_coderLow = 0;
@@ -794,7 +796,7 @@ extern "C" int BMPPack(const unsigned char *bgr, int width, int height, int qual
             widths[level] = (widths[level - 1] + 1) / 2;
             heights[level] = (heights[level - 1] + 1) / 2;
             scaledQuality *= 2;
-            if (widths[level - 1] >= PACK_MIN_PLANE_SIZE && heights[level - 1] >= PACK_MIN_PLANE_SIZE &&
+            if (widths[level - 1] > PACK_PLANE_SIZE_FLOOR && heights[level - 1] > PACK_PLANE_SIZE_FLOOR &&
                 scaledQuality < PACK_QUALITY_LIMIT)
                 levels = level;
         }

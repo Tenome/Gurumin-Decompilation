@@ -44,19 +44,20 @@ int SoundChannel::IsPlaying()
     buffer->GetStatus(&status);
     if (status & DSBSTATUS_BUFFERLOST)
         buffer->Restore();
-    if (isPlaying == 0) {
-        if (m_01c8 != 0 && (status & DSBSTATUS_TERMINATED) == 0) {
-            if (status & DSBSTATUS_PLAYING)
-                return 1;
-            if (status & DSBSTATUS_LOOPING)
-                return 1;
-            if (m_0204 != 0) {
-                DWORD idleMs = GetTickCount() - m_0204;
-            }
-        }
+    if (isPlaying != 0)
+        return 1;
+    if (m_01c8 == 0)
         return 0;
-    }
-    return 1;
+    if (status & DSBSTATUS_TERMINATED)
+        return 0;
+    if (status & DSBSTATUS_PLAYING)
+        return 1;
+    if (status & DSBSTATUS_LOOPING)
+        return 1;
+    if (m_0204 != 0)
+        // The original measured the idle time here but never used it.
+        DWORD idleMs = GetTickCount() - m_0204;
+    return 0;
 }
 
 // Gives the DirectSound device the window that decides audio focus (exclusive cooperative level). Called by
@@ -86,25 +87,21 @@ int SoundChannel::SetListener(float rolloff, float x, float y, float z, float fr
         params.vVelocity.x = 0;
         params.vVelocity.y = 0;
         params.vVelocity.z = 0;
+        float correctedFrontY = (frontX != 0 || frontY != 0 || frontZ != 0) ? frontY : -1.0f;
         params.vOrientFront.x = frontX;
-        if (frontX != 0 || frontY != 0 || frontZ != 0)
-            params.vOrientFront.y = frontY;
-        else
-            params.vOrientFront.y = -1.0f;
+        params.vOrientFront.y = correctedFrontY;
         params.vOrientFront.z = frontZ;
+        float correctedTopZ = (topZ == 0) ? -1.0f : topZ;
         params.vOrientTop.x = topX;
         params.vOrientTop.y = topY;
-        if (topZ != 0)
-            params.vOrientTop.z = topZ;
-        else
-            params.vOrientTop.z = -1.0f;
+        params.vOrientTop.z = correctedTopZ;
         listener->SetAllParameters(&params, DS3D_IMMEDIATE);
         g_listenerFront[0] = frontX;
         g_listenerPosition[0] = x;
         g_listenerFront[2] = frontZ;
         g_listenerPosition[1] = y;
         g_listenerPosition[2] = z;
-        g_listenerFront[1] = params.vOrientFront.y;
+        g_listenerFront[1] = correctedFrontY;
     }
     return 1;
 }
@@ -131,12 +128,17 @@ int SoundChannel::Commit()
 // of samples played since the start. Returns 0 while no buffer is attached.
 int SoundChannel::GetPosition()
 {
-    if (directSound == 0 || primaryBuffer == 0 || buffer == 0 || prepared == 0) {
+    if (directSound == 0)
         return 0;
-    }
+    if (primaryBuffer == 0)
+        return 0;
+    if (buffer == 0)
+        return 0;
+    if (prepared == 0)
+        return 0;
     int base;
-    unsigned int cursor = playCursor;
     unsigned int section = format.wf.nAvgBytesPerSec;
+    unsigned int cursor = playCursor;
     if (cursor < section && sectionFilled[0] == 0)
         base = cursor - section * 2;
     if (cursor < section && sectionFilled[0] == 1)
@@ -177,20 +179,23 @@ int SoundChannel::Stop()
 // Called by SetVolume, StartFade and Update3DPan.
 int SoundChannel::ApplyVolume(int newVolume, int force)
 {
-    if (directSound != 0 && primaryBuffer != 0 && buffer != 0) {
-        if (newVolume < 0)
-            newVolume = 0;
-        else if (newVolume > VOLUME_SCALE_MAX)
-            newVolume = VOLUME_SCALE_MAX;
-        if (force == 0 && IsPlaying() == 0)
-            return 0;
-        float level = (float)newVolume;
-        level = level / (float)VOLUME_SCALE_MAX;
-        level = level * level * level * (float)VOLUME_SCALE_MAX;
-        buffer->SetVolume((LONG)-level);
-        return 1;
-    }
-    return 0;
+    if (directSound == 0)
+        return 0;
+    if (primaryBuffer == 0)
+        return 0;
+    if (buffer == 0)
+        return 0;
+    if (newVolume < 0)
+        newVolume = 0;
+    else if (newVolume > VOLUME_SCALE_MAX)
+        newVolume = VOLUME_SCALE_MAX;
+    if (force == 0 && IsPlaying() == 0)
+        return 0;
+    float level = (float)newVolume;
+    level = level / (float)VOLUME_SCALE_MAX;
+    level = level * level * level * (float)VOLUME_SCALE_MAX;
+    buffer->SetVolume((LONG)-level);
+    return 1;
 }
 
 // Forgets a running fade: the target becomes the current volume. Called by the API when a volume is set directly.
@@ -513,9 +518,10 @@ int SoundChannel::Open(const char *file, int loop, int startSamples, int loopSta
         Close();
         return 0;
     }
+    int stereo = 1 < fileHeader.channels;
     memset(&format, 0, sizeof(format));
     format.wf.nBlockAlign = fileHeader.blockAlign;
-    format.wf.nChannels = (fileHeader.channels != 1) + 1;
+    format.wf.nChannels = (stereo != 0) + 1;
     format.wf.nSamplesPerSec = fileHeader.samplesPerSecond;
     format.wBitsPerSample = fileHeader.bitsPerSample;
     DSBUFFERDESC description;

@@ -68,10 +68,11 @@ inline unsigned short GetBit(void)
     return bit;
 }
 
-// Reads `count` flag bits, first bit most significant. (DecodeChunk)
+// Reads `count` flag bits, first bit most significant. The result is a 16-bit value (an offset or length field),
+// which is why `value` is an unsigned short. (DecodeChunk)
 inline unsigned short GetBits(int count)
 {
-    int value = 0;
+    unsigned short value = 0;
     while (count != 0) {
         value <<= 1;
         value += GetBit();

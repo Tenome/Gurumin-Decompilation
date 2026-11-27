@@ -151,25 +151,31 @@ int WaveStream::Close()
         ready = 0;
         return 1;
     }
+    // Each decoder kind frees its object the same way; the compiler merges the two tails.
     if (kind == STREAM_MP3) {
         result = ((Mp3Stream *)decoder)->Close();
-    } else if (kind == STREAM_OGG) {
+        if (decoder != 0) {
+            free(decoder);
+        }
+        decoder = 0;
+        return result;
+    }
+    if (kind == STREAM_OGG) {
         result = ((OggStream *)decoder)->Close();
-    } else {
-        if (file.handle == 0) {
-            return 0;
+        if (decoder != 0) {
+            free(decoder);
         }
-        if (fileCopy != 0) {
-            free(fileCopy);
-        }
-        fileCopy = 0;
-        file.Close();
-        ready = 0;
-        return 1;
+        decoder = 0;
+        return result;
     }
-    if (decoder != 0) {
-        free(decoder);
+    if (file.handle == 0) {
+        return 0;
     }
-    decoder = 0;
-    return result;
+    if (fileCopy != 0) {
+        free(fileCopy);
+    }
+    fileCopy = 0;
+    file.Close();
+    ready = 0;
+    return 1;
 }

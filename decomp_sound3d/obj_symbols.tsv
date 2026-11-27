@@ -72,7 +72,7 @@
 ?ReleaseBuffers@SoundChannel@@QAEHXZ	10006700
 ?Update3DPan@SoundChannel@@QAEHXZ	10007840
 ?UpdateSE@SoundChannel@@QAEHXZ	10007b50
-?SetPosition@SoundChannel@@QAEHPAM0000@Z	10007c50
+?SetPosition@SoundChannel@@QAEHPAM00000@Z	10007c50
 ?Open@SoundChannel@@QAEHPBDHHHI@Z	10007dd0
 _IReInit	10009420
 _ITimeGetTime	10009440

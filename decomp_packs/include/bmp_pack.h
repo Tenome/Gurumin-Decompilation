@@ -38,7 +38,7 @@ struct LevelModelSet {
 };
 
 // Side of the blocks the run-length coder scans, and the number of cells in one block.
-const int PACK_MIN_PLANE_SIZE = 12;       // a plane is only halved again while both sides exceed 11 pixels
+const int PACK_PLANE_SIZE_FLOOR = 11;   // a plane is only halved again while both sides exceed this many pixels
 const int PACK_QUALITY_LIMIT = 0x5a828;   // a level is only used while (quality << (6 + level)) stays below this
 const int QUALITY_MAX = 0x10000;  // quality scale: 1..QUALITY_MAX, QUALITY_MAX = finest quantisation
 

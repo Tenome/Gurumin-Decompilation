@@ -34,12 +34,12 @@ int ReadStreamHeader(PackStreamInfo *info, int *widths, int *heights, unsigned i
 
     int levels = header[HDR_LEVELS] + (header[HDR_LEVELS + 1] << 8);
     info->quantScale = quantScale;
+    int consumed = 0;
     info->levels = levels;
     unsigned int flagBits = LE32(header[HDR_FLAGS], header[HDR_FLAGS + 1], header[HDR_FLAGS + 2], header[HDR_FLAGS + 3]);
     *flags = flagBits;
 
     int recordCount = levels * 9;
-    int consumed = 0;
     unsigned char *record = records[0][0][0];
     while (recordCount > 0) {
         recordCount--;
@@ -272,12 +272,9 @@ void ToRgbBytes(const short *plane0, const short *plane1, const short *plane2, c
             unsigned int first = (v2 * -3 + v0) * 2 + SAMPLE_BIAS + v1 * -3;
             unsigned int second = (v1 + v0) * 2 + SAMPLE_BIAS;
             unsigned int third = (v0 + v2) * 2 + SAMPLE_BIAS + v1 * -3;
-            out[*outPosition] = SampleToByte(first);
-            (*outPosition)++;
-            out[*outPosition] = SampleToByte(second);
-            (*outPosition)++;
-            out[*outPosition] = SampleToByte(third);
-            (*outPosition)++;
+            out[(*outPosition)++] = SampleToByte(first);
+            out[(*outPosition)++] = SampleToByte(second);
+            out[(*outPosition)++] = SampleToByte(third);
         }
     }
 }

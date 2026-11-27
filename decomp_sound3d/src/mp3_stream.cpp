@@ -109,7 +109,6 @@ unsigned int Mp3Stream::Read(BYTE *buffer, unsigned int count)
     int remaining = count;
     int skipped;
     int step;
-    int blockBytes;
     int delivered;
 
     if (position < WAV_HEADER_BYTES) {
@@ -187,8 +186,7 @@ unsigned int Mp3Stream::Read(BYTE *buffer, unsigned int count)
         } else {
             Sleep(MP3_SMALL_READ_SLEEP_MS);
             if (decoder.outputUsed != 0) {
-                blockBytes = decoder.outputSize;
-                if (blockBytes > remaining) {
+                if (remaining < decoder.outputSize) {
                     if (remaining != 0) {
                         memcpy(buffer + (count - remaining), decoder.outputPtr + decoder.outputUsed, remaining);
                     }
@@ -198,7 +196,7 @@ unsigned int Mp3Stream::Read(BYTE *buffer, unsigned int count)
                     return count;
                 }
                 memcpy(buffer + (count - remaining), decoder.outputPtr + decoder.outputUsed,
-                       blockBytes - decoder.outputUsed);
+                       decoder.outputSize - decoder.outputUsed);
                 remaining += decoder.outputUsed - decoder.outputSize;
                 step = decoder.outputSize - decoder.outputUsed;
                 decoder.outputUsed = 0;

@@ -15,15 +15,8 @@ void GetBaseFileName(char *baseName, const char *path)
     int nameStart;
     int dotPos;
     int i;
-    int j;
-    char c;
 
-    j = 0;
-    do {
-        c = path[j];
-        buffer[j] = c;
-        j++;
-    } while (c != '\0');
+    strcpy(buffer, path);
     nameStart = 0;
     i = 0;
     dotPos = 0;
@@ -42,13 +35,9 @@ void GetBaseFileName(char *baseName, const char *path)
         dotPos = (int)strlen(buffer);
     }
     buffer[dotPos] = '\0';
-    j = 0;
-    do {
-        c = buffer[nameStart + j];
-        baseName[j] = c;
-        j++;
-    } while (c != '\0');
+    strcpy(baseName, buffer + nameStart);
 }
+
 
 // Seed of the running XOR of both checks.
 const unsigned int NAME_CHECK_XOR_SEED_A = 0xde2f;
@@ -94,6 +83,7 @@ int CheckNameKeyA(char *data, int length, char *name, int expectedSum, unsigned 
 int WaveStream::CheckKey(unsigned char *name, int expectedSum, unsigned int expectedXor)
 {
     unsigned char key[32];
+    unsigned char sharedKeyByte;    // key[6] and key[17] hold the same value
     int sum;
     unsigned int xorSum;
     int i;
@@ -105,7 +95,8 @@ int WaveStream::CheckKey(unsigned char *name, int expectedSum, unsigned int expe
     key[2] = name[5] ^ 0x10;
     key[4] = name[5] ^ 0x11;
     key[3] = name[1] ^ 0x42;
-    key[6] = name[7] ^ 0x3f;
+    sharedKeyByte = name[7] ^ 0x3f;
+    key[6] = sharedKeyByte;
     key[5] = name[3] ^ 0x2a;
     key[8] = name[3] ^ 0x23;
     key[7] = name[2] ^ 0x25;
@@ -116,7 +107,7 @@ int WaveStream::CheckKey(unsigned char *name, int expectedSum, unsigned int expe
     key[11] = name[1] ^ 0x57;
     key[12] = name[1] ^ 0x4d;
     key[19] = name[2] ^ 0x53;
-    key[17] = key[6];
+    key[17] = sharedKeyByte;
     key[18] = name[4] ^ 0xc;
     key[13] = name[4] ^ 0x11;
     key[25] = name[1] ^ 0x3e;
