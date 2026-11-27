@@ -54,10 +54,10 @@ int SoundChannel::IsPlaying()
         return 1;
     if (status & DSBSTATUS_LOOPING)
         return 1;
-    if (m_0204 != 0)
-        // The original read the tick clock against the last check here; the result is unused (the original keeps a
-        // dead reload of m_0204 after the call, which no spelling reproduced).
-        (void)(GetTickCount() - m_0204);
+    // The clock check that follows had no effect in the original either: both outcomes return 0 (the compiler keeps
+    // the tick-count call and the load of the timestamp).
+    if (m_0204 != 0 && m_0204 > GetTickCount())
+        return 0;
     return 0;
 }
 
@@ -419,9 +419,9 @@ int SoundChannel::Update3DPan()
         // max and min are the windows.h macros: they evaluate their arguments twice, which is the original's shape.
         float volume = max(0.0f, level);
         ApplyVolume((int)volume, 1);
-        pan = pan * SOFT3D_PAN_SCALE;
-        pan = min(max(-PAN_FULL, pan), PAN_FULL);
-        buffer->SetPan((LONG)pan);
+        float scaledPan = pan * SOFT3D_PAN_SCALE;
+        float clampedPan = min(max(-PAN_FULL, scaledPan), PAN_FULL);
+        buffer->SetPan((LONG)clampedPan);
     }
     return 0;
 }

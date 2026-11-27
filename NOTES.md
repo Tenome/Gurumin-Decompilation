@@ -681,3 +681,7 @@ other huge drafts (Bs00x_Update, DrawLit, RunScriptFrames) for the same gap.
   (APP Map_Unload: 24 calls vs 25); BMPPack's original even keeps a one-pass loop (`inc; cmp 1; jl`).
 - **Macros, not `const float`, for literal operands.** A `const float` object makes cl load the constant first and
   negate at run time; a macro literal gives `fld var; fmul [literal]` and a literal negative (sound3d Update3DPan).
+- **Temp registers follow live ranges, so store order matters.** Values stored twice get their register from how long
+  they stay live; interleaving the stores as the original did fixed an eax/ecx/edx rotation (APP Render_FillRect).
+- **Use the CRT's own inlines.** VC7 math.h `sinf` (an inline over `sin`) gives the original's double store/reload;
+  a hand-written `(float)sin(x)` wrapper does not (APP Region_WaveVertex).

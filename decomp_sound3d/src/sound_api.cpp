@@ -411,14 +411,15 @@ void ProcessCommandQueue(int unused)
                     stricmp(g_commandQueue[index].name, g_commandQueue[other].name) == 0)
                     g_commandQueue[other].command = CMD_NONE;
             }
-            float volume = g_commandQueue[index].value[5];
-            int hasPos = g_commandQueue[index].arg3;
-            int loop = g_commandQueue[index].arg4;
-            if (hasPos != 0) {
+            // arg3 = has a position (the three coordinates are then queued in value[0..2]), arg4 = loop, value[5] =
+            // volume. The queue entry is read in place for both calls.
+            if (g_commandQueue[index].arg3 != 0) {
                 IPlaySEB(g_commandQueue[index].name, &g_commandQueue[index].value[0], &g_commandQueue[index].value[1],
-                         &g_commandQueue[index].value[2], hasPos, loop, volume);
+                         &g_commandQueue[index].value[2], g_commandQueue[index].arg3, g_commandQueue[index].arg4,
+                         g_commandQueue[index].value[5]);
             } else {
-                IPlaySEB(g_commandQueue[index].name, 0, 0, 0, 0, loop, volume);
+                IPlaySEB(g_commandQueue[index].name, 0, 0, 0, 0, g_commandQueue[index].arg4,
+                         g_commandQueue[index].value[5]);
             }
             g_commandQueue[index].command = CMD_NONE;
         }

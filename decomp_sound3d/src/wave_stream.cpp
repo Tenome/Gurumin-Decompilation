@@ -418,19 +418,19 @@ int WaveStream::Read(BYTE *buffer, int bytes)
     }
     while (remaining > 0) {
         if (blockOffset != 0) {
-            copyBytes = decodeHeader.cbDstLengthUsed - blockOffset;
-            if ((DWORD)remaining <= copyBytes) {
+            if ((DWORD)remaining <= decodeHeader.cbDstLengthUsed - blockOffset) {
                 memcpy(dest, decodeHeader.pbDst + ADPCM_DECODED_SKIP + blockOffset, remaining);
                 position += remaining;
                 blockOffset += remaining;
                 filePosition += remaining;
                 return 1;
             }
-            memcpy(dest, decodeHeader.pbDst + ADPCM_DECODED_SKIP + blockOffset, copyBytes);
-            dest += copyBytes;
-            remaining -= copyBytes;
-            position += copyBytes;
-            filePosition += copyBytes;
+            memcpy(dest, decodeHeader.pbDst + ADPCM_DECODED_SKIP + blockOffset,
+                   decodeHeader.cbDstLengthUsed - blockOffset);
+            dest += decodeHeader.cbDstLengthUsed - blockOffset;
+            remaining -= decodeHeader.cbDstLengthUsed - blockOffset;
+            position += decodeHeader.cbDstLengthUsed - blockOffset;
+            filePosition += decodeHeader.cbDstLengthUsed - blockOffset;
             blockOffset = 0;
         }
         if (seekPending) {

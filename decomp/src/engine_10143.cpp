@@ -118,12 +118,14 @@ extern "C" int __stdcall FUN_10143bc0(int left, int top, int right, int bottom, 
     quad[3].v = quad[3].u = quad[2].v = quad[1].u = 0;
     float scaleX = (float)DAT_10202b34 / 640.0f;
     float scaleY = (float)DAT_10202b38 / 480.0f;
-    quad[2].x = (float)left * scaleX;
-    quad[0].y = (float)top * scaleY;
-    quad[1].y = (float)top * scaleY;
+    // Corner coordinates scaled from the 640x480 layout to the real back buffer. Each scaled value is used twice
+    // (two corners share a left, right, top or bottom edge) and the stores are interleaved like this in the original.
     quad[0].x = (float)left * scaleX;
+    quad[0].y = (float)top * scaleY;
     quad[1].x = (float)right * scaleX;
     quad[3].x = (float)right * scaleX;
+    quad[2].x = (float)left * scaleX;
+    quad[1].y = (float)top * scaleY;
     quad[2].y = (float)bottom * scaleY;
     quad[3].y = (float)bottom * scaleY;
     quad[2].u = quad[1].v = quad[0].v = quad[0].u = 0.001f;
@@ -163,18 +165,16 @@ extern "C" int FUN_10143e00(int left, int top, int right, int bottom, unsigned i
     quad[3].v = quad[3].u = quad[2].v = quad[1].u = 0;
     float scaleX = (float)DAT_10202b34 / 640.0f;
     float scaleY = (float)DAT_10202b38 / 480.0f;
-    float x0 = (float)left * scaleX;
-    quad[0].x = x0;
-    quad[2].x = x0;
-    float y0 = (float)top * scaleY;
-    quad[0].y = y0;
-    quad[1].y = y0;
-    float x1 = (float)right * scaleX;
-    quad[1].x = x1;
-    quad[3].x = x1;
-    float y1 = (float)bottom * scaleY;
-    quad[2].y = y1;
-    quad[3].y = y1;
+    // Corner coordinates scaled from the 640x480 layout to the real back buffer. Each scaled value is used twice
+    // (two corners share a left, right, top or bottom edge) and the stores are interleaved like this in the original.
+    quad[0].x = (float)left * scaleX;
+    quad[0].y = (float)top * scaleY;
+    quad[1].x = (float)right * scaleX;
+    quad[3].x = (float)right * scaleX;
+    quad[2].x = (float)left * scaleX;
+    quad[1].y = (float)top * scaleY;
+    quad[2].y = (float)bottom * scaleY;
+    quad[3].y = (float)bottom * scaleY;
     quad[2].u = quad[1].v = quad[0].v = quad[0].u = 0.001f;
     int opacity = (int)(alpha * 255.0f);
     if (opacity > 0xff)

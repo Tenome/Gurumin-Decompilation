@@ -1,18 +1,15 @@
 # sound3d.dll queue
 
-97 of 117 game functions matched (batch 402). Open functions, closest first (fuzzy % from the build):
+100 of 117 game functions matched (batch 403). Open functions, closest first (fuzzy % from the build):
 
 - 10003640 ?Open@MmioFile@@QAEHPBD0@Z, 1085 bytes, 98%
 - 10006810 ?PlaySE@SoundChannel@@QAEHPBDHPAM11111HM@Z, 4140 bytes, 92%
 - 10007840 ?Update3DPan@SoundChannel@@QAEHXZ, 774 bytes, 84%
-- 1000a3a0 ?ProcessCommandQueue@@YAXH@Z, 843 bytes, 83%
 - 10001630 ?LoadSource@Mp3Stream@@QAEXXZ, 222 bytes, 79%
-- 100058f0 ?IsPlaying@SoundChannel@@QAEHXZ, 116 bytes, 71%
 - 10008790 ?InitTrackedAllocator@@YAXXZ, 254 bytes, 65%
 - 10008890 _MixOpen, 1663 bytes, 54%
 - 10002e70 ?CheckKey@WaveStream@@QAEHPAEHI@Z, 553 bytes, 50%
 - 10001ec0 ?RewindDecoder@OggStream@@QAEHXZ, 421 bytes, 48%
-- 10003e80 ?Read@OggStream@@QAEHPAEH@Z, 592 bytes, 47%
 - 10006250 ?FindOrLoadSound@@YAHPBD@Z, 1193 bytes, 41%
 - 10001710 ?Read@Mp3Stream@@QAEIPAEI@Z, 1226 bytes, 38%
 - 10001ce0 ?StartDecoder@OggStream@@QAEHXZ, 470 bytes, 21%
@@ -36,6 +33,8 @@ Notes:
 - SoundChannel::Open (103 bytes): separate early returns give the shrink-wrapped saves; format field order left.
 - Batch 402: WaveStream::Read now 2128 vs 2154 bytes (DecodeNextBlock __forceinline: the third site was missing; only
   four stack slots differ); Update3DPan 85 bytes (windows.h min/max, constants as macros); SoundChannel::Open 52 bytes.
+- Batch 403: IsPlaying (dead timestamp check, both outcomes return 0), ProcessCommandQueue (queue entry read in
+  place, one IPlaySEB call per branch), OggStream::Read (each branch finishes its own state updates: cross-jumped).
 - InitTrackedAllocator: a char[8] local reproduces the cookie exactly, but no real use for one is known yet.
 - MmioFile::Open: original has plainPath at 0x140 and datPath at 0x340 (ours reversed); declaration order has no effect.
 - OggStream::Read: `lastBlock - skipped + position` compiles as (position - skipped) + lastBlock in ours.

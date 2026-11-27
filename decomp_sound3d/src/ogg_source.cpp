@@ -98,8 +98,7 @@ int OggStream::Read(BYTE *buffer, int bytes)
     }
     while (remaining > 0) {
         if (blockOffset != 0) {
-            copied = blockLength - blockOffset;
-            if (copied > remaining) {
+            if (blockLength - blockOffset > remaining) {
                 memcpy(buffer + (bytes - remaining), pcmBuffer + blockOffset, remaining);
                 position += remaining;
                 blockPosition = position;
@@ -107,8 +106,13 @@ int OggStream::Read(BYTE *buffer, int bytes)
                 m_2734 = 0;
                 return bytes;
             }
-            memcpy(buffer + (bytes - remaining), pcmBuffer + blockOffset, copied);
-            remaining -= copied;
+            memcpy(buffer + (bytes - remaining), pcmBuffer + blockOffset, blockLength - blockOffset);
+            remaining -= blockLength - blockOffset;
+            copied = blockLength - blockOffset;
+            position += copied;
+            blockPosition = position;
+            blockOffset = 0;
+            m_2734 = 0;
         } else {
             if (!FeedChunk()) {
                 return 0;
@@ -125,11 +129,11 @@ int OggStream::Read(BYTE *buffer, int bytes)
             }
             memcpy(buffer + (bytes - remaining), pcmBuffer, copied);
             remaining -= copied;
+            position += copied;
+            blockPosition = position;
+            blockOffset = 0;
+            m_2734 = 0;
         }
-        position += copied;
-        blockPosition = position;
-        blockOffset = 0;
-        m_2734 = 0;
     }
     return bytes;
 }

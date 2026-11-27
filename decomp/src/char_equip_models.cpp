@@ -73,11 +73,13 @@ int FUN_100404e0(int index, int mount, int clothes, int head, int weapon, int sk
         return 0;
     if ((mount != 0 || clothes != 0 || head != 0 || weapon != 0) && DAT_102548c0[index] == 0 && DAT_1030b668[index] == 0)
     {
+        // the character's own kind, read once: it is stored and tested for "no kind" (stored as -1)
+        int savedKind = DAT_10daaae8[index].kind;
         DAT_104679a0[index] = DAT_10daaae8[index].m_0143;
-        DAT_1030b668[index] = DAT_10daaae8[index].kind;
+        DAT_1030b668[index] = savedKind;
         DAT_10314ec0[index] = DAT_10daaae8[index].stats[STAT_EFFECT_PARAM];
         DAT_1021f440[index] = DAT_10daaae8[index].stats[STAT_VALUE_4];
-        if (DAT_10daaae8[index].kind == 0)
+        if (savedKind == 0)
             DAT_1030b668[index] = -1;
     }
     int marks = DAT_104679a0[index];

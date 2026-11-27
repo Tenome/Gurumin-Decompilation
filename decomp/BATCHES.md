@@ -464,3 +464,4 @@ Each finished batch adds two new ones, taken from the medium-function section of
 | 400 | 38 | match | helper DLLs round 4: Packs PutBits, UnpackRecords (29 of 51); sound3d GetPosition, WaveStream::Tell/Open, CheckNameKeyA, MixerControls ctor (97 of 117); ProcessCommandQueue typed; 1048 of 1391 |
 | 401 | 38 | match | round 5: Packs MMV3, DequantizeBand, DecodeChunk (32 of 51); APP Screenshot_ReadBackBuffer (912); TransformLevel transcribed; NOTES inline-site rule; 1052 of 1391 |
 | 402 | 38 | match | round 6: APP DShowStream::Open, Node::BuildMesh, Map_Unload, Companion0_Update (916); Packs BMPPack (33 of 51); InverseWaveletLevel transcribed, WaveStream::Read closer; 1057 of 1391 |
+| 403 | 38 | match | round 7: APP Render_DrawGradientQuad, Render_FillRect, Char_PutOnEquipment (919); sound3d IsPlaying, ProcessCommandQueue, OggStream::Read (100 of 117); 1063 of 1391 |

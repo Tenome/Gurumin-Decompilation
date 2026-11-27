@@ -42,12 +42,6 @@ extern "C" int FUN_10021070(int index)
     return FUN_101ae4d0(&corner, &DAT_108392d8, 50.0f) != 0;
 }
 
-// sin on floats (an inline helper).
-inline float Sin(float angle)
-{
-    return (float)sin(angle);
-}
-
 // 0x100211a0 (Region_WaveVertex). Moves vertex `point` of region `index` by sine waves of the frame counter: 15 units
 // in x and y (periods of 240 and 300 frames) and 10 in z (356 frames), half a period later when exactly one of the
 // point's two values has an odd hundreds digit. The offsets add up from frame to frame. Returns 0.
@@ -62,9 +56,9 @@ extern "C" int FUN_100211a0(int index, int point)
     float angleX = (float)(DAT_104bf8a4 % 240) * 0.026179167f + phase;
     float angleY = (float)(DAT_104bf8a4 % 300) * 0.020943332f + phase;
     float angleZ = (float)(DAT_104bf8a4 % 356) * 0.017648876f + phase;
-    DAT_104c03c0[index].vertices[point].x += Sin(angleX) * 15.0f;
-    DAT_104c03c0[index].vertices[point].y += Sin(angleY) * 15.0f;
-    DAT_104c03c0[index].vertices[point].z += Sin(angleZ) * 10.0f;
+    DAT_104c03c0[index].vertices[point].x += sinf(angleX) * 15.0f;
+    DAT_104c03c0[index].vertices[point].y += sinf(angleY) * 15.0f;
+    DAT_104c03c0[index].vertices[point].z += sinf(angleZ) * 10.0f;
     return 0;
 }
 

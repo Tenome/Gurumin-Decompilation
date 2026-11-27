@@ -1,25 +1,25 @@
 {
  "measures": {
-  "fuzzy_match_percent": 51.8662,
+  "fuzzy_match_percent": 51.9217,
   "total_code": "1789623",
-  "matched_code": "410129",
-  "matched_code_percent": 22.9171,
+  "matched_code": "419890",
+  "matched_code_percent": 23.4625,
   "total_data": "0",
   "matched_data": "0",
   "matched_data_percent": 0.0,
   "total_functions": 1391,
-  "matched_functions": 1057,
-  "matched_functions_percent": 75.9885,
+  "matched_functions": 1063,
+  "matched_functions_percent": 76.4198,
   "complete_code": "6861",
   "complete_code_percent": 0.3834,
   "complete_data": "0",
   "complete_data_percent": 0.0,
   "total_units": 494,
-  "complete_units": 220,
-  "matched_rules_code": "409502",
-  "matched_rules_code_percent": 22.882,
-  "matched_rules_functions": 1056,
-  "matched_rules_functions_percent": 75.9166
+  "complete_units": 224,
+  "matched_rules_code": "419263",
+  "matched_rules_code_percent": 23.4274,
+  "matched_rules_functions": 1062,
+  "matched_rules_functions_percent": 76.348
  },
  "units": [
   {
@@ -4203,46 +4203,46 @@
   {
    "name": "app/char_equip_models",
    "measures": {
-    "fuzzy_match_percent": 98.0,
+    "fuzzy_match_percent": 100.0,
     "total_code": "7072",
-    "matched_code": "0",
-    "matched_code_percent": 0.0,
+    "matched_code": "7072",
+    "matched_code_percent": 100.0,
     "total_data": "0",
     "matched_data": "0",
     "matched_data_percent": 0.0,
     "total_functions": 1,
-    "matched_functions": 0,
-    "matched_functions_percent": 0.0,
-    "complete_code": "0",
-    "complete_code_percent": 0.0,
+    "matched_functions": 1,
+    "matched_functions_percent": 100.0,
+    "complete_code": "7072",
+    "complete_code_percent": 100.0,
     "complete_data": "0",
     "complete_data_percent": 0.0,
     "total_units": 1,
-    "complete_units": 0,
-    "matched_rules_code": "0",
-    "matched_rules_code_percent": 0.0,
-    "matched_rules_functions": 0,
-    "matched_rules_functions_percent": 0.0
+    "complete_units": 1,
+    "matched_rules_code": "7072",
+    "matched_rules_code_percent": 100.0,
+    "matched_rules_functions": 1,
+    "matched_rules_functions_percent": 100.0
    },
    "sections": [
     {
      "name": ".text",
      "size": "7072",
-     "fuzzy_match_percent": 98.0
+     "fuzzy_match_percent": 100.0
     }
    ],
    "functions": [
     {
      "name": "?FUN_100404e0@@YAHHHHHHHH@Z",
      "size": "7072",
-     "fuzzy_match_percent": 98.0,
+     "fuzzy_match_percent": 100.0,
      "metadata": {
       "virtual_address": "268698848"
      }
     }
    ],
    "metadata": {
-    "complete": false,
+    "complete": true,
     "source_path": "decomp/src/char_equip_models.cpp"
    }
   },
@@ -9645,32 +9645,32 @@
   {
    "name": "app/engine_10143",
    "measures": {
-    "fuzzy_match_percent": 98.965,
+    "fuzzy_match_percent": 100.0,
     "total_code": "2199",
-    "matched_code": "1061",
-    "matched_code_percent": 48.2492,
+    "matched_code": "2199",
+    "matched_code_percent": 100.0,
     "total_data": "0",
     "matched_data": "0",
     "matched_data_percent": 0.0,
     "total_functions": 13,
-    "matched_functions": 11,
-    "matched_functions_percent": 84.6154,
-    "complete_code": "0",
-    "complete_code_percent": 0.0,
+    "matched_functions": 13,
+    "matched_functions_percent": 100.0,
+    "complete_code": "2199",
+    "complete_code_percent": 100.0,
     "complete_data": "0",
     "complete_data_percent": 0.0,
     "total_units": 1,
-    "complete_units": 0,
-    "matched_rules_code": "1061",
-    "matched_rules_code_percent": 48.2492,
-    "matched_rules_functions": 11,
-    "matched_rules_functions_percent": 84.6154
+    "complete_units": 1,
+    "matched_rules_code": "2199",
+    "matched_rules_code_percent": 100.0,
+    "matched_rules_functions": 13,
+    "matched_rules_functions_percent": 100.0
    },
    "sections": [
     {
      "name": ".text",
      "size": "2199",
-     "fuzzy_match_percent": 98.965
+     "fuzzy_match_percent": 100.0
     }
    ],
    "functions": [
@@ -9749,7 +9749,7 @@
     {
      "name": "_FUN_10143bc0@32",
      "size": "572",
-     "fuzzy_match_percent": 98.0,
+     "fuzzy_match_percent": 100.0,
      "metadata": {
       "virtual_address": "269761472"
      }
@@ -9757,7 +9757,7 @@
     {
      "name": "_FUN_10143e00",
      "size": "566",
-     "fuzzy_match_percent": 98.0,
+     "fuzzy_match_percent": 100.0,
      "metadata": {
       "virtual_address": "269762048"
      }
@@ -9780,7 +9780,7 @@
     }
    ],
    "metadata": {
-    "complete": false,
+    "complete": true,
     "source_path": "decomp/src/engine_10143.cpp"
    }
   },
@@ -13581,7 +13581,7 @@
   {
    "name": "app/map_place_characters",
    "measures": {
-    "fuzzy_match_percent": 43.2168,
+    "fuzzy_match_percent": 43.2386,
     "total_code": "3516",
     "matched_code": "0",
     "matched_code_percent": 0.0,
@@ -13606,14 +13606,14 @@
     {
      "name": ".text",
      "size": "3516",
-     "fuzzy_match_percent": 43.2168
+     "fuzzy_match_percent": 43.2386
     }
    ],
    "functions": [
     {
      "name": "_FUN_1005def0",
      "size": "3516",
-     "fuzzy_match_percent": 43.2168,
+     "fuzzy_match_percent": 43.2386,
      "metadata": {
       "virtual_address": "268820208"
      }
@@ -20031,7 +20031,7 @@
   {
    "name": "app/region_view",
    "measures": {
-    "fuzzy_match_percent": 46.8741,
+    "fuzzy_match_percent": 50.937,
     "total_code": "1944",
     "matched_code": "290",
     "matched_code_percent": 14.9177,
@@ -20056,7 +20056,7 @@
     {
      "name": ".text",
      "size": "1944",
-     "fuzzy_match_percent": 46.8741
+     "fuzzy_match_percent": 50.937
     }
    ],
    "functions": [
@@ -20071,7 +20071,7 @@
     {
      "name": "_FUN_100211a0",
      "size": "466",
-     "fuzzy_match_percent": 73.8839,
+     "fuzzy_match_percent": 90.8333,
      "metadata": {
       "virtual_address": "268571040"
      }
@@ -28779,32 +28779,32 @@
   {
    "name": "sound3d/ogg_source",
    "measures": {
-    "fuzzy_match_percent": 70.0274,
+    "fuzzy_match_percent": 100.0,
     "total_code": "1044",
-    "matched_code": "452",
-    "matched_code_percent": 43.295,
+    "matched_code": "1044",
+    "matched_code_percent": 100.0,
     "total_data": "0",
     "matched_data": "0",
     "matched_data_percent": 0.0,
     "total_functions": 2,
-    "matched_functions": 1,
-    "matched_functions_percent": 50.0,
-    "complete_code": "0",
-    "complete_code_percent": 0.0,
+    "matched_functions": 2,
+    "matched_functions_percent": 100.0,
+    "complete_code": "1044",
+    "complete_code_percent": 100.0,
     "complete_data": "0",
     "complete_data_percent": 0.0,
     "total_units": 1,
-    "complete_units": 0,
-    "matched_rules_code": "452",
-    "matched_rules_code_percent": 43.295,
-    "matched_rules_functions": 1,
-    "matched_rules_functions_percent": 50.0
+    "complete_units": 1,
+    "matched_rules_code": "1044",
+    "matched_rules_code_percent": 100.0,
+    "matched_rules_functions": 2,
+    "matched_rules_functions_percent": 100.0
    },
    "sections": [
     {
      "name": ".text",
      "size": "1044",
-     "fuzzy_match_percent": 70.0274
+     "fuzzy_match_percent": 100.0
     }
    ],
    "functions": [
@@ -28819,14 +28819,14 @@
     {
      "name": "?Read@OggStream@@QAEHPAEH@Z",
      "size": "592",
-     "fuzzy_match_percent": 47.1429,
+     "fuzzy_match_percent": 100.0,
      "metadata": {
       "virtual_address": "268451456"
      }
     }
    ],
    "metadata": {
-    "complete": false,
+    "complete": true,
     "source_path": "decomp_sound3d/src/ogg_source.cpp"
    }
   },
@@ -28927,32 +28927,32 @@
   {
    "name": "sound3d/sound_api",
    "measures": {
-    "fuzzy_match_percent": 97.7253,
+    "fuzzy_match_percent": 100.0,
     "total_code": "4851",
-    "matched_code": "4008",
-    "matched_code_percent": 82.6221,
+    "matched_code": "4851",
+    "matched_code_percent": 100.0,
     "total_data": "0",
     "matched_data": "0",
     "matched_data_percent": 0.0,
     "total_functions": 30,
-    "matched_functions": 29,
-    "matched_functions_percent": 96.6667,
-    "complete_code": "0",
-    "complete_code_percent": 0.0,
+    "matched_functions": 30,
+    "matched_functions_percent": 100.0,
+    "complete_code": "4851",
+    "complete_code_percent": 100.0,
     "complete_data": "0",
     "complete_data_percent": 0.0,
     "total_units": 1,
-    "complete_units": 0,
-    "matched_rules_code": "4008",
-    "matched_rules_code_percent": 82.6221,
-    "matched_rules_functions": 29,
-    "matched_rules_functions_percent": 96.6667
+    "complete_units": 1,
+    "matched_rules_code": "4851",
+    "matched_rules_code_percent": 100.0,
+    "matched_rules_functions": 30,
+    "matched_rules_functions_percent": 100.0
    },
    "sections": [
     {
      "name": ".text",
      "size": "4851",
-     "fuzzy_match_percent": 97.7253
+     "fuzzy_match_percent": 100.0
     }
    ],
    "functions": [
@@ -29175,7 +29175,7 @@
     {
      "name": "?ProcessCommandQueue@@YAXH@Z",
      "size": "843",
-     "fuzzy_match_percent": 86.9104,
+     "fuzzy_match_percent": 100.0,
      "metadata": {
       "virtual_address": "268477344"
      }
@@ -29198,7 +29198,7 @@
     }
    ],
    "metadata": {
-    "complete": false,
+    "complete": true,
     "source_path": "decomp_sound3d/src/sound_api.cpp"
    }
   },
@@ -29329,32 +29329,32 @@
   {
    "name": "sound3d/sound_channel",
    "measures": {
-    "fuzzy_match_percent": 96.8159,
+    "fuzzy_match_percent": 96.9252,
     "total_code": "4713",
-    "matched_code": "3130",
-    "matched_code_percent": 66.4121,
+    "matched_code": "3246",
+    "matched_code_percent": 68.8733,
     "total_data": "0",
     "matched_data": "0",
     "matched_data_percent": 0.0,
     "total_functions": 19,
-    "matched_functions": 16,
-    "matched_functions_percent": 84.2105,
+    "matched_functions": 17,
+    "matched_functions_percent": 89.4737,
     "complete_code": "0",
     "complete_code_percent": 0.0,
     "complete_data": "0",
     "complete_data_percent": 0.0,
     "total_units": 1,
     "complete_units": 0,
-    "matched_rules_code": "3130",
-    "matched_rules_code_percent": 66.4121,
-    "matched_rules_functions": 16,
-    "matched_rules_functions_percent": 84.2105
+    "matched_rules_code": "3246",
+    "matched_rules_code_percent": 68.8733,
+    "matched_rules_functions": 17,
+    "matched_rules_functions_percent": 89.4737
    },
    "sections": [
     {
      "name": ".text",
      "size": "4713",
-     "fuzzy_match_percent": 96.8159
+     "fuzzy_match_percent": 96.9252
     }
    ],
    "functions": [
@@ -29369,7 +29369,7 @@
     {
      "name": "?IsPlaying@SoundChannel@@QAEHXZ",
      "size": "116",
-     "fuzzy_match_percent": 90.1786,
+     "fuzzy_match_percent": 100.0,
      "metadata": {
       "virtual_address": "268458224"
      }
@@ -29481,7 +29481,7 @@
     {
      "name": "?Update3DPan@SoundChannel@@QAEHXZ",
      "size": "774",
-     "fuzzy_match_percent": 88.6968,
+     "fuzzy_match_percent": 87.8906,
      "metadata": {
       "virtual_address": "268466240"
      }
@@ -29745,7 +29745,7 @@
   {
    "name": "sound3d/wave_stream",
    "measures": {
-    "fuzzy_match_percent": 80.8859,
+    "fuzzy_match_percent": 87.299,
     "total_code": "5015",
     "matched_code": "2861",
     "matched_code_percent": 57.0489,
@@ -29770,7 +29770,7 @@
     {
      "name": ".text",
      "size": "5015",
-     "fuzzy_match_percent": 80.8859
+     "fuzzy_match_percent": 87.299
     }
    ],
    "functions": [
@@ -29825,7 +29825,7 @@
     {
      "name": "?Read@WaveStream@@QAEHPAEH@Z",
      "size": "2154",
-     "fuzzy_match_percent": 55.4981,
+     "fuzzy_match_percent": 70.4291,
      "metadata": {
       "virtual_address": "268454944"
      }

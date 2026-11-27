@@ -108,7 +108,7 @@ static __forceinline int ConditionsHold(const MapPlacement &record)
 }
 
 // Takes the helmet off the model of `slot` (if it has one).
-static void RemoveHelmet(int slot)
+static __forceinline void RemoveHelmet(int slot)
 {
     Node *helmet = DAT_10db6ee8[slot].root->Find(HELMET_NODE, 0);
     if (helmet != 0)
