@@ -16,3 +16,5 @@ tools/native/*.obj
 dist/
 build/pyinstaller/
 build/port/
+decomp_packs/build/
+decomp_packs/triage.tsv

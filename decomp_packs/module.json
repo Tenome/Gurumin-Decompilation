@@ -1,0 +1,13 @@
+{
+  "dll": "Packs.dll",
+  "unit_prefix": "packs/",
+  "report": "progress/jp/packs.json",
+  "game_start": "10001000",
+  "game_end": "10007170",
+  "title": "Gurumin (JP PC) Packs.dll matching decompilation",
+  "extra_functions": {
+    "10004a70": "BMPUnpack",
+    "10005470": "SaveJpeg",
+    "10005650": "MMV3"
+  }
+}

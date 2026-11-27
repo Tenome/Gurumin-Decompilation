@@ -1,0 +1,5 @@
+# mangled name<TAB>address, for functions whose names carry no address (constructors, operators)
+??0PackFile@@QAE@XZ	10006180
+??1PackFile@@QAE@XZ	10006190
+?Tell@PackFile@@QAEJXZ	10006210
+?Seek@PackFile@@QAEHJH@Z	10006220

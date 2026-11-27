@@ -1,0 +1,510 @@
+{
+ "measures": {
+  "fuzzy_match_percent": 0.2894,
+  "total_code": "24531",
+  "matched_code": "71",
+  "matched_code_percent": 0.2894,
+  "total_data": "0",
+  "matched_data": "0",
+  "matched_data_percent": 0.0,
+  "total_functions": 51,
+  "matched_functions": 4,
+  "matched_functions_percent": 7.8431,
+  "complete_code": "0",
+  "complete_code_percent": 0.0,
+  "complete_data": "0",
+  "complete_data_percent": 0.0,
+  "total_units": 2,
+  "complete_units": 1,
+  "matched_rules_code": "71",
+  "matched_rules_code_percent": 0.2894,
+  "matched_rules_functions": 4,
+  "matched_rules_functions_percent": 7.8431
+ },
+ "units": [
+  {
+   "name": "packs/pack_file",
+   "measures": {
+    "fuzzy_match_percent": 100.0,
+    "total_code": "71",
+    "matched_code": "71",
+    "matched_code_percent": 100.0,
+    "total_data": "0",
+    "matched_data": "0",
+    "matched_data_percent": 0.0,
+    "total_functions": 4,
+    "matched_functions": 4,
+    "matched_functions_percent": 100.0,
+    "complete_code": "71",
+    "complete_code_percent": 100.0,
+    "complete_data": "0",
+    "complete_data_percent": 0.0,
+    "total_units": 1,
+    "complete_units": 1,
+    "matched_rules_code": "71",
+    "matched_rules_code_percent": 100.0,
+    "matched_rules_functions": 4,
+    "matched_rules_functions_percent": 100.0
+   },
+   "sections": [
+    {
+     "name": ".text",
+     "size": "71",
+     "fuzzy_match_percent": 100.0
+    }
+   ],
+   "functions": [
+    {
+     "name": "??0PackFile@@QAE@XZ",
+     "size": "9",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268460416"
+     }
+    },
+    {
+     "name": "??1PackFile@@QAE@XZ",
+     "size": "26",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268460432"
+     }
+    },
+    {
+     "name": "?Tell@PackFile@@QAEJXZ",
+     "size": "12",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268460560"
+     }
+    },
+    {
+     "name": "?Seek@PackFile@@QAEHJH@Z",
+     "size": "24",
+     "fuzzy_match_percent": 100.0,
+     "metadata": {
+      "virtual_address": "268460576"
+     }
+    }
+   ],
+   "metadata": {
+    "complete": true,
+    "source_path": "decomp_packs/src/pack_file.cpp"
+   }
+  },
+  {
+   "name": "packs/unmatched",
+   "measures": {
+    "fuzzy_match_percent": 0.0,
+    "total_code": "24460",
+    "matched_code": "0",
+    "matched_code_percent": 0.0,
+    "total_data": "0",
+    "matched_data": "0",
+    "matched_data_percent": 0.0,
+    "total_functions": 47,
+    "matched_functions": 0,
+    "matched_functions_percent": 0.0,
+    "complete_code": "0",
+    "complete_code_percent": 0.0,
+    "complete_data": "0",
+    "complete_data_percent": 0.0,
+    "total_units": 1,
+    "complete_units": 0,
+    "matched_rules_code": "0",
+    "matched_rules_code_percent": 0.0,
+    "matched_rules_functions": 0,
+    "matched_rules_functions_percent": 0.0
+   },
+   "sections": [
+    {
+     "name": ".text",
+     "size": "24460",
+     "fuzzy_match_percent": 0.0
+    }
+   ],
+   "functions": [
+    {
+     "name": "FUN_10001000",
+     "size": "1470",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268439552"
+     }
+    },
+    {
+     "name": "FUN_100015c0",
+     "size": "907",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268441024"
+     }
+    },
+    {
+     "name": "FUN_10001950",
+     "size": "124",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268441936"
+     }
+    },
+    {
+     "name": "FUN_100019d0",
+     "size": "1954",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268442064"
+     }
+    },
+    {
+     "name": "FUN_10002180",
+     "size": "2611",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268444032"
+     }
+    },
+    {
+     "name": "FUN_10002bc0",
+     "size": "340",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268446656"
+     }
+    },
+    {
+     "name": "FUN_10002d20",
+     "size": "1338",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268447008"
+     }
+    },
+    {
+     "name": "FUN_10003260",
+     "size": "558",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268448352"
+     }
+    },
+    {
+     "name": "FUN_10003490",
+     "size": "359",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268448912"
+     }
+    },
+    {
+     "name": "FUN_10003600",
+     "size": "474",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268449280"
+     }
+    },
+    {
+     "name": "FUN_100037e0",
+     "size": "594",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268449760"
+     }
+    },
+    {
+     "name": "FUN_10003a40",
+     "size": "159",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268450368"
+     }
+    },
+    {
+     "name": "FUN_10003ae0",
+     "size": "201",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268450528"
+     }
+    },
+    {
+     "name": "FUN_10003bb0",
+     "size": "471",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268450736"
+     }
+    },
+    {
+     "name": "FUN_10003d90",
+     "size": "206",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268451216"
+     }
+    },
+    {
+     "name": "FUN_10003e60",
+     "size": "689",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268451424"
+     }
+    },
+    {
+     "name": "FUN_10004120",
+     "size": "656",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268452128"
+     }
+    },
+    {
+     "name": "FUN_100043b0",
+     "size": "222",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268452784"
+     }
+    },
+    {
+     "name": "FUN_10004490",
+     "size": "168",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268453008"
+     }
+    },
+    {
+     "name": "FUN_10004540",
+     "size": "737",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268453184"
+     }
+    },
+    {
+     "name": "FUN_10004830",
+     "size": "576",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268453936"
+     }
+    },
+    {
+     "name": "FUN_10004a70",
+     "size": "823",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268454512"
+     }
+    },
+    {
+     "name": "FUN_10004db0",
+     "size": "147",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268455344"
+     }
+    },
+    {
+     "name": "FUN_10004e50",
+     "size": "345",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268455504"
+     }
+    },
+    {
+     "name": "FUN_10004fb0",
+     "size": "1209",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268455856"
+     }
+    },
+    {
+     "name": "FUN_10005470",
+     "size": "465",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268457072"
+     }
+    },
+    {
+     "name": "FUN_10005650",
+     "size": "682",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268457552"
+     }
+    },
+    {
+     "name": "FUN_10005900",
+     "size": "305",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268458240"
+     }
+    },
+    {
+     "name": "FUN_10005a40",
+     "size": "439",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268458560"
+     }
+    },
+    {
+     "name": "FUN_10005c00",
+     "size": "588",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268459008"
+     }
+    },
+    {
+     "name": "FUN_10005e50",
+     "size": "580",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268459600"
+     }
+    },
+    {
+     "name": "FUN_100060a0",
+     "size": "213",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268460192"
+     }
+    },
+    {
+     "name": "FUN_100061b0",
+     "size": "85",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268460464"
+     }
+    },
+    {
+     "name": "FUN_10006240",
+     "size": "121",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268460608"
+     }
+    },
+    {
+     "name": "FUN_100062c0",
+     "size": "38",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268460736"
+     }
+    },
+    {
+     "name": "FUN_100062f0",
+     "size": "85",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268460784"
+     }
+    },
+    {
+     "name": "FUN_10006350",
+     "size": "109",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268460880"
+     }
+    },
+    {
+     "name": "FUN_100063c0",
+     "size": "771",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268460992"
+     }
+    },
+    {
+     "name": "FUN_100066d0",
+     "size": "321",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268461776"
+     }
+    },
+    {
+     "name": "FUN_10006820",
+     "size": "80",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268462112"
+     }
+    },
+    {
+     "name": "FUN_10006870",
+     "size": "89",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268462192"
+     }
+    },
+    {
+     "name": "FUN_100068d0",
+     "size": "125",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268462288"
+     }
+    },
+    {
+     "name": "FUN_10006950",
+     "size": "235",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268462416"
+     }
+    },
+    {
+     "name": "FUN_10006a40",
+     "size": "996",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268462656"
+     }
+    },
+    {
+     "name": "FUN_10006e30",
+     "size": "81",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268463664"
+     }
+    },
+    {
+     "name": "FUN_10006e90",
+     "size": "585",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268463760"
+     }
+    },
+    {
+     "name": "FUN_100070e0",
+     "size": "129",
+     "fuzzy_match_percent": 0.0,
+     "metadata": {
+      "virtual_address": "268464352"
+     }
+    }
+   ],
+   "metadata": {
+    "complete": false,
+    "source_path": ""
+   }
+  }
+ ]
+}
