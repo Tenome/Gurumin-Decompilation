@@ -33,6 +33,8 @@
 #include "scene_reset.h"
 #include "script_system.h"
 #include "world.h"
+#include "boss_voice.h"
+#include "last_position.h"
 
 #define BS001_PI 3.1415f
 #define BS001_TWO_PI 6.283f
@@ -48,6 +50,20 @@
 // Height the faded-out models wait at.
 #define BS001_FADE_PARK_Z 600.0f
 #define BS001_FADE_PARK_PARTNER_Z 1200.0f
+
+// Voice cooldowns (frames the neighbouring boss keeps quiet after a line).
+#define BS001_VOICE_COOLDOWN_FADE 0x2d
+#define BS001_VOICE_COOLDOWN_STAND 0x2d
+#define BS001_VOICE_COOLDOWN_SHOUT 0x1e
+#define BS001_VOICE_GETS_UP 0x1e5
+// State 4 is not used: it falls through to the move chooser.
+#define BS001_IDLE_UNUSED 4
+// Node flag toggled on the door nodes "@mp_105t1" / "@mp_105t2" while the boss rises.
+#define BS001_DOOR_FLAG 0x20
+// Script flag that tells how far the story is (the rise effects run faster at 2).
+#define BS001_STAGE_FLAG 0x1c7
+// Where the boss waits while it rises.
+#define BS001_RISE_PARK_X -60000.0f
 
 // Motions the boss plays (Bs001State::motion).
 #define BS001_MOTION_WALK 0
@@ -128,6 +144,9 @@
 #define BS001_DEFEAT_DUMMY_FRAME 0x1e
 #define BS001_DEFEAT_CAMERA_DELAY 0xa0
 #define BS001_DEFEAT_START_VALUE -30
+// Where the defeat camera sits relative to the boss (before it is turned): to the side and behind.
+#define BS001_CAMERA_SIDE 950.0f
+#define BS001_CAMERA_BACK 200.0f
 
 static inline float Atan2(float y, float x)
 {
@@ -151,38 +170,76 @@ static __forceinline float WrapAngle(float angle)
 
 // Starts effect `effect` for the boss at `position`, attached to `owner` (a node's world matrix) with the given
 // matrix and options.
-static void BossEffect(int index, int effect, const Vec4 &position, const Matrix4 *owner, const Matrix4 *matrix,
+static __forceinline void BossEffect(int index, int effect, const Vec4 &position, const Matrix4 *owner, const Matrix4 *matrix,
                        const EffectOptions *options)
 {
     FUN_1001d8b0(index, effect, position, -1, -1, owner, 0, 0, matrix, options);
 }
 
 // Starts effect `effect` at the world matrix of bone `bone` (if the boss has it) with the boss's effect options.
-static void BoneEffect(int index, int effect, const Vec4 &position, Node *bone, const EffectOptions *options)
+static __forceinline void BoneEffect(int index, int effect, const Vec4 &position, Node *bone, const EffectOptions *options)
 {
     if (bone != 0)
         FUN_1001d8b0(index, effect, position, -1, -1, 0, 0, 0, &bone->worldMatrix, options);
 }
 
 // Hides model `model` far away.
-static void HideModel(AnimModel &model)
+static __forceinline void HideModel(AnimModel &model)
 {
     model.SetPosition(BS001_HIDDEN_X, 0.0f, 0.0f);
 }
 
 // Turns the boss's goal heading towards `direction` (x/y of a vector from the boss to somewhere).
-static void FaceDirection(AnimModel &model, const Vec4 &direction)
+static __forceinline void FaceDirection(AnimModel &model, const Vec4 &direction)
 {
     model.targetHeading = (float)atan2(direction.x, direction.y) + BS001_PI;
 }
 
 // Pushes the boss forwards (along its heading) by the 2D length of `direction`, unless enemies are frozen.
-static void PushForwards(AnimModel &model, Vec4 &direction)
+static __forceinline void PushForwards(AnimModel &model, Vec4 &direction)
 {
     direction.y = -direction.Length2D();
     direction.x = 0.0f;
     direction.RotateZ(-model.heading);
     model.Push(direction.x, direction.y, 0.0f);
+}
+
+// Starts the attach effect (a flash bound to the bone) on `bone`, if the boss has it.
+static __forceinline void AttachEffect(int index, const Vec4 &position, Node *bone)
+{
+    if (bone != 0)
+        BossEffect(index, BS001_EFFECT_ATTACH, position, &bone->worldMatrix, 0, 0);
+}
+
+// Starts a weapon trail effect that follows `node`, if the boss has it.
+static __forceinline void TrailEffect(int index, int effect, const Vec4 &position, Node *node, const EffectOptions *options)
+{
+    if (node != 0)
+        BossEffect(index, effect, position, &node->worldMatrix, 0, options);
+}
+
+// A footstep: the dust effect at the foot bone and its sound.
+static __forceinline void Footstep(int index, Node *foot, const Vec4 &effectPos, Matrix4 &boneMatrix)
+{
+    if (foot != 0)
+    {
+        boneMatrix = foot->worldMatrix;
+        BossEffect(index, BS001_EFFECT_FOOTSTEP, effectPos, 0, &boneMatrix, 0);
+        Vec4 stepPosition = boneMatrix.GetTranslation();
+        FUN_10054550(BS001_SOUND_STEP_FIRST, 5, &stepPosition);
+    }
+}
+
+// A footstep of the claw chase motions: the dust effect and a positional sound loop effect.
+static __forceinline void StepSound(int index, Node *foot, const Vec4 &effectPos, Matrix4 &boneMatrix)
+{
+    if (foot != 0)
+    {
+        boneMatrix = foot->worldMatrix;
+        BossEffect(index, BS001_EFFECT_FOOTSTEP, effectPos, 0, &boneMatrix, 0);
+        Vec4 stepPosition = boneMatrix.GetTranslation();
+        FUN_1003ad20(BS001_SOUND_STEP_FIRST, &stepPosition, 1.0f);
+    }
 }
 
 // 0x1010c650 (Bs001_Update; C++ linkage). One frame of the BS_001 boss in slot `index`.
@@ -205,7 +262,7 @@ int Bs001_Update(int index)
     {
         DAT_1020b430[index + 2].bs001Fade.fadeOut = 1;
         if (DAT_10c66cc0 != 0)
-            FUN_100b9bb0(index, BS001_VOICE_FADE, 1, 1);
+            BossSayLine(index, BS001_VOICE_FADE, BS001_VOICE_COOLDOWN_FADE);
     }
     if (DAT_10daaae8[DAT_10daaae8[index].m_00a4].stats[STAT_PICKUPS] == 100)
     {
@@ -472,8 +529,10 @@ int Bs001_Update(int index)
             DAT_10874848.MarkKilled(DAT_10daaae8[index].routeRecord);
             model.SetPosition(BS001_HIDDEN_X, 0.0f, 0.0f);
             DAT_10db6ee8[index + 1].SetPosition(BS001_HIDDEN_X, 0.0f, 0.0f);
-            for (int part = 0; part < BS001_PART_COUNT; part++)
-                DAT_10db6ee8[BS001_PART_FIRST + part].SetPosition(BS001_HIDDEN_X, 0.0f, 0.0f);
+            DAT_10db6ee8[BS001_PART_FIRST].SetPosition(BS001_HIDDEN_X, 0.0f, 0.0f);
+            DAT_10db6ee8[BS001_PART_FIRST + 1].SetPosition(BS001_HIDDEN_X, 0.0f, 0.0f);
+            DAT_10db6ee8[BS001_PART_FIRST + 2].SetPosition(BS001_HIDDEN_X, 0.0f, 0.0f);
+            DAT_10db6ee8[BS001_PART_FIRST + 3].SetPosition(BS001_HIDDEN_X, 0.0f, 0.0f);
             DAT_104c00c8 = 0;
             DAT_104c0354 = 0;
             DAT_11018734 = 1;
@@ -507,14 +566,18 @@ int Bs001_Update(int index)
             DAT_10868818.Copy(DAT_118e6cb8);
             model.root->M_101946b0(0, 0xffffffff);
             DAT_10db6ee8[index + 1].root->M_101946b0(0, 0xffffffff);
-            for (int part = 0; part < BS001_PART_COUNT; part++)
-                parts[part].root->M_101946b0(0, 0xffffffff);
+            parts[0].root->M_101946b0(0, 0xffffffff);
+            parts[1].root->M_101946b0(0, 0xffffffff);
+            parts[2].root->M_101946b0(0, 0xffffffff);
+            parts[3].root->M_101946b0(0, 0xffffffff);
             model.alpha = 1.0f;
             DAT_10db6ee8[index + 1].alpha = 1.0f;
             DAT_104c00c8 = 1;
             DAT_10453008[index] = -10001;
-            for (int part = 0; part < BS001_PART_COUNT; part++)
-                parts[part].alpha = 0.0f;
+            parts[0].alpha = 0.0f;
+            parts[1].alpha = 0.0f;
+            parts[2].alpha = 0.0f;
+            parts[3].alpha = 0.0f;
         }
         int timer = DAT_1020b430[index].bs001.defeatTimer;
         if (timer > 0)
@@ -612,23 +675,81 @@ int Bs001_Update(int index)
             else
                 parts[1].scale.Fill(0.0f);
         }
-        for (int part = 0; part < BS001_PART_COUNT; part++)
-            parts[part].m_0294 = 1;
+        parts[0].m_0294 = 1;
+        parts[1].m_0294 = 1;
+        parts[2].m_0294 = 1;
+        parts[3].m_0294 = 1;
+        DAT_1020b430[index].bs001.defeatTimer++;
         parts[0].motionFrame = model.motionFrame;
         parts[1].motionFrame = model.motionFrame;
         parts[2].motionFrame = DAT_10db6ee8[index + 1].motionFrame;
         parts[3].motionFrame = DAT_10db6ee8[index + 1].motionFrame;
         parts[0].SetPosition(model.matrix._41, model.matrix._42, model.matrix._43);
-        parts[1].SetPosition(model.matrix._41, model.matrix._42, model.matrix._43);
         parts[2].SetPosition(DAT_10db6ee8[index + 1].matrix._41, DAT_10db6ee8[index + 1].matrix._42,
                              DAT_10db6ee8[index + 1].matrix._43);
-        parts[3].SetPosition(DAT_10db6ee8[index + 1].matrix._41, DAT_10db6ee8[index + 1].matrix._42,
-                             DAT_10db6ee8[index + 1].matrix._43);
+        if (DAT_104bfe80 < 2)
+        {
+            // Low effect detail leaves out the smoke pieces.
+            parts[1].SetPosition(BS001_HIDDEN_X, 0.0f, 0.0f);
+            parts[3].SetPosition(BS001_HIDDEN_X, 0.0f, 0.0f);
+        }
+        else
+        {
+            parts[1].SetPosition(model.matrix._41, model.matrix._42, model.matrix._43);
+            parts[3].SetPosition(DAT_10db6ee8[index + 1].matrix._41, DAT_10db6ee8[index + 1].matrix._42,
+                                 DAT_10db6ee8[index + 1].matrix._43);
+        }
         parts[1].alpha = parts[1].scale.w;
         parts[3].alpha = parts[1].scale.w;
         parts[0].alpha = parts[0].scale.w;
         parts[2].alpha = parts[0].scale.w;
-        DAT_1020b430[index].bs001.defeatTimer++;
+        parts[2].scale.Copy(parts[0].scale);
+        parts[3].scale.Copy(parts[1].scale);
+
+        // The camera circles the boss, then eases back out of walls and towards its resting distance.
+        Vec4 offset;
+        offset.Fill(0.0f);
+        offset.x += BS001_CAMERA_SIDE;
+        offset.y -= BS001_CAMERA_BACK;
+        float facing = FUN_10001f80(DAT_10868818.x - DAT_10da9150.x, DAT_10868818.y - DAT_10da9150.y);
+        float swing = (float)(DAT_1020b430[index].bs001.defeatTimer + 30);
+        offset.RotateZ(-(facing + BS001_PI) - swing * swing * 0.00003f - 0.04363f);
+        DAT_10edbd48.Copy(model.matrix.GetTranslation());
+        DAT_10edbd48.z += 400.0f;
+        DAT_10866d98.Copy(DAT_10edbd48 + offset * 1.6f);
+        if (DAT_1020b430[index].bs001.defeatTimer < 0xa1)
+        {
+            float remaining = (float)(0xa0 - DAT_1020b430[index].bs001.defeatTimer);
+            float travel = (remaining + 1.0f) * remaining * 0.5f;
+            travel = travel * travel;
+            float closeness = 1.0f - travel / 329241088.0f;
+            DAT_10866d98.Copy(DAT_10da9150 + (DAT_10866d98 - DAT_10da9150) * closeness);
+            DAT_10edbd48.Copy(DAT_10868818 + (DAT_10edbd48 - DAT_10868818) * closeness);
+        }
+        Vec4 wallHit;
+        if (DAT_10866d98.Length2D() > 1550.0f && DAT_10255f08 != 0 &&
+            DAT_10255f08->CastSegment("CA", 4, &DAT_10866d98, &DAT_10edbd48, &wallHit, 0) != 0)
+        {
+            float gap = (wallHit - DAT_10edbd48).Length();
+            if (gap <= 60.0f)
+                gap = gap * 0.75f;
+            else
+                gap = gap - 50.0f;
+            DAT_10866d98.Copy(DAT_10edbd48 + (DAT_10866d98 - DAT_10edbd48).Normalized3() * gap);
+            Vec4 playerSide = DAT_10da9150 - DAT_10868818;
+            playerSide.RotateZ(-0.1313f);
+            DAT_10da9150.Copy(DAT_10868818 + playerSide);
+        }
+        float distance = (DAT_10edbd48 - DAT_10866d98).Length();
+        if (distance <= DAT_10255160[index][0])
+            DAT_10255160[index][0] = distance;
+        else
+        {
+            DAT_10255160[index][0] = (distance - DAT_10255160[index][0]) * 0.3f + DAT_10255160[index][0];
+            DAT_10866d98.Copy(DAT_10edbd48 + (DAT_10866d98 - DAT_10edbd48).Normalized3() * DAT_10255160[index][0]);
+        }
+        DAT_11af3e28.Copy(DAT_10866d98);
+        DAT_118e6c78.Copy(DAT_10edbd48);
         return 1;
     }
 
@@ -642,13 +763,22 @@ int Bs001_Update(int index)
         parts[1].LoadFile(FUN_1013f8a0("bs_001pa.it3", 0));
         parts[2].LoadFile(FUN_1013f8a0("bs_001be.it3", 0));
         parts[3].LoadFile(FUN_1013f8a0("bs_001bp.it3", 0));
-        for (int part = 0; part < BS001_PART_COUNT; part++)
-        {
-            parts[part].LoadModel(FUN_1013f8a0("bs_001m.it3", 0));
-            parts[part].mode = 0;
-            parts[part].scale.Fill(0.0f);
-            HideModel(parts[part]);
-        }
+        parts[0].LoadModel(FUN_1013f8a0("bs_001m.it3", 0));
+        parts[1].LoadModel(FUN_1013f8a0("bs_001m.it3", 0));
+        parts[2].LoadModel(FUN_1013f8a0("bs_001m.it3", 0));
+        parts[3].LoadModel(FUN_1013f8a0("bs_001m.it3", 0));
+        parts[0].mode = 0;
+        parts[1].mode = 0;
+        parts[2].mode = 0;
+        parts[3].mode = 0;
+        parts[0].scale.Fill(0.0f);
+        parts[1].scale.Fill(0.0f);
+        parts[2].scale.Fill(0.0f);
+        parts[3].scale.Fill(0.0f);
+        HideModel(parts[0]);
+        HideModel(parts[1]);
+        HideModel(parts[2]);
+        HideModel(parts[3]);
         DAT_1020b430[index].bs001.initialised = 1;
         DAT_10836c70.ResetFrameTimer();
         Node *root = model.root;
@@ -702,512 +832,945 @@ int Bs001_Update(int index)
     }
 
     int hit = DAT_102550e0[index];
+    Bs001State &self = DAT_1020b430[index].bs001;
+    Bs001Aux &aux = DAT_1020b430[index + 1].bs001Aux;
+    LastPosition &lastMove = DAT_10802bf8[index];
+    Vec4 origin;
     if (hit == 0)
     {
-        Bs001Aux &next = DAT_1020b430[index + 1].bs001Aux;
-        switch (DAT_1020b430[index].bs001.state)
+        if (self.state == BS001_REST)
         {
-        case BS001_REST:
-            DAT_1020b430[index].bs001.motion = BS001_MOTION_IDLE;
-            DAT_1020b430[index].bs001.frame++;
-            if (DAT_1020b430[index].bs001.frame > 0x3c && FUN_1013f880() % 0x32 < 5)
-                DAT_1020b430[index].bs001.state = BS001_CHOOSE;
+            self.motion = BS001_MOTION_IDLE;
+            self.frame++;
+            if (self.frame > 0x3c && FUN_1013f880() % 0x32 < 5)
+                self.state = BS001_CHOOSE;
             if (syncFlag != 0)
-                DAT_1020b430[index].bs001.state = BS001_CHOOSE;
-            break;
-        case BS001_STAND_TURN:
-            DAT_1020b430[index].bs001.motion = BS001_MOTION_IDLE;
-            if (DAT_1020b430[index].bs001.frame == 0 && (FUN_1013f880() & 1) != 0)
-                FUN_100b9bb0(index, BS001_VOICE_STAND, 1, 1);
-            if (DAT_1020b430[index].bs001.frame % 0x28 == 0x14)
-                FUN_1001d8b0(index, BS001_EFFECT_BLOW, selfPos, -1, -1, 0, 0, 0, 0, 0);
-            DAT_1020b430[index].bs001.frame++;
-            if (DAT_1020b430[index].bs001.frame > 0x3c && DAT_1020b430[index].bs001.frame % 0x50 == 0xf && FUN_1013f880() % 0x32 < 0x19)
-                DAT_1020b430[index].bs001.state = BS001_CHOOSE;
-            if (syncFlag == 2)
-                DAT_1020b430[index].bs001.state = BS001_CHOOSE;
-            break;
-        case BS001_WALK:
-        case BS001_RUN:
+                self.state = BS001_CHOOSE;
+        }
+        else if (self.state == BS001_STAND_TURN)
         {
-            moveDir = moveDir - selfPos;
-            moveDir = Vec3_Normalized(&moveDir);
-            if (DAT_1020b430[index].bs001.state == BS001_WALK && DAT_10daaae8[index].held == 0)
-                DAT_1020b430[index].bs001.state = BS001_RUN;
+            self.motion = BS001_MOTION_IDLE;
+            if (self.frame == 0 && (FUN_1013f880() & 1) != 0 && DAT_10c66cc0 != 0)
+                BossSayLine(index, BS001_VOICE_STAND, BS001_VOICE_COOLDOWN_STAND);
+            if (self.frame % 0x28 == 0x14)
+                FUN_1001d8b0(index, BS001_EFFECT_BLOW, selfPos, -1, -1, 0, 0, 0, 0, 0);
+            self.frame++;
+            if (self.frame > 0x3c && self.frame % 0x50 == 0xf && FUN_1013f880() % 0x32 < 0x19)
+                self.state = BS001_CHOOSE;
+            if (syncFlag == 2)
+                self.state = BS001_CHOOSE;
+        }
+        else if (self.state == BS001_WALK)
+        {
+            temp = moveDir - selfPos;
+            moveDir.Copy(temp);
+            moveDir.Copy(Vec3_Normalized(&moveDir));
+            if (DAT_10daaae8[index].held == 0)
+            {
+                self.state = BS001_RUN;
+                self.frame = -1;
+            }
             else
-                moveDir = moveDir * (DAT_1020b430[index].bs001.state == BS001_WALK ? 5.0f : 8.0f);
+                moveDir.Copy(moveDir * 5.0f);
             FaceDirection(model, moveDir);
             if (DAT_104bfd08 == 0)
                 PushForwards(model, moveDir);
-            DAT_1020b430[index].bs001.motion = DAT_1020b430[index].bs001.state == BS001_WALK ? BS001_MOTION_WALK : BS001_MOTION_RUN;
-            if (DAT_1020b430[index].bs001.frame == 0)
+            self.motion = BS001_MOTION_WALK;
+            if (self.frame == 0)
                 restartMotion = 1;
-            DAT_1020b430[index].bs001.frame++;
-            if (DAT_1020b430[index].bs001.frame > 0x3c)
-                if (FUN_1013f880() % 100 < (DAT_1020b430[index].bs001.state == BS001_WALK ? 10 : 0x14))
-                    DAT_1020b430[index].bs001.state = BS001_CHOOSE;
+            self.frame++;
+            if (self.frame > 0x3c && FUN_1013f880() % 100 < 10)
+                self.state = BS001_CHOOSE;
             if (syncFlag == 2)
-                DAT_1020b430[index].bs001.state = BS001_CHOOSE;
-            break;
+                self.state = BS001_CHOOSE;
         }
-        case BS001_LUNGE:
+        else if (self.state == BS001_RUN)
+        {
+            temp = moveDir - selfPos;
+            moveDir.Copy(temp);
+            moveDir.Copy(Vec3_Normalized(&moveDir));
+            moveDir.Copy(moveDir * 8.0f);
+            FaceDirection(model, moveDir);
+            if (DAT_104bfd08 == 0)
+                PushForwards(model, moveDir);
+            self.motion = BS001_MOTION_RUN;
+            if (self.frame == 0)
+                restartMotion = 1;
+            self.frame++;
+            if (self.frame > 0x3c && FUN_1013f880() % 100 < 0x14)
+                self.state = BS001_CHOOSE;
+            if (syncFlag == 2)
+                self.state = BS001_CHOOSE;
+        }
+        else if (self.state == BS001_IDLE_UNUSED)
+            self.state = BS001_CHOOSE;
+        else if (self.state == BS001_LUNGE)
         {
             Vec4 lunge;
-            moveDir = moveDir - selfPos;
-            moveDir = Vec3_Normalized(&moveDir);
+            lunge.Fill(0.0f);
+            temp = moveDir - selfPos;
+            moveDir.Copy(temp);
+            moveDir.Copy(Vec3_Normalized(&moveDir));
             FaceDirection(model, moveDir);
-            lunge = (lunge + moveDir * 5.0f).Normalized3() * (5.0f * 1.8f);
-            if (DAT_1020b430[index].bs001.frame < 10)
-                lunge = lunge * 0.05f;
-            DAT_1020b430[index].bs001.motion = BS001_MOTION_STOMP;
+            moveDir.y = -moveDir.Length2D();
+            moveDir.x = 0.0f;
+            moveDir.RotateZ(-model.heading);
+            lunge.Copy(lunge + moveDir * 5.0f);
+            lunge.Normalized3();
+            lunge.Copy(lunge * 5.0f * 1.8f);
+            if (self.frame < 10)
+                lunge.Copy(lunge * 0.05f);
+            self.motion = BS001_MOTION_STOMP;
             if (DAT_104bfd08 == 0)
                 model.Push(lunge.x, lunge.y, lunge.z);
-            if (DAT_1020b430[index].bs001.frame % 0x28 > 3 && DAT_1020b430[index].bs001.frame % 0x28 < 0x25)
+            if (self.frame % 0x28 > 3 && self.frame % 0x28 < 0x25)
             {
+                Vec4 stompPos;
                 EffectOptions options;
                 options.flags |= 2;
-                BoneEffect(index, BS001_EFFECT_STOMP_R, lunge, DAT_1021bdf8[index][BS001_NODE_RIGHT_UPPER_ARM], &options);
-                BoneEffect(index, BS001_EFFECT_STOMP_L, lunge, DAT_1021bdf8[index][BS001_NODE_LEFT_UPPER_ARM], &options);
+                BoneEffect(index, BS001_EFFECT_STOMP_R, stompPos, DAT_1021bdf8[index][BS001_NODE_RIGHT_UPPER_ARM], &options);
+                BoneEffect(index, BS001_EFFECT_STOMP_L, stompPos, DAT_1021bdf8[index][BS001_NODE_LEFT_UPPER_ARM], &options);
                 DAT_1021f6c0[index] = 1;
             }
-            DAT_1020b430[index].bs001.frame++;
-            if (DAT_1020b430[index].bs001.frame % 0x28 == 0 && FUN_1013f880() % (DAT_1020b430[index].bs001.frame / 0x28 + 1) > 0)
+            self.frame++;
+            if (self.frame % 0x28 == 0 && FUN_1013f880() % (self.frame / 0x28 + 1) > 0)
             {
-                DAT_1020b430[index].bs001.motion = BS001_MOTION_IDLE;
-                DAT_1020b430[index].bs001.state = BS001_CHOOSE;
-                DAT_1020b430[index].bs001.frame = 0;
-                DAT_1020b430[index].bs001.finished = 1;
+                self.motion = BS001_MOTION_IDLE;
+                self.state = BS001_CHOOSE;
+                self.frame = 0;
+                self.finished = 1;
             }
-            if (DAT_1020b430[index].bs001.frame % 0x28 % 7 == 0 && DAT_1020b430[index].bs001.frame % 0x28 > 5)
+            if (self.frame % 0x28 % 7 == 0 && self.frame % 0x28 > 5)
                 FUN_10065b10(index, BS001_SOUND_STOMP, 1, 0);
-            break;
         }
-        case BS001_SHOUT:
+        else if (self.state == BS001_SHOUT)
         {
-            if (DAT_1020b430[index].bs001.frame == 0)
+            if (self.frame == 0)
             {
                 restartMotion = 1;
-                EffectOptions options;
-                options.owner = index;
+                EffectOptions ringOptions;
+                ringOptions.owner = index;
                 for (int ring = 0; ring < 3; ring++)
-                    FUN_1001d8b0(index, BS001_EFFECT_SHOUT_RING, selfPos, -1, -1, 0, 0, 0, 0, &options);
-                moveDir = moveDir - selfPos;
-                moveDir = Vec3_Normalized(&moveDir);
+                    FUN_1001d8b0(index, BS001_EFFECT_SHOUT_RING, selfPos, -1, -1, 0, 0, 0, 0, &ringOptions);
+                temp = moveDir - selfPos;
+                moveDir.Copy(temp);
+                moveDir.Copy(Vec3_Normalized(&moveDir));
                 FaceDirection(model, moveDir);
+                moveDir.y = -moveDir.Length2D();
+                moveDir.x = 0.0f;
+                moveDir.RotateZ(-model.targetHeading);
+                lastMove.position.Copy(moveDir);
+                if (DAT_10c66cc0 != 0)
+                    BossSayLine(index, BS001_VOICE_SHOUT, BS001_VOICE_COOLDOWN_SHOUT);
             }
-            DAT_1020b430[index].bs001.motion = BS001_MOTION_SHOUT;
-            DAT_1020b430[index].bs001.frame++;
-            if (DAT_1020b430[index].bs001.frame == 10)
+            self.motion = BS001_MOTION_SHOUT;
+            self.frame++;
+            if (self.frame == 1)
             {
-                Vec4 spawn = model.matrix.GetTranslation();
+                AttachEffect(index, origin, DAT_1021bdf8[index][BS001_NODE_RIGHT_HAND]);
+                AttachEffect(index, origin, DAT_1021bdf8[index][BS001_NODE_LEFT_HAND]);
+            }
+            if (self.frame == 10)
+            {
+                Vec4 spawn;
+                spawn.Copy(model.matrix.GetTranslation());
                 spawn.z += 50.0f;
+                EffectOptions sparkOptions;
+                sparkOptions.m_0004 = DAT_10daaae8[index].stats[3];
+                sparkOptions.flags |= 2;
+                sparkOptions.m_0000 = 0;
                 int rays = hardMode * 2 + 8;
                 for (int ray = 0; ray < rays; ray++)
                 {
-                    Matrix4 turn = RotationZ((float)ray * (2.0f / (float)rays) * BS001_PI + model.heading);
-                    Matrix4 placement = turn;
+                    Vec4 rayPos;
+                    rayPos.Fill(0.0f);
+                    Matrix4 placement;
+                    placement = RotationZ((float)ray * (2.0f / ((float)hardMode * 2.0f + 8.0f)) * BS001_PI + model.heading);
                     placement.SetTranslation(spawn);
-                    FUN_1001d8b0(index, ray == 0 ? BS001_EFFECT_SHOUT_SPARK : BS001_EFFECT_SHOUT_SPARK_OUTER, Vec4(),
-                                 -1, -1, 0, 0, 0, &placement, 0);
+                    FUN_1001d8b0(index, ray == 0 ? BS001_EFFECT_SHOUT_SPARK : BS001_EFFECT_SHOUT_SPARK_OUTER, rayPos, -1, -1,
+                                 0, 0, 0, &placement, &sparkOptions);
                 }
-                FUN_10065b10(index, BS001_SOUND_SHOUT_RING, 1, 0);
+                if (self.frame == 10)
+                    FUN_10065b10(index, BS001_SOUND_SHOUT_RING, 1, 0);
             }
-            if (DAT_1020b430[index].bs001.frame == 0x23)
+            if (self.frame == 0x23)
             {
                 model.PlayMotion(BS001_MOTION_IDLE, 1, 5, 1.0f);
-                DAT_1020b430[index].bs001.motion = BS001_MOTION_IDLE;
+                self.motion = BS001_MOTION_IDLE;
                 if (DAT_10daaae8[index].m_00a8 != 0)
                     partnerModel.PlayMotion(BS001_MOTION_IDLE, 1, 5, 1.0f);
-                DAT_1020b430[index].bs001.state = BS001_REST;
-                DAT_1020b430[index].bs001.frame = 0;
-                DAT_1020b430[index].bs001.finished = 1;
+                self.state = BS001_REST;
+                self.frame = 0;
+                self.finished = 1;
             }
-            break;
         }
-        case BS001_STAGGER:
-            if (DAT_1020b430[index].bs001.frame == 0)
+        else if (self.state == BS001_STAGGER)
+        {
+            int frameNow = self.frame;
+            if (frameNow == 0)
             {
                 restartMotion = 1;
-                DAT_1020b430[index + 1].bs001Aux.lastHitLevel = 2;
+                self.phase = 2;
             }
-            DAT_1020b430[index].bs001.motion = BS001_MOTION_HURT;
-            if (DAT_1020b430[index].bs001.frame > 0xd2)
+            self.motion = BS001_MOTION_HURT;
+            if (self.phase == 0 && DAT_10daaae8[index].stats[STAT_HEALTH] < DAT_10daaae8[index].stats[STAT_MAX_HEALTH] / 2)
             {
-                DAT_1020b430[index].bs001.state = BS001_DOWN;
-                DAT_1020b430[index].bs001.frame = 0;
+                self.phase = 2;
+                self.state = BS001_HURT_STAGGER;
             }
-            DAT_1020b430[index].bs001.frame++;
-            break;
-        case BS001_DOWN:
-            DAT_1020b430[index].bs001.frame++;
-            if (DAT_1020b430[index].bs001.frame == 1)
+            if (frameNow > 0xd2)
             {
-                DAT_1020b430[index].bs001.motion = BS001_MOTION_DOWN;
+                self.state = BS001_DOWN;
+                self.frame = 0;
+            }
+            self.frame++;
+        }
+        else if (self.state == BS001_DOWN)
+        {
+            self.frame++;
+            if (self.frame == 1)
+            {
+                self.motion = BS001_MOTION_DOWN;
                 restartMotion = 1;
             }
-            else if (DAT_1020b430[index].bs001.frame > 9)
+            else if (self.frame > 9)
             {
-                if (DAT_1020b430[index].bs001.frame < 0x1e)
+                if (self.frame < 0x1e)
                     model.SetPosition(model.matrix._41, model.matrix._42, model.matrix._43 + 50.0f);
                 else
                 {
-                    DAT_1020b430[index].bs001.state = BS001_RISE;
-                    DAT_1020b430[index].bs001.frame = 0;
-                    DAT_10db6ee8[index + 1].alpha = 1.0f;
+                    self.state = BS001_RISE;
+                    self.frame = 0;
+                    aux.m_0004 = 0;
                     DAT_104c00c8 = 1;
-                    FUN_100b9bb0(index, 0x1e5, 0, 0);
-                    DAT_1020b430[index].bs001.motion = BS001_MOTION_IDLE;
+                    model.alpha = 1.0f;
+                    FUN_100b9bb0(index, BS001_VOICE_GETS_UP, 0, 0);
+                    self.motion = BS001_MOTION_IDLE;
                 }
             }
-            break;
-        case BS001_RISE:
-            DAT_1020b430[index].bs001.motion = BS001_MOTION_IDLE;
-            if (DAT_1020b430[index].bs001.frame == 1)
+        }
+        else if (self.state == BS001_RISE)
+        {
+            self.motion = BS001_MOTION_IDLE;
+            if (self.frame == 1)
             {
+                if (DAT_10255f08 != 0)
+                {
+                    Node *doorA = DAT_10255f08->Find("@mp_105t1", 0);
+                    if (doorA != 0)
+                        doorA->SetFlags(BS001_DOOR_FLAG);
+                    Node *doorB = DAT_10255f08->Find("@mp_105t2", 0);
+                    if (doorB != 0)
+                        doorB->ClearFlags(BS001_DOOR_FLAG);
+                }
+                DAT_10db6ee8[PLAYER_SLOT].shadowHidden = 0;
+                DAT_104c00c8 = 0;
                 restartMotion = 1;
-                DAT_1020b430[index].bs001.homeX = (int)model.matrix._41;
-                DAT_1020b430[index].bs001.homeY = (int)model.matrix._42;
-                DAT_1020b430[index].bs001.homeZ = (int)model.matrix._43;
-                model.SetPosition(-60000.0f, 0.0f, 0.0f);
-                DAT_1020b430[index].bs001.frame++;
+                AnimModel &home = DAT_10daaae8[index].m_00a8 == 0 ? model : partnerModel;
+                Vec4 homePos;
+                homePos.Copy(home.matrix.GetTranslation());
+                self.homeX = (int)homePos.x;
+                self.homeY = (int)homePos.y;
+                self.homeZ = (int)homePos.z;
+                model.SetPosition(BS001_RISE_PARK_X, 0.0f, 0.0f);
+                self.frame++;
             }
             else
             {
                 DAT_10daaae8[index].m_0141 = 1;
-                if (DAT_1020b430[index].bs001.frame == 0xdc)
+                if ((DAT_10874848.TestScriptFlag(BS001_STAGE_FLAG) < 2 && self.frame % 0x2d == 1) ||
+                    (DAT_10874848.TestScriptFlag(BS001_STAGE_FLAG) == 2 && self.frame % 0x19 == 1))
                 {
-                    model.SetPosition((float)DAT_1020b430[index].bs001.homeX, (float)DAT_1020b430[index].bs001.homeY, (float)DAT_1020b430[index].bs001.homeZ);
-                    DAT_1020b430[index].bs001.state = BS001_REVIVE;
-                    DAT_1020b430[index].bs001.frame = 0;
+                    Vec4 dustPos;
+                    dustPos.Copy(DAT_10db6ee8[PLAYER_SLOT].matrix.GetTranslation());
+                    dustPos.x += (float)(FUN_1013f880() % 300 - 150);
+                    dustPos.z = 0.0f;
+                    dustPos.y += (float)(FUN_1013f880() % 300 - 150);
+                    EffectOptions dustOptions;
+                    dustOptions.m_0004 = (int)((float)DAT_10daaae8[index].stats[3] * 1.2f);
+                    dustOptions.m_0000 = 0;
+                    dustOptions.m_000e = 5;
+                    FUN_1001d8b0(index, BS001_EFFECT_RISE_DUST, dustPos, -1, -1, 0, 0, 0, 0, &dustOptions);
+                }
+                if (self.frame == 0xdc)
+                {
+                    model.SetPosition((float)self.homeX, (float)self.homeY, (float)self.homeZ);
+                    self.state = BS001_REVIVE;
+                    self.frame = 0;
                     FUN_100b9bb0(index, BS001_VOICE_RISE, 0, 1);
                 }
-                DAT_1020b430[index].bs001.frame++;
+                self.frame++;
             }
-            break;
-        case BS001_REVIVE:
-            DAT_1020b430[index].bs001.frame++;
-            DAT_1020b430[index].bs001.motion = BS001_MOTION_IDLE;
-            if (DAT_1020b430[index].bs001.frame == 0x1e)
+        }
+        else if (self.state == BS001_REVIVE)
+        {
+            self.frame++;
+            self.motion = BS001_MOTION_IDLE;
+            if (self.frame == 0x1e)
             {
-                DAT_1020b430[index].bs001.state = BS001_CHOOSE;
-                DAT_1020b430[index].bs001.frame = 0;
+                self.homeY = -1;
+                self.state = BS001_CHOOSE;
+                self.frame = 0;
                 DAT_10daaae8[index].m_0141 = 0;
+                Matrix4 burst;
                 FUN_10065b10(index, BS001_SOUND_SHOUT, 1, 0);
+                burst.SetIdentity();
+                origin.Fill(0.0f);
+                burst = model.matrix;
+                FUN_1001d8b0(index, BS001_EFFECT_SHOUT_CLOUD, origin, -1, -1, 0, 0, 0, &burst, 0);
             }
-            break;
-        case BS001_KNOCKED:
-            DAT_1020b430[index + 1].bs001Aux.attackCount = 0;
+        }
+        else if (self.state == BS001_KNOCKED)
+        {
+            aux.attackCount = 0;
             DAT_10daaae8[index].m_0141 = 1;
-            if (DAT_1020b430[index].bs001.frame == 0)
+            if (self.frame == 0)
             {
                 restartMotion = 1;
                 FUN_100b9bb0(index, BS001_VOICE_FALL_FIRST + (FUN_1013f880() & 1), 1, 0);
             }
-            DAT_1020b430[index].bs001.frame++;
-            DAT_1020b430[index].bs001.motion = BS001_MOTION_FALL;
+            self.frame++;
+            self.motion = BS001_MOTION_FALL;
+            if (model.motionFrame == 0x133)
+            {
+                DAT_10daaae8[index].m_00a8 = 0;
+                partnerModel.PlayMotion(0xf, 1, 0, 1.0f);
+                self.homeY = 0;
+                Vec4 thrown;
+                thrown.y = -16.0f;
+                thrown.RotateZ(-model.heading);
+                aux.knockZ = 5000;
+                aux.knockX = (int)(thrown.x * 100.0f);
+                aux.knockY = (int)(thrown.y * 100.0f);
+                aux.knockActive = 1;
+            }
             if (model.motionFrame == 0x15d)
             {
-                DAT_1020b430[index].bs001.motion = BS001_MOTION_IDLE;
-                DAT_1020b430[index].bs001.state = BS001_REST;
-                DAT_1020b430[index].bs001.frame = 0;
-                DAT_1020b430[index].bs001.finished = 1;
+                self.motion = BS001_MOTION_IDLE;
+                self.state = BS001_REST;
+                self.frame = 0;
+                self.finished = 1;
                 DAT_10daaae8[index].m_0141 = 0;
                 DAT_10daaae8[index].held = 0;
             }
-            break;
-        case BS001_RETREAT:
+        }
+        else if (self.state == BS001_RETREAT)
+        {
+            aux.knockZ = 0;
+            aux.knockX = 0;
+            aux.knockY = 0;
+            aux.knockActive = 0;
             DAT_10daaae8[index].m_0141 = 1;
-            if (DAT_1020b430[index].bs001.frame == 0)
+            if (self.frame == 0)
             {
                 restartMotion = 1;
+                partnerModel.PlayMotion(0x11, 1, 0, 1.0f);
                 FUN_100b9bb0(index, BS001_VOICE_RETREAT, 0, 0);
             }
-            DAT_1020b430[index].bs001.motion = BS001_MOTION_DOWN;
-            DAT_1020b430[index].bs001.frame++;
-            if (DAT_1020b430[index].bs001.frame == 5)
+            self.frame++;
+            self.motion = BS001_MOTION_DOWN;
+            if (self.frame == 5)
                 DAT_10daaae8[index].m_00a8 = 1;
-            else if (DAT_1020b430[index].bs001.frame == 10)
+            else if (self.frame == 10)
             {
-                DAT_1020b430[index].bs001.state = BS001_CHOOSE;
-                DAT_1020b430[index].bs001.frame = 0;
+                self.state = BS001_CHOOSE;
+                self.frame = 0;
                 DAT_10daaae8[index].m_0141 = 0;
                 DAT_10daaae8[index].held = 1;
             }
-            break;
-        case BS001_PUNCH:
-        case BS001_CLAW:
-        case BS001_SMASH:
-        case BS001_CHASE:
-        case BS001_SMASH_FAST:
-            // The remaining moves share the same shape: face the player, push towards him inside a frame window
-            // of the motion, flash the hand effects and return to the dispatcher when the motion ends.
-            if (DAT_1020b430[index].bs001.frame == 0)
+        }
+        else if (self.state == BS001_PUNCH)
+        {
+            self.motion = 5;
+            if (self.frame == 0)
             {
                 restartMotion = 1;
-                FUN_100b9bb0(index, DAT_1020b430[index].bs001.state == BS001_PUNCH ? BS001_VOICE_PUNCH : DAT_1020b430[index].bs001.state == BS001_CLAW ? BS001_VOICE_CLAW : BS001_VOICE_SMASH, 0, 1);
+                temp = moveDir - selfPos;
+                lastMove.position.Copy(temp);
+                lastMove.position.Normalized3();
+                lastMove.position.Copy(lastMove.position * 5.0f);
+                FUN_100b9bb0(index, BS001_VOICE_PUNCH, 0, 1);
             }
-            DAT_1020b430[index].bs001.motion = DAT_1020b430[index].bs001.state == BS001_PUNCH ? 5 : DAT_1020b430[index].bs001.state == BS001_CLAW ? 0x15 : BS001_MOTION_SMASH;
-            moveDir = moveDir - selfPos;
-            moveDir = Vec3_Normalized(&moveDir);
+            moveDir.Copy(lastMove.position);
+            DAT_1021f6c0[index] = 1;
+            if (self.frame < 10 || self.frame > 0x16)
+                moveDir.Copy(moveDir * 0.01f);
+            if (self.frame == 10)
+            {
+                Node *hand = DAT_1021bdf8[index][BS001_NODE_LEFT_HAND];
+                if (hand != 0)
+                {
+                    Vec4 flashPos;
+                    Matrix4 flashPose;
+                    EffectOptions flashOptions;
+                    AttachEffect(index, flashPos, hand);
+                    flashPose = RotationZ(model.heading);
+                    flashPose.SetTranslation(hand->worldMatrix.GetTranslation());
+                    flashOptions.m_0004 = DAT_10daaae8[index].stats[3];
+                    flashOptions.flags |= 2;
+                    flashOptions.m_0000 = 0;
+                    BossEffect(index, BS001_EFFECT_PUNCH_FLASH, flashPos, 0, &flashPose, &flashOptions);
+                    FUN_10065b10(index, BS001_SOUND_PUNCH, 1, 0);
+                }
+            }
+            if (self.frame > 4 && self.frame < 0x19)
+            {
+                Vec4 trailPos;
+                Matrix4 trailPose;
+                trailPose = RotationZ(model.heading);
+                Node *finger = DAT_1021bdf8[index][BS001_NODE_LEFT_FINGER];
+                if (finger != 0)
+                {
+                    trailPose.SetTranslation(finger->worldMatrix.GetTranslation());
+                    BossEffect(index, BS001_EFFECT_PUNCH_TRAIL, trailPos, 0, &trailPose, 0);
+                }
+            }
             FaceDirection(model, moveDir);
-            if (model.motionFrame > BS001_SMASH_FRAME_FIRST && model.motionFrame < BS001_SMASH_FRAME_LAST &&
-                DAT_104bfd08 == 0)
+            if (DAT_104bfd08 == 0)
+                model.Push(moveDir.x, moveDir.y, 0.0f);
+            self.frame++;
+            if (self.frame > 0x19)
             {
-                PushForwards(model, moveDir);
-                DAT_1021f6c0[index] = 1;
+                self.motion = BS001_MOTION_IDLE;
+                self.state = BS001_CHOOSE;
+                self.frame = 0;
+                self.finished = 1;
             }
-            if (DAT_1020b430[index].bs001.frame == 3)
-                FUN_10065b10(index, BS001_SOUND_SMASH_HIT, 1, 0);
-            DAT_1020b430[index].bs001.frame++;
-            if (model.motionFrame == BS001_SMASH_END_FRAME)
-            {
-                DAT_1020b430[index].bs001.motion = BS001_MOTION_IDLE;
-                DAT_1020b430[index].bs001.state = BS001_CHOOSE;
-                DAT_1020b430[index].bs001.frame = 0;
-                DAT_1020b430[index].bs001.finished = 1;
-            }
-            break;
-        case BS001_CHOOSE:
+        }
+        else if (self.state == BS001_CLAW)
         {
-            DAT_1020b430[index + 1].bs001Aux.attackCount++;
-            DAT_1020b430[index + 1].bs001Aux.streak++;
-            DAT_1020b430[index].bs001.frame = 0;
-            float gap = (selfPos - moveDir).Length2D();
-            if (DAT_1020b430[index].bs001.phase == 0)
+            Vec4 clawPos;
+            clawPos.Fill(0.0f);
+            if (self.frame == 0)
             {
-                if (DAT_10daaae8[index].m_00a8 != 0)
+                restartMotion = 1;
+                FUN_100b9bb0(index, BS001_VOICE_CLAW, 0, 1);
+            }
+            self.motion = 0x15;
+            temp = moveDir - selfPos;
+            moveDir.Copy(temp);
+            moveDir.Copy(Vec3_Normalized(&moveDir));
+            FaceDirection(model, moveDir);
+            if (model.motionFrame == 0x2b5 || model.motionFrame == 0x2ad)
+            {
+                Matrix4 clawPose;
+                EffectOptions clawOptions;
+                Node *foot = Bs001BoneNode(model.motionFrame == 0x2b5 ? BS001_BONE_LEFT_FOOT : BS001_BONE_RIGHT_FOOT);
+                clawPose = RotationZ(model.heading);
+                if (foot != 0)
                 {
-                    int last = DAT_1020b430[index + 1].bs001Aux.lastState;
-                    if (last == BS001_REST || last == BS001_STAND_TURN || last == BS001_WALK)
-                    {
-                        int pick = FUN_1013f880() % 3;
-                        DAT_1020b430[index].bs001.state = pick == 0 ? BS001_WALK : pick == 1 ? BS001_LUNGE : BS001_SHOUT;
-                    }
-                    else
-                    {
-                        DAT_1020b430[index].bs001.state = BS001_STAND_TURN;
-                        DAT_1020b430[index + 1].bs001Aux.attackCount = 0;
-                    }
+                    clawPose.SetTranslation(foot->worldMatrix.GetTranslation());
+                    clawOptions.m_0004 = DAT_10daaae8[index].stats[3];
+                    clawOptions.m_0000 = 0;
+                    clawOptions.m_000e = 5;
+                    BossEffect(index, BS001_EFFECT_CLAW_FLASH, clawPos, 0, &clawPose, &clawOptions);
                 }
-                else if (DAT_1020b430[index + 1].bs001Aux.attackCount < 7 || FUN_1013f880() % 100 >= (DAT_1020b430[index + 1].bs001Aux.attackCount - 4) * 5)
+                FUN_10065b10(index, BS001_SOUND_CLAW, 1, 0);
+            }
+            if (self.frame > 10 && self.frame < 0x5dc)
+                DAT_1021f6c0[index] = 1;
+            self.frame++;
+            if (model.motionFrame == 0x2b7 && FUN_1013f880() % 0x32 <= self.frame / 0xf)
+                self.frame = 0x5dc;
+            if (self.frame > 0x5db)
+            {
+                Vec4 chase;
+                if (self.frame == 0x5dc)
+                    restartMotion = 1;
+                self.motion = 0x17;
+                chase.Fill(0.0f);
+                temp = moveDir - selfPos;
+                moveDir.Copy(temp);
+                moveDir.Copy(Vec3_Normalized(&moveDir));
+                FaceDirection(model, moveDir);
+                moveDir.y = -moveDir.Length2D();
+                moveDir.x = 0.0f;
+                moveDir.RotateZ(-model.heading);
+                chase.Copy(chase + moveDir * 5.0f);
+                chase.Normalized3();
+                chase.Copy(chase * 0.2f);
+                if (DAT_104bfd08 == 0)
+                    model.Push(chase.x, chase.y, 0.0f);
+                if (model.motionFrame == 0x2c1)
                 {
-                    unsigned int pick = FUN_1013f880() & 3;
-                    if (DAT_1020b430[index + 1].bs001Aux.attackCount != 1 || gap <= 650.0f)
-                    {
-                        if (pick == 0)
-                            DAT_1020b430[index].bs001.state = BS001_WALK;
-                        else if (pick == 1)
-                            DAT_1020b430[index].bs001.state = BS001_LUNGE;
-                        else if (pick == 2 || (pick == 3 && gap >= 400.0f))
-                            DAT_1020b430[index].bs001.state = BS001_SHOUT;
-                        else
-                            DAT_1020b430[index].bs001.state = BS001_SMASH;
-                    }
+                    self.motion = BS001_MOTION_IDLE;
+                    self.state = BS001_CHOOSE;
+                    self.frame = 0;
+                    self.finished = 1;
                 }
+            }
+        }
+        else if (self.state == BS001_SMASH || self.state == BS001_SMASH_FAST)
+        {
+            bool fast = self.state == BS001_SMASH_FAST;
+            if (fast)
+                DAT_10daaae8[index].m_0141 = 1;
+            if (self.frame == 0)
+            {
+                restartMotion = 1;
+                if (fast)
+                    quickBlend = 1;
+                FUN_100b9bb0(index, BS001_VOICE_SMASH, 0, 1);
+            }
+            int swing = model.motionFrame;
+            self.motion = BS001_MOTION_SMASH;
+            if (swing > BS001_SMASH_FRAME_FIRST && swing < BS001_SMASH_FRAME_LAST)
+            {
+                Vec4 push;
+                push.Fill(0.0f);
+                if (fast)
+                    moveDir.Copy(partnerModel.matrix.GetTranslation());
+                temp = moveDir - selfPos;
+                moveDir.Copy(temp);
+                moveDir.Copy(Vec3_Normalized(&moveDir));
+                FaceDirection(model, moveDir);
+                moveDir.y = -moveDir.Length2D();
+                moveDir.x = 0.0f;
+                moveDir.RotateZ(-model.heading);
+                moveDir.Copy(moveDir * 12.0f);
+                if (model.motionFrame < 0x249)
+                    moveDir.Copy(moveDir * 0.8f + lastMove.position * 0.2f);
                 else
-                {
-                    DAT_1020b430[index].bs001.state = BS001_REST;
-                    DAT_1020b430[index + 1].bs001Aux.attackCount = 0;
-                }
-                if (DAT_1020b430[index + 1].bs001Aux.streak > 6 && FUN_1013f880() % 0x32 < DAT_1020b430[index + 1].bs001Aux.streak * 2 - 12)
-                    DAT_1020b430[index].bs001.state = BS001_STAGGER;
+                    moveDir.Copy(lastMove.position * 0.8f);
+                lastMove.position.Copy(moveDir);
+                if (DAT_104bfd08 == 0)
+                    model.Push(moveDir.x, moveDir.y, 0.0f);
             }
-            else if (DAT_1020b430[index].bs001.phase == 1)
+            swing = model.motionFrame;
+            if (swing > 0x23a && swing < 0x256)
+                DAT_1021f6c0[index] = 1;
+            if (swing > BS001_SMASH_FRAME_FIRST)
+                DAT_10daaae8[index].m_0141 = 1;
+            if (self.frame == 3)
+                FUN_10065b10(index, BS001_SOUND_SMASH_HIT, 1, 0);
+            swing = model.motionFrame;
+            self.frame++;
+            if (!fast && swing > 0x280)
+                DAT_10daaae8[index].m_0141 = 0;
+            if (swing == BS001_SMASH_END_FRAME)
             {
-                DAT_1020b430[index].bs001.state = BS001_HURT_STAGGER;
-                DAT_1020b430[index].bs001.phase = 2;
-                DAT_1020b430[index + 1].bs001Aux.streak = 0;
+                self.motion = BS001_MOTION_IDLE;
+                self.state = BS001_CHOOSE;
+                self.frame = 0;
+                self.finished = 1;
+                DAT_10daaae8[index].m_0141 = 0;
             }
-            else if (DAT_10daaae8[index].m_00a8 == 0)
+        }
+        else if (self.state == BS001_CHASE)
+        {
+            self.motion = BS001_MOTION_RUN;
+            moveDir.Copy(DAT_10db6ee8[PLAYER_SLOT].matrix.GetTranslation());
+            temp = moveDir - selfPos;
+            moveDir.Copy(temp);
+            if (moveDir.Length() >= 150.0f)
             {
-                if (DAT_1020b430[index + 1].bs001Aux.attackCount < 7 || FUN_1013f880() % 100 >= (DAT_1020b430[index + 1].bs001Aux.attackCount - 5) * 5)
+                moveDir.Copy(Vec3_Normalized(&moveDir));
+                moveDir.Copy(moveDir * 10.0f);
+                FaceDirection(model, moveDir);
+                if (DAT_104bfd08 == 0)
                 {
-                    unsigned int pick = FUN_1013f880() % 9;
-                    if (pick == 0 && FUN_1013f880() % 5 != 0)
-                        pick = (FUN_1013f880() & 7) + 1;
-                    if (DAT_1020b430[index + 1].bs001Aux.attackCount != 1 || gap <= 450.0f)
+                    moveDir.y = -moveDir.Length2D();
+                    moveDir.x = 0.0f;
+                    moveDir.RotateZ(-model.heading);
+                    model.Push(moveDir.x, moveDir.y, 0.0f);
+                    float travelled = BS001_PI - FUN_10001f80(moveDir.x, moveDir.y);
+                    float expected = BS001_PI - FUN_10001f80(model.matrix._41 - selfPos.x, model.matrix._42 - selfPos.y);
+                    float skew = travelled - expected;
+                    while (skew > BS001_PI)
+                        skew -= BS001_TWO_PI;
+                    while (skew < -BS001_PI)
+                        skew += BS001_TWO_PI;
+                    bool pickNext = model.IsClearAny(&moveDir) == 0;
+                    if (!pickNext)
+                        pickNext = (DAT_10db6ee8[PLAYER_SLOT].matrix.GetTranslation() - selfPos).Length2D() < 500.0f &&
+                                   fabsf(skew) < 0.7854f;
+                    if (pickNext)
                     {
-                        if (pick == 1)
-                            DAT_1020b430[index].bs001.state = BS001_LUNGE;
-                        else if (pick == 2)
-                            DAT_1020b430[index].bs001.state = BS001_SHOUT;
-                        else if (pick == 3 || pick == 6)
-                            DAT_1020b430[index].bs001.state = BS001_PUNCH;
-                        else if (pick == 4 || pick == 7)
-                            DAT_1020b430[index].bs001.state = BS001_CLAW;
-                        else if (pick == 5 || pick == 8)
-                            DAT_1020b430[index].bs001.state = BS001_SMASH;
+                        if (FUN_1013f880() % 100 < 0x1e)
+                            self.state = BS001_SMASH_FAST;
                         else
-                            DAT_1020b430[index].bs001.state = BS001_WALK;
+                        {
+                            self.state = BS001_CHOOSE;
+                            aux.waitFrames = FUN_1013f880() % ((self.phase != 0) * 2 + 2) + 1;
+                        }
+                        self.frame = 0;
+                    }
+                    if (model.IsClearOfMapLimited(&moveDir) == 0)
+                    {
+                        moveDir.Copy(model.matrix.GetTranslation());
+                        moveDir.Copy(moveDir * -1.0f);
+                        moveDir.x = 0.0f;
+                        moveDir.y = -10.0f;
+                        moveDir.RotateZ(-model.heading);
+                        model.Push(moveDir.x, moveDir.y, 0.0f);
                     }
                 }
-                else
-                {
-                    DAT_1020b430[index].bs001.state = BS001_REST;
-                    DAT_1020b430[index + 1].bs001Aux.attackCount = 0;
-                }
-                if (DAT_1020b430[index + 1].bs001Aux.streak >= 4 && FUN_1013f880() % 0x32 < DAT_1020b430[index + 1].bs001Aux.streak * 4 - 0xc)
-                    DAT_1020b430[index].bs001.state = BS001_STAGGER;
-            }
-            else if (DAT_1020b430[index + 1].bs001Aux.attackCount > 2)
-            {
-                DAT_1020b430[index].bs001.state = BS001_REST;
-                DAT_1020b430[index + 1].bs001Aux.attackCount = 0;
             }
             else
             {
-                int pick = FUN_1013f880() % 7;
-                if (DAT_1020b430[index + 1].bs001Aux.attackCount != 1 || gap <= 650.0f)
-                {
-                    if (pick == 1)
-                        DAT_1020b430[index].bs001.state = BS001_LUNGE;
-                    else if (pick == 2)
-                        DAT_1020b430[index].bs001.state = BS001_SHOUT;
-                    else if (pick == 3 || pick == 5)
-                        DAT_1020b430[index].bs001.state = BS001_PUNCH;
-                    else if (pick == 4 || pick == 6)
-                        DAT_1020b430[index].bs001.state = BS001_CLAW;
-                    else
-                        DAT_1020b430[index].bs001.state = BS001_RUN;
-                }
+                self.state = BS001_RETREAT;
+                DAT_10daaae8[index].m_0141 = 1;
+                self.frame = 0;
+                restartMotion = 1;
+                self.motion = BS001_MOTION_DOWN;
+                partnerModel.PlayMotion(0x11, 1, 0, 1.0f);
             }
-            if (DAT_10daaae8[index].m_00a8 == 0 && DAT_1020b430[index + 1].bs001Aux.partnerCooldown == 0)
+        }
+        else if (self.state == BS001_HURT_STAGGER)
+        {
+            int frameNow = self.frame;
+            if (frameNow == 0)
             {
-                if (DAT_1020b430[index + 1].bs001Aux.waitFrames == 0)
+                restartMotion = 1;
+                self.phase = 2;
+            }
+            self.motion = BS001_MOTION_HURT;
+            if (frameNow > 0x3c)
+            {
+                self.state = BS001_DOWN;
+                self.frame = 0;
+            }
+            self.frame++;
+        }
+        else if (self.state == BS001_CHOOSE)
+        {
+            aux.attackCount++;
+            aux.streak++;
+            int phaseNow = self.phase;
+            self.frame = 0;
+            if (phaseNow == 0)
+            {
+                if (DAT_10daaae8[index].m_00a8 != 0)
                 {
-                    DAT_1020b430[index].bs001.state = BS001_CHASE;
-                    DAT_1020b430[index + 1].bs001Aux.streak = 0;
+                    int last = aux.lastState;
+                    if (last == BS001_REST || last == BS001_STAND_TURN || last == BS001_WALK)
+                    {
+                        int pick = FUN_1013f880() % 3;
+                        self.state = pick == 0 ? BS001_WALK : pick == 1 ? BS001_LUNGE : BS001_SHOUT;
+                    }
+                    else
+                    {
+                        self.state = BS001_STAND_TURN;
+                        aux.attackCount = 0;
+                    }
                 }
                 else
-                    DAT_1020b430[index + 1].bs001Aux.waitFrames--;
+                {
+                    if (aux.attackCount < 7 || FUN_1013f880() % 100 >= (aux.attackCount - 4) * 5)
+                    {
+                        int pick = FUN_1013f880() % 4;
+                        if (aux.attackCount != 1 || (moveDir - selfPos).Length2D() <= 650.0f)
+                        {
+                            switch (pick)
+                            {
+                            case 1:
+                                self.state = BS001_LUNGE;
+                                break;
+                            case 2:
+                                self.state = BS001_SHOUT;
+                                break;
+                            case 3:
+                                if ((moveDir - selfPos).Length2D() >= 400.0f)
+                                    self.state = BS001_SHOUT;
+                                else
+                                    self.state = BS001_SMASH;
+                                break;
+                            default:
+                                self.state = BS001_WALK;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        self.state = BS001_REST;
+                        aux.attackCount = 0;
+                    }
+                    if (aux.streak > 6 && FUN_1013f880() % 0x32 < aux.streak * 2 - 12)
+                        self.state = BS001_STAGGER;
+                }
             }
-            break;
+            else if (phaseNow == 1)
+            {
+                self.state = BS001_HURT_STAGGER;
+                self.phase = 2;
+                aux.streak = 0;
+            }
+            else if (phaseNow == 2)
+            {
+                if (DAT_10daaae8[index].m_00a8 == 0)
+                {
+                    if (aux.attackCount < 7 || FUN_1013f880() % 100 >= (aux.attackCount - 5) * 5)
+                    {
+                        int pick = FUN_1013f880() % 9;
+                        if (pick == 0 && FUN_1013f880() % 5 != 0)
+                            pick = FUN_1013f880() % 8 + 1;
+                        if (aux.attackCount != 1 || (moveDir - selfPos).Length2D() <= 450.0f)
+                        {
+                            switch (pick)
+                            {
+                            case 1:
+                                self.state = BS001_LUNGE;
+                                break;
+                            case 2:
+                                self.state = BS001_SHOUT;
+                                break;
+                            case 3:
+                            case 6:
+                                self.state = BS001_PUNCH;
+                                break;
+                            case 4:
+                            case 7:
+                                self.state = BS001_CLAW;
+                                break;
+                            case 5:
+                            case 8:
+                                self.state = BS001_SMASH;
+                                break;
+                            default:
+                                if (aux.lastState == BS001_WALK)
+                                {
+                                    if ((moveDir - selfPos).Length2D() >= 500.0f)
+                                        self.state = BS001_PUNCH;
+                                    else
+                                        self.state = BS001_CLAW;
+                                }
+                                else
+                                    self.state = BS001_WALK;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        self.state = BS001_REST;
+                        aux.attackCount = 0;
+                    }
+                    if (aux.streak >= 4 && FUN_1013f880() % 0x32 < aux.streak * 4 - 12)
+                        self.state = BS001_STAGGER;
+                }
+                else if (aux.attackCount > 2)
+                {
+                    self.state = BS001_REST;
+                    aux.attackCount = 0;
+                }
+                else
+                {
+                    int pick = FUN_1013f880() % 7;
+                    if (aux.attackCount != 1 || (moveDir - selfPos).Length2D() <= 650.0f)
+                    {
+                        switch (pick)
+                        {
+                        case 1:
+                            self.state = BS001_LUNGE;
+                            break;
+                        case 2:
+                            self.state = BS001_SHOUT;
+                            break;
+                        case 3:
+                        case 5:
+                            self.state = BS001_PUNCH;
+                            break;
+                        case 4:
+                        case 6:
+                            self.state = BS001_CLAW;
+                            break;
+                        default:
+                            if (aux.lastState == BS001_RUN)
+                            {
+                                if ((moveDir - selfPos).Length2D() >= 500.0f)
+                                    self.state = BS001_PUNCH;
+                                else
+                                    self.state = BS001_CLAW;
+                            }
+                            else
+                                self.state = BS001_RUN;
+                        }
+                    }
+                }
+            }
+            if (DAT_10daaae8[index].m_00a8 == 0 && aux.partnerCooldown == 0)
+            {
+                if (aux.waitFrames == 0)
+                {
+                    self.state = BS001_CHASE;
+                    aux.streak = 0;
+                }
+                else
+                    aux.waitFrames--;
+            }
         }
-        default:
-            DAT_1020b430[index].bs001.state = BS001_CHOOSE;
+    }
+    else if (DAT_10daaae8[index].m_00a8 == 0 || DAT_1042d9e8[index] == 0)
+    {
+        if (hit == 1)
+        {
+            if (self.state != BS001_STAGGER && self.state != BS001_HURT_STAGGER)
+                self.state = BS001_CHOOSE;
+            if (DAT_10daaae8[index].m_00a8 == 0 && self.phase == 0 &&
+                DAT_10daaae8[index].stats[STAT_HEALTH] < DAT_10daaae8[index].stats[STAT_MAX_HEALTH] / 2)
+                self.phase = 1;
+            if (self.state == BS001_CHASE && FUN_1013f880() % 100 < 0x32)
+            {
+                if (FUN_1013f880() % 100 < 0x3c)
+                    self.state = BS001_SMASH_FAST;
+                else
+                {
+                    self.state = BS001_CHOOSE;
+                    aux.waitFrames = FUN_1013f880() % ((self.phase != 0) * 2 + 2) + 1;
+                }
+                self.frame = 0;
+            }
         }
+        DAT_1042d9e8[index] = 0;
     }
     else
     {
-        if (DAT_1020b430[index].bs001.state != BS001_STAGGER && DAT_1020b430[index].bs001.state != BS001_HURT_STAGGER)
-            DAT_1020b430[index].bs001.state = BS001_CHOOSE;
+        self.state = BS001_KNOCKED;
+        self.frame = 0;
+        aux.streak = 0;
+        aux.partnerCooldown = 200;
+        DAT_102550e0[index] = 1;
         DAT_1042d9e8[index] = 0;
     }
 
-    if (DAT_1020b430[index].bs001.state != BS001_CHOOSE)
-        DAT_1020b430[index + 1].bs001Aux.lastState = DAT_1020b430[index].bs001.state;
-    if (DAT_1020b430[index].bs001.motion >= 0)
+    if (self.state != BS001_CHOOSE)
+        aux.lastState = self.state;
+    if (self.motion >= 0)
     {
-        model.PlayMotion(DAT_1020b430[index].bs001.motion, restartMotion, quickBlend == 0 ? 5 : 0, 1.0f);
+        model.PlayMotion(self.motion, restartMotion, quickBlend == 0 ? 5 : 0, 1.0f);
         if (DAT_10daaae8[index].m_00a8 != 0)
-            partnerModel.PlayMotion(DAT_1020b430[index].bs001.motion, restartMotion, quickBlend == 0 ? 4 : 0, 1.0f);
+            partnerModel.PlayMotion(self.motion, restartMotion, quickBlend == 0 ? 4 : 0, 1.0f);
     }
-    if (DAT_1020b430[index].bs001.motion != DAT_1020b430[index].bs001.shownMotion)
+    if (self.motion != self.shownMotion)
     {
-        DAT_1020b430[index].bs001.shownMotion = DAT_1020b430[index].bs001.motion;
-        if (DAT_1020b430[index].bs001.motion == 0 || DAT_1020b430[index].bs001.motion == 1 || DAT_1020b430[index].bs001.motion == 4)
-            DAT_1020b430[index].bs001.motionFrames = -8;
-        else if (DAT_1020b430[index].bs001.motion == BS001_MOTION_FALL)
-            DAT_1020b430[index].bs001.motionFrames = 0;
+        self.shownMotion = self.motion;
+        if (self.motion == 0 || self.motion == 1 || self.motion == 4)
+            self.motionFrames = -8;
+        else if (self.motion == BS001_MOTION_FALL)
+            self.motionFrames = 0;
     }
-    DAT_1020b430[index].bs001.motionFrames++;
+    self.motionFrames++;
 
     Vec4 effectPos;
     effectPos.Fill(0.0f);
     Matrix4 boneMatrix;
     boneMatrix.SetIdentity();
-    switch (DAT_1020b430[index].bs001.motion)
+    switch (self.motion)
     {
     case 0:
+        if (self.motionFrames % 0xf == 0)
+            Footstep(index, Bs001BoneNode(self.motionFrames % 0x1e != 0 ? BS001_BONE_RIGHT_TOE : BS001_BONE_LEFT_TOE),
+                     effectPos, boneMatrix);
+        break;
     case 1:
-    case 4:
     {
-        int cadence = DAT_1020b430[index].bs001.motion == 0 ? 0xf : 10;
-        int phaseFrames = DAT_1020b430[index].bs001.motionFrames;
-        if (DAT_1020b430[index].bs001.motion == 1)
-        {
-            if (phaseFrames > 12)
-                phaseFrames -= 12;
-            else
-                cadence = 10;
-        }
-        if (phaseFrames % cadence == 0)
-        {
-            Node *foot = Bs001BoneNode(phaseFrames % (cadence * 2) == 0 ? BS001_BONE_LEFT_TOE : BS001_BONE_RIGHT_TOE);
-            if (foot != 0)
-            {
-                boneMatrix = foot->worldMatrix;
-                FUN_1001d8b0(index, BS001_EFFECT_FOOTSTEP, effectPos, -1, -1, 0, 0, 0, &boneMatrix, 0);
-                Vec4 stepPosition = foot->worldMatrix.GetTranslation();
-                FUN_10054550(0, 0, &stepPosition);
-            }
-        }
+        int stride = self.motionFrames;
+        if (stride < 0xd && stride % 10 == 0)
+            Footstep(index, Bs001BoneNode(stride % 0x14 != 0 ? BS001_BONE_RIGHT_TOE : BS001_BONE_LEFT_TOE), effectPos,
+                     boneMatrix);
+        else if (stride > 0xc && (stride - 0xc) % 0xf == 0)
+            Footstep(index, Bs001BoneNode((stride - 0xc) % 0x1e != 0 ? BS001_BONE_RIGHT_TOE : BS001_BONE_LEFT_TOE),
+                     effectPos, boneMatrix);
         break;
     }
+    case 4:
+        if (self.motionFrames % 10 == 0)
+        {
+            Node *foot = Bs001BoneNode(self.motionFrames % 0x14 != 0 ? BS001_BONE_RIGHT_TOE : BS001_BONE_LEFT_TOE);
+            if (foot != 0)
+                boneMatrix = foot->worldMatrix;
+            BossEffect(index, BS001_EFFECT_FOOTSTEP, effectPos, 0, &boneMatrix, 0);
+            Vec4 stepPosition = boneMatrix.GetTranslation();
+            FUN_10054550(BS001_SOUND_STEP_FIRST, 5, &stepPosition);
+        }
+        break;
     case BS001_MOTION_FALL:
     {
-        int frame = DAT_1020b430[index].bs001.motionFrames;
+        int stride = self.motionFrames;
         Node *spine = Bs001BoneNode(BS001_BONE_FOOTSTEPS);
-        if (frame >= 0x11 && frame <= 0x1b && (frame - 0x11) % 5 == 0)
+        if (stride < 0x11 || stride > 0x1b || (stride - 0x11) % 5 != 0)
+        {
+            if (stride == 0x23 || stride == 0x4a)
+            {
+                FUN_10065b10(index, BS001_SOUND_STEP_SECOND, 1, 0);
+                if (spine != 0)
+                {
+                    boneMatrix = spine->worldMatrix;
+                    BossEffect(index, BS001_EFFECT_FOOTSTEP, effectPos, 0, &boneMatrix, 0);
+                }
+            }
+        }
+        else
         {
             FUN_10065b10(index, BS001_SOUND_STEP_FIRST, 1, 0);
             if (spine != 0)
             {
                 boneMatrix = spine->worldMatrix;
-                FUN_1001d8b0(index, BS001_EFFECT_FOOTSTEP, effectPos, -1, -1, 0, 0, 0, &boneMatrix, 0);
-            }
-        }
-        else if (frame == 0x23 || frame == 0x4a)
-        {
-            FUN_10065b10(index, BS001_SOUND_STEP_SECOND, 1, 0);
-            if (spine != 0)
-            {
-                boneMatrix = spine->worldMatrix;
-                FUN_1001d8b0(index, BS001_EFFECT_FOOTSTEP, effectPos, -1, -1, 0, 0, 0, &boneMatrix, 0);
+                BossEffect(index, BS001_EFFECT_FOOTSTEP, effectPos, 0, &boneMatrix, 0);
             }
         }
         break;
     }
     case BS001_MOTION_SMASH:
     {
-        int frame = model.motionFrame;
-        if (frame > 0x244 && (frame & 1) != 0 && frame < BS001_SMASH_FRAME_LAST && Bs001BoneNode(BS001_BONE_SPINE) != 0)
+        int swing = model.motionFrame;
+        if (swing > 0x244 && (swing & 1) != 0 && swing < BS001_SMASH_FRAME_LAST && Bs001BoneNode(BS001_BONE_SPINE) != 0)
         {
-            boneMatrix = Bs001BoneNode(BS001_BONE_SPINE)->worldMatrix;
-            effectPos = boneMatrix.GetTranslation();
-            effectPos.z -= 50.0f;
-            FUN_1001d8b0(index, BS001_EFFECT_SMASH_DUST, effectPos, -1, -1, 0, 0, 0, &boneMatrix, 0);
+            boneMatrix.SetTranslation(Bs001BoneNode(BS001_BONE_SPINE)->worldMatrix.GetTranslation());
+            boneMatrix._43 -= 50.0f;
+            BossEffect(index, BS001_EFFECT_SMASH_DUST, effectPos, 0, &boneMatrix, 0);
         }
-        if (frame == BS001_SMASH_FRAME_LAST)
+        if (model.motionFrame == BS001_SMASH_FRAME_LAST)
         {
             FUN_10065b10(index, BS001_SOUND_SMASH_END, 1, 0);
             FUN_1016b230("52915");
             FUN_10055ee0();
-            Matrix4 &placement = Bs001BoneNode(BS001_BONE_SPINE) != 0 ? Bs001BoneNode(BS001_BONE_SPINE)->worldMatrix
-                                                                      : model.matrix;
-            boneMatrix.SetTranslation(placement.GetTranslation());
+            if (Bs001BoneNode(BS001_BONE_SPINE) == 0)
+                boneMatrix.SetTranslation(model.matrix.GetTranslation());
+            else
+                boneMatrix.SetTranslation(Bs001BoneNode(BS001_BONE_SPINE)->worldMatrix.GetTranslation());
             boneMatrix._43 = 0.0f;
-            FUN_1001d8b0(index, BS001_EFFECT_SHOUT_CLOUD, effectPos, -1, -1, 0, 0, 0, &boneMatrix, 0);
+            BossEffect(index, BS001_EFFECT_SHOUT_CLOUD, effectPos, 0, &boneMatrix, 0);
             EffectOptions options;
             options.m_0004 = DAT_10daaae8[index].stats[3];
             options.m_000e = 5;
-            FUN_1001d8b0(index, BS001_EFFECT_SMASH_FLASH, effectPos, -1, -1, 0, 0, 0, &boneMatrix, &options);
+            options.m_0000 = 0;
+            BossEffect(index, BS001_EFFECT_SMASH_FLASH, effectPos, 0, &boneMatrix, &options);
         }
+        break;
+    }
+    case 0x15:
+    case 0x17:
+    {
+        int swing = model.motionFrame;
+        if (swing == 0x2b7 || swing == 0x2a5)
+            StepSound(index, Bs001BoneNode(BS001_BONE_LEFT_TOE), effectPos, boneMatrix);
+        else if (swing == 0x2af)
+            StepSound(index, Bs001BoneNode(BS001_BONE_RIGHT_TOE), effectPos, boneMatrix);
         break;
     }
     }
 
     EffectOptions trailOptions;
-    if (DAT_1020b430[index].bs001.idle == 0 && DAT_102550e0[index] == 0 && DAT_1021f6c0[index] != 0)
+    if (self.idle == 0 && DAT_102550e0[index] == 0 && DAT_1021f6c0[index] != 0)
     {
         trailOptions.m_0004 = DAT_10daaae8[index].stats[3];
         trailOptions.flags |= 2;
+        trailOptions.m_0000 = 0;
         trailOptions.m_000e = 5;
-        int trail = DAT_1020b430[index].bs001.motion == 4 || DAT_1020b430[index].bs001.motion == 0x14 ? BS001_EFFECT_TRAIL_SMASH : BS001_EFFECT_TRAIL_STANDARD;
-        if (DAT_1020b430[index].bs001.motion != BS001_MOTION_FALL)
+        if (self.motion == 0x14)
         {
-            BoneEffect(index, trail, effectPos, DAT_1021bdf8[index][BS001_NODE_LEFT_HAND], &trailOptions);
-            BoneEffect(index, trail, effectPos, DAT_1021bdf8[index][BS001_NODE_RIGHT_HAND], &trailOptions);
+            TrailEffect(index, BS001_EFFECT_TRAIL_SMASH, effectPos, DAT_1021bdf8[index][BS001_NODE_RIGHT_UPPER_ARM], &trailOptions);
+            TrailEffect(index, BS001_EFFECT_TRAIL_SMASH, effectPos, DAT_1021bdf8[index][BS001_NODE_LEFT_UPPER_ARM], &trailOptions);
+            TrailEffect(index, BS001_EFFECT_TRAIL_SMASH, effectPos, DAT_1021bdf8[index][BS001_NODE_LEFT_HAND], &trailOptions);
+            TrailEffect(index, BS001_EFFECT_TRAIL_SMASH, effectPos, DAT_1021bdf8[index][BS001_NODE_RIGHT_HAND], &trailOptions);
+            TrailEffect(index, BS001_EFFECT_TRAIL_SMASH, effectPos, Bs001BoneNode(BS001_BONE_LEFT_FOOT), &trailOptions);
+            TrailEffect(index, BS001_EFFECT_TRAIL_SMASH, effectPos, Bs001BoneNode(BS001_BONE_RIGHT_FOOT), &trailOptions);
+            TrailEffect(index, BS001_EFFECT_TRAIL_SMASH, effectPos, Bs001BoneNode(BS001_BONE_SPINE), &trailOptions);
+        }
+        else if (self.motion != BS001_MOTION_FALL)
+        {
+            TrailEffect(index, BS001_EFFECT_TRAIL_STANDARD, effectPos, DAT_1021bdf8[index][BS001_NODE_LEFT_HAND], &trailOptions);
+            TrailEffect(index, BS001_EFFECT_TRAIL_STANDARD, effectPos, DAT_1021bdf8[index][BS001_NODE_RIGHT_HAND], &trailOptions);
         }
         DAT_1021f6c0[index] = 0;
     }

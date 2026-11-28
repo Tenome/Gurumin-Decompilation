@@ -9,6 +9,8 @@
 //   10003610  CTempBuffer<char,128>::AllocateHeap malloc(nBytes), AtlThrow(E_OUTOFMEMORY) when it fails
 // The explicit instantiations below make the compiler emit them. Needs the ATL include folder
 // (Vc7\atlmfc\include) on the include path, e.g. GURUMIN_CFLAGS=/I"...\Vc7\atlmfc\include".
+// MFC is part of the original build: with _AFX defined AtlThrow raises the MFC memory/OLE exceptions.
+#include <afx.h>
 #include <atlbase.h>
 #include <atlconv.h>
 

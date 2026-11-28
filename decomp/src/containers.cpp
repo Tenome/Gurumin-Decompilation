@@ -223,8 +223,8 @@ int KeyBank::CopyTo(KeyTrack *target)
 #include "motion_list.h"
 
 // Inserts `value` at `position` (-1 = append) and records `tag`. Returns 0 when the position is past the end or
-// the list is full. Expanded inline into InsertByName (plain `inline` is not expanded at /Ob1 here).
-__forceinline int MotionList::Insert(int position, int value, int tag)
+// the list is full. InsertByName repeats this body with the found entry index as the value.
+int MotionList::Insert(int position, int value, int tag)
 {
     m_0208 = tag;
     if (count < position)
@@ -318,7 +318,9 @@ int MotionList::Clear()
 }
 
 // 0x101ad5c0. Looks up the named entry `name` and inserts its index at `position` (-1 = append), recording `tag`
-// (see Insert). Returns 0 when there is no entry of that name or Insert fails.
+// (see Insert). Returns 0 when there is no entry of that name or the insert fails. The insert is Insert's body
+// written out again, not a call: as an inline call cl 13.00 gives the copied arguments their own register
+// priorities and swaps the registers of i and the name pointer (NOTES "Callee-saved register choice").
 int MotionList::InsertByName(int position, const char *name, int tag)
 {
     int i;
@@ -329,7 +331,22 @@ int MotionList::InsertByName(int position, const char *name, int tag)
     }
     if (i == entryCount)
         return 0;
-    return Insert(position, i, tag);
+    m_0208 = tag;
+    if (count < position)
+        return 0;
+    if (count > 0x7f)
+        return 0;
+    if (position == -1)
+    {
+        items[count] = i;
+        count++;
+        return 1;
+    }
+    for (int j = count; j >= position; j--)
+        items[j + 1] = items[j];
+    items[position] = i;
+    count++;
+    return 1;
 }
 
 // Adds a named entry (`name`, id, value, extra). Returns 0 when all 64 entries are used.

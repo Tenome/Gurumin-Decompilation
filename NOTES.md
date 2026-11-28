@@ -813,3 +813,56 @@ other huge drafts (Bs00x_Update, DrawLit, RunScriptFrames) for the same gap.
   `[base+index+offset]` addressing whichever way they are spelled, and a pointer that is original (Regions_Update, the
   MarkKilled event walk, DrawQuad-style record loops) costs 100-500 bytes of diff when removed or generalised.
   Do not retry it on those walls; their residue is register choice or stack-slot order.
+
+## Callee-saved register choice: priority, block weights, pre-cleanup CFG (lane K1)
+Toys in the scratchpad `k1/t/` (harness `k1/tc.py`; note: Python's subprocess finds `cl` on the *parent's* PATH, which
+here is VC6's `E:\Microsoft Visual Studio\VC98\bin\cl.exe`; call `...\Vc7\bin\cl.exe` by full path. VC6 gave the same
+answers for every toy below, so its allocator is the same family).
+- **Assignment.** Each live range (web, not variable: a local reused for two jobs is two webs; CSE temporaries and
+  strength-reduced induction pointers are webs of their own) gets a priority; webs are coloured in priority order and
+  take the first register no interfering, already-coloured web holds, in the order **esi, edi, ebx, ebp** (scratch
+  registers first when the web crosses no call: InsertByName keeps i in ecx). The push order is always ebx, ebp, esi,
+  edi whatever the roles. So "ebx/ebp swapped" means the third and fourth webs swapped places in the priority list,
+  "esi/edi swapped" the first two; a swap can also skip a register (raising index in Npc_RideAlarm by three uses moved it
+  from ebp straight to edi, past the ebx web).
+- **Priority** = weighted count of the web's references after CSE (repeated source expressions that CSE merges count
+  once; a parameter's incoming load does not count, a local's definition does). Declaration order, names and live-range
+  length inside one block do not matter. **Ties** go to the web that appears first in the IL (a local at its definition,
+  a parameter at its first use).
+- **Block weights** (one reference in the entry block = 1; measured with a reference variable, `k1/t/wmeasure.py`):
+  then-arm of an `if` 1/3 (1/2 when the arm makes no call), else-arm 1/3, nested then 1/4, `&&`/`||` body 1/4, switch
+  case 1/4; the code *after* an if/else or a loop is not back at 1: 2/3 after one if (1/2 after two or three, 0.4 after a
+  `for`); loop bodies about 1.4 (`while`/`do`), 1.6-1.7 for two nested loops. A web that is live but not referenced in
+  more blocks loses a little too (a short entry-only web beats a long one with the same weighted count).
+- **The weights are taken on the flow graph before the post-allocation clean-ups.** cl duplicates return tails,
+  cross-jumps identical tails (if/else arms ending in the same call, repeated `point++`, copies of a block ending in
+  `return`), and threads the jumps of an inlined function's returns *after* allocating. So two sources with
+  byte-identical final code can allocate differently, and a register swap in otherwise identical code is often a
+  source-shape difference the final code no longer shows. Toy: an `if/else if` chain whose k arms each end in `f(a)`
+  (cross-jumped into one `push edi; call f`) gives a its esi once k reaches 6, i.e. each arm's copy counts.
+- Levers that matched (look for these first when only callee-saved roles differ):
+  - **A redundant early return that repeats the function's tail.** Npc_RideAlarm 0x100b4930: `...; DAT_10210b30[index] = 0;
+    return 0;` inside the alarm block repeated the final two lines; dropping it (the else-if chain falls through to the same
+    tail) gives index ebx and the loop counter ebp; cl still emits two epilogues, as the original.
+  - **An inline function with several returns vs. its body written out.** MotionList::InsertByName 0x101ad5c0: the
+    __forceinline Insert call left i and the name pointer swapped (and the fail block in the wrong place); Insert's body
+    written out in InsertByName (same statements, the standalone Insert stays) is byte-identical.
+  - **Operand order of `||`/`&&`** moves a test into a block with a different weight: Npc_GreetWhenNear 0x100b5550 gets the
+    original's index/offset registers with `index < 0x3a || cameraSquared < ...` (but then the compare order differs from
+    the original, so it is not the answer; the margin there is under one 1/3-weight use).
+- Limits: the exact weights depend on the block shape in ways not fully measured (a then-arm storing 0 vs 1 measured
+  differently once), so predict only the direction, then test spellings. Things that did nothing in these walls: helper
+  bodies made single-exit or turned into macros (QuantiseBand), switch instead of an else-if chain (changes the code),
+  splitting `&&` into nested ifs, inverting `if (x) a; else b;`, local vs inline expression, ternary vs if/else call.
+  The per-function probe (`if (global) { call(var); }` repeated n times at the top, compiled as a scratch copy) measures
+  how far a web is from flipping; use it to tell a near tie (look for a shape difference) from a large gap (look for
+  missing or extra references).
+
+## Per-branch tails, macro clamps, MFC AtlThrow (sound3d, round H16)
+- The out-of-line MmioFile::Seek copy matched once each branch added the offset to its own base
+  (`mmioSeek(h, base + offset, 0)` and `mmioSeek(h, base + size + offset, 2)`). cl merges the common tail and the
+  target lands in edx. A shared `target` assigned per branch is a cross-block value and always took eax.
+- Update3DPan matched with the clamp as one expression, `(LONG)min(max(-FULL, pan * SCALE), FULL)`. The named
+  scaled and clamped locals let cl fold the second evaluation of max() that the original keeps.
+- AtlThrow in sound3d is MFC's version (it throws the MFC memory and OLE exceptions). Including <afx.h> before
+  <atlbase.h> produces it.

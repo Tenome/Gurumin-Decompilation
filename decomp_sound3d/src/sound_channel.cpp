@@ -419,9 +419,8 @@ int SoundChannel::Update3DPan()
         // max and min are the windows.h macros: they evaluate their arguments twice, which is the original's shape.
         float volume = max(0.0f, level);
         ApplyVolume((int)volume, 1);
-        float scaledPan = pan * SOFT3D_PAN_SCALE;
-        float clampedPan = min(max(-PAN_FULL, scaledPan), PAN_FULL);
-        buffer->SetPan((LONG)clampedPan);
+        // The clamp is written around the scaling expression itself: the macros repeat it at every use.
+        buffer->SetPan((LONG)min(max(-PAN_FULL, pan * SOFT3D_PAN_SCALE), PAN_FULL));
     }
     return 0;
 }
@@ -531,8 +530,8 @@ int SoundChannel::Open(const char *file, int loop, int startSamples, int loopSta
     format.wf.nSamplesPerSec = fileHeader.samplesPerSecond;
     format.wf.wFormatTag = WAVE_FORMAT_PCM;
     format.wf.nAvgBytesPerSec = fileHeader.blockAlign * fileHeader.samplesPerSecond;
-    format.wBitsPerSample = fileHeader.bitsPerSample;
     format.wf.nBlockAlign = fileHeader.blockAlign;
+    format.wBitsPerSample = fileHeader.bitsPerSample;
     DSBUFFERDESC description;
     memset(&description, 0, sizeof(description));
     description.dwSize = sizeof(DSBUFFERDESC);

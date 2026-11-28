@@ -175,12 +175,16 @@ extern "C" int GetParam(int kind, int index)
         controlId = MixerControls::auxVolume;
         break;
     case KIND_MASTER:
-        if (index == PARAM_INDEX_VOLUME)
+        switch (index) {
+        case PARAM_INDEX_VOLUME:
             controlId = MixerControls::masterVolume;
-        else if (index == PARAM_INDEX_PEAK)
+            break;
+        case PARAM_INDEX_PEAK:
             controlId = MixerControls::peakMeter;
-        else
+            break;
+        default:
             return 0;
+        }
         break;
     default:
         return 0;
@@ -193,23 +197,25 @@ extern "C" int GetParam(int kind, int index)
     details.cbDetails = sizeof(int);
     details.paDetails = &value;
     details.cChannels = 1;
+    // The mixer reports a signed value; the cache holds its magnitude.
+    int level;
     if (mixerGetControlDetails((HMIXEROBJ)MixerControls::handle, &details, MIXER_GETCONTROLDETAILSF_VALUE) == MMSYSERR_NOERROR) {
-        if (value < 0)
-            value = -value;
+        level = value;
+        if (level < 0)
+            level = -level;
     } else {
-        value = 0;
+        level = 0;
     }
     LeaveCriticalSection(&g_audioLock);
-    g_paramValue[slot] = value;
-    return value;
+    g_paramValue[slot] = level;
+    return level;
 }
 
 // SetParam: sets the volume (or spare control) of a mixer line and updates the GetParam cache. Returns 1 when the
 // value was sent, 0 when it equals the cached value, the mixer is not open or there is no such control.
 extern "C" int SetParam(int kind, int index, int value)
 {
-    int *cached = &g_paramValue[kind * MIXER_PARAM_STRIDE + index];
-    if (*cached == value || MixerControls::handle == 0)
+    if (g_paramValue[kind * MIXER_PARAM_STRIDE + index] == value || MixerControls::handle == 0)
         return 0;
     MIXERCAPS caps;
     memset(&caps, 0, sizeof(caps));
@@ -285,11 +291,13 @@ extern "C" int SetParam(int kind, int index, int value)
     EnterCriticalSection(&g_audioLock);
     details.cbStruct = sizeof(details);
     details.cbDetails = sizeof(int);
-    details.paDetails = &value;
+    // The control's value buffer is a copy: the parameter itself stays in a register for the cache update below.
+    int controlValue = value;
+    details.paDetails = &controlValue;
     details.cChannels = 1;
     mixerSetControlDetails((HMIXEROBJ)MixerControls::handle, &details, MIXER_SETCONTROLDETAILSF_VALUE);
     LeaveCriticalSection(&g_audioLock);
-    *cached = value;
+    g_paramValue[kind * MIXER_PARAM_STRIDE + index] = value;
     return 1;
 }
 

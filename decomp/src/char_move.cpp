@@ -1141,8 +1141,6 @@ extern "C" int FUN_100b4930(int index)
             {
                 FUN_1003ad20(0x207, 0, 1.0f);
                 FUN_1000ec70(15, 1.0f, 0.5f, 0.5f, 1.0f);
-                DAT_10210b30[index] = 0;
-                return 0;
             }
         }
         else if (DAT_1020b430[index].wait == 30)

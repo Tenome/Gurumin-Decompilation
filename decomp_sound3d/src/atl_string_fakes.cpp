@@ -8,6 +8,8 @@
 //   CTempBuffer<char,128>::AllocateBytes (0x100054d0) local buffer for <= 128 bytes, heap otherwise
 // Nothing in the game calls them; the CString thunks that would are not linked.
 // Needs the ATL include folder (Vc7\atlmfc\include) on the include path.
+// MFC is part of the original build: with _AFX defined AtlThrow raises the MFC memory/OLE exceptions.
+#include <afx.h>
 #include <atlbase.h>
 #include <atlstr.h>
 
