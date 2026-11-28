@@ -44,6 +44,7 @@
 #include "render_vars.h"
 #include "script_system.h"
 #include "world.h"
+#include "math_float.h"
 
 #define BS004_PI 3.1415f
 #define BS004_TWO_PI 6.283f
@@ -101,34 +102,47 @@
 #define BS004_STATE_FIRE_RAIN 19
 #define BS004_STATE_PICK 100
 
+// Frames of the rise and plunge states.
+#define BS004_RISE_SETTLE_FRAMES 0x3c          // the climb starts after this many frames of settling
+#define BS004_RISE_LOW_TOP 950.0f              // height state 14 climbs to
+#define BS004_RISE_HIGH_TOP 2550.0f            // height state 16 climbs to
+#define BS004_MOTION_FRAME_RISE_TOP 0x156      // frame of the climb motion at which the plunge may start
+#define BS004_PLUNGE_LANDED 1000               // frames value of a plunge that touched the ground
+#define BS004_SLAM_LUNGE_SPEED 25.0f           // forward speed the slam throws it with
+#define BS004_SLAM_LUNGE_LIFT 10.0f            // and the lift
+#define BS004_SPREAD_WIDE 0.66731f             // weights of the claw spread bursts (they add up to about 1)
+#define BS004_SPREAD_NARROW 0.333f
+#define BS004_PLUNGE_DONE 2000                 // frames value of a plunge that bounced back
+
 #define BS004_EFFECT_SPARK 0x6d4
 #define BS004_EFFECT_PAIR 0x6dd
 
-static inline float Atan2(float y, float x)
+static __forceinline float Atan2(float y, float x)
 {
-    return (float)atan2(y, x);
+    return FUN_10001f80(y, x);
 }
 
-static inline Node *Bs004Bone(int which)
+static __forceinline Node *Bs004Bone(int which)
 {
     return (Node *)DAT_1042d918[which];
 }
 
-// Smooths the movement vector towards a state's step vector: move = move * keep + step * give.
-static void BlendMove(Vec4 &move, const Vec4 &step, float keep, float give)
+// Smooths the movement vector towards a state's step vector: move = last move * keep + step * give (DAT_10802bf8
+// keeps the movement of the last frame in its position).
+static __forceinline void BlendMove(int index, Vec4 &move, const Vec4 &step, float keep, float give)
 {
-    move.Copy(move * keep + step * give);
+    move.Copy(DAT_10802bf8[index].position * keep + step * give);
 }
 
 // Starts effect `effect` for the creature at `where`; `owner` is the node matrix the effect follows (0 = none).
-static void StartEffect(int index, int effect, const Vec4 &where, const Matrix4 *owner, const Matrix4 *pose,
+static __forceinline void StartEffect(int index, int effect, const Vec4 &where, const Matrix4 *owner, const Matrix4 *pose,
                         const EffectOptions *options)
 {
     FUN_1001d8b0(index, effect, where, -1, -1, owner, 0, 0, pose, options);
 }
 
 // Fills the options of the creature's larger effects: its effect parameter, a scale and the follow flag byte.
-static void SetUpOptions(int index, EffectOptions &options, float scale)
+static __forceinline void SetUpOptions(int index, EffectOptions &options, float scale)
 {
     options.m_0000 = 0;
     options.m_0004 = DAT_10daaae8[index].stats[STAT_EFFECT_PARAM];
@@ -137,27 +151,34 @@ static void SetUpOptions(int index, EffectOptions &options, float scale)
 }
 
 // A turn about z of `heading` placed at `where`.
-static void MakePose(Matrix4 &pose, float heading, const Vec4 &where)
+static __forceinline void MakePose(Matrix4 &pose, float heading, const Vec4 &where)
 {
     pose.SetIdentity();
     pose = RotationZ(heading);
     pose.SetTranslation(where);
 }
 
-// Two small burst effects (0x6dd) at the hands, as the tail sweeps start them.
-static void StartHandBursts(int index, Matrix4 &poseA, Matrix4 &poseB)
+// Two small burst effects (0x6dd) at the hands: each starts at the origin of its pose, which sits on a bone.
+static __forceinline void StartHandBursts(int index, Matrix4 &poseA, Matrix4 &poseB)
 {
     Vec4 where;
-    where.Copy(poseA.GetTranslation());
     StartEffect(index, BS004_EFFECT_PAIR, where, 0, &poseA, 0);
-    where.Copy(poseB.GetTranslation());
     StartEffect(index, BS004_EFFECT_PAIR, where, 0, &poseB, 0);
 }
 
-// The two hand poses of the bursts: the creature's heading placed at two bones.
-static void MakeHandPoses(Matrix4 &poseA, Matrix4 &poseB, int boneA, int boneB)
+// One burst of the claw spread: moves `pose` (on a hand) towards the camera look point DAT_10802bb8 by the
+// weights `wide` for the tip and `narrow` for the hand, then starts the burst there.
+static __forceinline void StartSpreadBurst(int index, Matrix4 &pose, const Vec4 &where, float wide, float narrow)
 {
-    poseA = RotationZ(DAT_10db9364);
+    pose.SetTranslation(DAT_10802bb8[index][0] * wide + pose.GetTranslation() * narrow);
+    StartEffect(index, BS004_EFFECT_PAIR, where, 0, &pose, 0);
+}
+
+// The two hand poses of the bursts: the creature's heading placed at two bones.
+static __forceinline void MakeHandPoses(int index, Matrix4 &poseA, Matrix4 &poseB, int boneA, int boneB)
+{
+    poseA.SetIdentity();
+    poseA = RotationZ(DAT_10db6ee8[index].heading);
     poseB = poseA;
     poseA.SetTranslation(Bs004Bone(boneA)->worldMatrix.GetTranslation());
     poseB.SetTranslation(Bs004Bone(boneB)->worldMatrix.GetTranslation());
@@ -165,7 +186,7 @@ static void MakeHandPoses(Matrix4 &poseA, Matrix4 &poseB, int boneA, int boneB)
 
 // Starts a minion slot over: clears the tables of its slot like Char_SpawnEnemy (0x10050510) does, tags its model nodes
 // and puts its equipment back on. `fan` is the minion's place in the fan of three (-1, 0 or 1).
-static void ActivateMinion(int slot, int fan)
+static __forceinline void ActivateMinion(int slot, int fan)
 {
     AnimModel &minion = DAT_10db6ee8[slot];
     CharSlot &minionSlot = DAT_10daaae8[slot];
@@ -248,13 +269,19 @@ static void ActivateMinion(int slot, int fan)
 }
 
 // Sets the target heading to face the player (the creature's model faces backwards: turned by pi).
-static void FacePlayer(AnimModel &model, const Vec4 &ownPos, const Vec4 &playerPos)
+static __forceinline void FacePlayer(AnimModel &model, const Vec4 &ownPos, const Vec4 &playerPos)
 {
     model.targetHeading = Atan2(playerPos.x - ownPos.x, playerPos.y - ownPos.y) + BS004_PI;
 }
 
+// Sets the target heading to face the way the creature moves (backwards model, turned by pi).
+static __forceinline void FaceMove(AnimModel &model, const Vec4 &move)
+{
+    model.targetHeading = Atan2(move.x, move.y) + BS004_PI;
+}
+
 // Turns an angle into -pi..pi.
-static float WrapAngle(float angle)
+static __forceinline float WrapAngle(float angle)
 {
     while (angle > BS004_PI)
         angle -= BS004_TWO_PI;
@@ -264,7 +291,7 @@ static float WrapAngle(float angle)
 }
 
 // Starts a spark effect at a random bone (not the torch bones 2 and 3 of the index list).
-static void StartBoneSpark(int index)
+static __forceinline void StartBoneSpark(int index)
 {
     Matrix4 pose;
     pose.SetIdentity();
@@ -273,6 +300,112 @@ static void StartBoneSpark(int index)
         pick++;
     Vec4 where = Bs004Bone(pick)->worldMatrix.GetTranslation();
     StartEffect(index, BS004_EFFECT_SPARK, where, 0, &pose, 0);
+}
+
+// Plans a climb: the glide (DAT_10802bf8 step) heads half way towards the player and up to height `top`, at 1/80 of that
+// vector per frame, with `zDivisor` frames for the vertical part. `move` is used as scratch.
+static __forceinline void PlanRise(int index, Vec4 &move, const Vec4 &ownPos, const Vec4 &playerPos, float top,
+                                   float zDivisor)
+{
+    move.Fill(0.0f);
+    move.Copy(playerPos - ownPos);
+    move.Copy(move * 0.5f);
+    move.z = top - ownPos.z;
+    DAT_10802bf8[index].step.Copy(move.Divided(80.0f));
+    DAT_10802bf8[index].step.z = move.z / zDivisor;
+}
+
+// Plans a plunge from height `top`: the glide heads for the player at 1/60 of the way per frame; `move` is scratch.
+static __forceinline void PlanPlunge(int index, Vec4 &move, const Vec4 &ownPos, const Vec4 &playerPos, float top)
+{
+    move.Fill(0.0f);
+    move.Copy(playerPos - ownPos);
+    move.z = top - ownPos.z;
+    DAT_10802bf8[index].step.Copy(move.Divided(60.0f));
+    move.z = (top - ownPos.z) / 15.0f;
+}
+
+// The plunge reaches the ground: shakes the screen, plays `sound` and starts the blast `effect` and the dust (0x6db)
+// there. The creature stays put (state frames jump to BS004_PLUNGE_LANDED).
+static __forceinline void LandFromPlunge(int index, Vec4 &move, const Vec4 &ownPos, int sound, int effect)
+{
+    Bs004State &st = DAT_1020b430[index].bs004;
+    FUN_1016b230("");
+    FUN_10055ee0();
+    FUN_1003ad20(sound, 0, 1.0f);
+    move.Fill(0.0f);
+    st.motion = 0xd;
+    st.frames = BS004_PLUNGE_LANDED;
+    DAT_10db6ee8[index].SetPosition(ownPos.x, ownPos.y, 0.0f);
+    EffectOptions options;
+    Matrix4 pose;
+    Vec4 where;
+    SetUpOptions(index, options, 0.9f);
+    pose.SetIdentity();
+    pose.SetTranslation(ownPos);
+    StartEffect(index, effect, where, 0, &pose, &options);
+    StartEffect(index, 0x6db, where, 0, &pose, &options);
+}
+
+// The part of a plunge after it landed: stands still, then bounces back off the glide (`bounce` is its new height), then
+// slows to a stop and hands over to the state pick. `fadeOut` also clears the screen tint of the high plunge.
+static __forceinline void FinishPlunge(int index, Bs004State &st, Vec4 &move, float bounce, bool fadeOut)
+{
+    if (st.frames < BS004_PLUNGE_LANDED + 3)
+    {
+        move.Fill(0.0f);
+        st.motion = 0xd;
+    }
+    else if (st.frames < BS004_PLUNGE_DONE)
+    {
+        move.Fill(0.0f);
+        st.motion = 0xd;
+        st.frames = BS004_PLUNGE_DONE;
+        DAT_10802bf8[index].step.Copy(DAT_10802bf8[index].step * -2.0f);
+        DAT_10802bf8[index].step.z = bounce;
+    }
+    else if (st.frames > BS004_PLUNGE_DONE)
+    {
+        if (fadeOut)
+            FUN_1000ec70(0xf, 1.0f, 1.0f, 1.0f, 1.0f);
+        st.motion = 0xd;
+        move.Copy(DAT_10802bf8[index].step);
+        BlendMove(index, move, move, 0.2f, 0.8f);
+        DAT_10802bf8[index].step.Copy(DAT_10802bf8[index].step * 0.9f);
+        if (st.frames > 0x7ed)
+        {
+            st.state = BS004_STATE_PICK;
+            st.motion = 2;
+        }
+    }
+}
+
+// The spinning blast of a plunge: turns the creature by `turn` radians per frame and, while it falls, starts the dust
+// shards (`threeShards`: one more for the high plunge) and the 0x45d effect on its model.
+static __forceinline void SpinAndBurst(int index, const Vec4 &ownPos, float turn, bool threeShards)
+{
+    AnimModel &self = DAT_10db6ee8[index];
+    float spin = self.heading + turn;
+    self.heading = spin;
+    self.targetHeading = spin;
+    Matrix4 pose;
+    EffectOptions options;
+    Vec4 where;
+    pose.SetIdentity();
+    pose.SetTranslation(ownPos);
+    options.m_0004 = DAT_10daaae8[index].stats[STAT_EFFECT_PARAM];
+    int frames = DAT_1020b430[index].bs004.frames;
+    options.m_0000 = 0;
+    options.m_000e = 5;
+    if (frames > 0xf && frames < 1000)
+    {
+        StartEffect(index, 0x6e5, where, 0, &pose, 0);
+        StartEffect(index, 0x6e5, where, 0, &pose, 0);
+        if (threeShards)
+            StartEffect(index, 0x6e5, where, 0, &pose, 0);
+        options.flags |= 2;
+        StartEffect(index, 0x45d, where, 0, &pose, &options);
+    }
 }
 
 // 0x100c39c0 (Bs004_Update). One frame of the moss root creature in slot `index`; see the comment at the top of the
@@ -727,7 +860,7 @@ int Bs004_Update(int index)
         step.Fill(0.0f);
         step.z = BS004_HOVER_HEIGHT - ownPos.z;
         step.Copy(step.Normalized3() * 5.0f);
-        BlendMove(move, step, 0.9f, 0.1f);
+        BlendMove(index, move, step, 0.9f, 0.1f);
         moveMode = BS004_MOVE_WALK;
         st.motion = 2;
         if (st.frames == 0)
@@ -755,7 +888,7 @@ int Bs004_Update(int index)
         else
             st.state = BS004_STATE_PICK;
         step.Copy(step.Normalized3() * 10.0f);
-        BlendMove(move, step, 0.8f, 0.2f);
+        BlendMove(index, move, step, 0.8f, 0.2f);
         st.motion = 0;
         DAT_10db6ee8[index].targetHeading = Atan2(move.x, move.y) + BS004_PI;
         break;
@@ -763,7 +896,7 @@ int Bs004_Update(int index)
         step.Fill(0.0f);
         step.z = BS004_HOVER_HEIGHT - ownPos.z;
         step.Copy(step.Normalized3() * 5.0f);
-        BlendMove(move, step, 0.9f, 0.1f);
+        BlendMove(index, move, step, 0.9f, 0.1f);
         moveMode = BS004_MOVE_WALK;
         st.motion = 4;
         st.frames++;
@@ -844,9 +977,8 @@ int Bs004_Update(int index)
         st.pathPoint = FUN_1013f880() % 3 + 0x32;
         break;
     case BS004_STATE_APPROACH_POINT:
-    case BS004_STATE_APPROACH_POINT_B:
     {
-        bool second = st.state == BS004_STATE_APPROACH_POINT_B;
+        // Flies to the path point (the way to the wait): sets down on it and waits.
         DAT_10daaae8[index].m_0141 = 1;
         st.hits = 0;
         target.Fill(0.0f);
@@ -863,7 +995,7 @@ int Bs004_Update(int index)
             step.Copy(step.Normalized3() * 100.0f);
             if ((step + move).LengthSquared3() <= distanceSquared)
             {
-                BlendMove(move, step, 0.2f, 0.8f);
+                BlendMove(index, move, step, 0.2f, 0.8f);
                 moveMode = BS004_MOVE_FLY;
                 st.motion = 7;
             }
@@ -871,9 +1003,8 @@ int Bs004_Update(int index)
             {
                 step.Fill(0.0f);
                 DAT_10db6ee8[index].SetPosition(target.x, target.y, target.z);
-                st.state = second ? BS004_STATE_PICK : BS004_STATE_WAIT;
-                if (!second)
-                    st.lastState = 6;
+                st.state = BS004_STATE_WAIT;
+                st.lastState = 6;
                 st.frames = 0;
                 DAT_10daaae8[index].m_0141 = 0;
             }
@@ -881,9 +1012,54 @@ int Bs004_Update(int index)
         else
         {
             DAT_10daaae8[index].m_0141 = 0;
-            st.state = second ? BS004_STATE_PICK : BS004_STATE_WAIT;
-            if (!second)
-                st.lastState = 6;
+            st.state = BS004_STATE_WAIT;
+            st.lastState = 6;
+            DAT_10db6ee8[index].SetPosition(target.x, target.y, target.z);
+        }
+        DAT_10db6ee8[index].targetHeading = Atan2(move.x, move.y);
+        {
+            Matrix4 pose;
+            MakePose(pose, 0.0f, probe);
+            probe.Copy(DAT_10db6ee8[index].matrix.GetTranslation());
+            StartEffect(index, 0x6cb, probe, 0, &pose, 0);
+        }
+        break;
+    }
+    case BS004_STATE_APPROACH_POINT_B:
+    {
+        // The same flight when it was sent after a hit: it picks its next state on arrival instead of waiting.
+        DAT_10daaae8[index].m_0141 = 1;
+        st.hits = 0;
+        target.Fill(0.0f);
+        target.z = BS004_HOVER_HEIGHT;
+        if (st.pathPoint < path->frameMatrixCount)
+            target.Copy(path->frameMatrices[st.pathPoint].GetTranslation());
+        step = target - ownPos;
+        float distanceSquared = step.LengthSquared3();
+        if (st.frames == 0)
+            FUN_10065b10(index, 0x2d6, 1, 0);
+        st.frames++;
+        if (distanceSquared >= 100.0f)
+        {
+            step.Copy(step.Normalized3() * 100.0f);
+            if ((step + move).LengthSquared3() <= distanceSquared)
+            {
+                BlendMove(index, move, step, 0.2f, 0.8f);
+                moveMode = BS004_MOVE_FLY;
+                st.motion = 7;
+            }
+            else
+            {
+                step.Fill(0.0f);
+                DAT_10db6ee8[index].SetPosition(target.x, target.y, target.z);
+                st.state = BS004_STATE_PICK;
+                DAT_10daaae8[index].m_0141 = 0;
+            }
+        }
+        else
+        {
+            DAT_10daaae8[index].m_0141 = 0;
+            st.state = BS004_STATE_PICK;
             DAT_10db6ee8[index].SetPosition(target.x, target.y, target.z);
         }
         DAT_10db6ee8[index].targetHeading = Atan2(move.x, move.y);
@@ -1001,30 +1177,16 @@ int Bs004_Update(int index)
         }
         break;
     case BS004_STATE_DIVE_A:
-    case BS004_STATE_DIVE_B:
-    {
-        bool deep = st.state == BS004_STATE_DIVE_B;
-        float hoverAbove = deep ? 550.0f : 400.0f;
+        // Flies at the player (aiming 400 above it, speeding up over the first second) and swipes once it is near.
         st.frames++;
         step = playerPos - ownPos;
-        step.z = (playerPos.z + hoverAbove) - ownPos.z;
+        step.z = (playerPos.z + 400.0f) - ownPos.z;
         step.Normalized3();
-        if (playerPos.z + hoverAbove != ownPos.z)
-            step.z *= deep ? 3.0f : 4.0f;
-        float speed = st.frames < 0x3c ? ((float)st.frames / 60.0f) * (deep ? 25.0f : 20.0f) + 5.0f
-                                       : (deep ? 30.0f : 25.0f);
-        step.Copy(step * speed);
-        BlendMove(move, step, 0.7f, 0.3f);
-        if (deep)
-        {
-            if (distance2D < 200.0f)
-            {
-                st.state = BS004_STATE_TAIL_SWEEP;
-                st.lastState = BS004_STATE_TAIL_SWEEP;
-                st.frames = 0;
-            }
-        }
-        else if (distance2D < 600.0f && fabsf(playerPos.z + hoverAbove - ownPos.z) < 500.0f)
+        if (playerPos.z + 400.0f != ownPos.z)
+            step.z *= 4.0f;
+        step.Copy(step * (st.frames < 0x3c ? ((float)st.frames / 60.0f) * 20.0f + 5.0f : 25.0f));
+        BlendMove(index, move, step, 0.7f, 0.3f);
+        if (distance2D < 600.0f && floorf(playerPos.z + 400.0f - ownPos.z) < 500.0f)
         {
             st.state = BS004_STATE_SWIPE;
             st.lastState = BS004_STATE_SWIPE;
@@ -1032,47 +1194,75 @@ int Bs004_Update(int index)
         }
         st.motion = 0;
         moveMode = BS004_MOVE_WALK;
-        FacePlayer(DAT_10db6ee8[index], ownPos, playerPos);
-        if (!deep && (st.frames & 1) != 0)
+        FaceMove(DAT_10db6ee8[index], move);
+        if ((st.frames & 1) != 0)
         {
-            Matrix4 pose;
-            pose.SetIdentity();
             probe.Fill(0.0f);
-            StartEffect(index, 0x6d5, probe, &Bs004Bone(BS004_BONE_TAIL)->worldMatrix, &pose, 0);
+            StartEffect(index, 0x6d5, probe, &Bs004Bone(BS004_BONE_TAIL)->worldMatrix, 0, 0);
         }
-        else if (deep && st.frames % 0xf == 0)
+        break;
+    case BS004_STATE_DIVE_B:
+    {
+        // The deep dive (aiming 550 above the player, a little faster): sweeps the tail once it is within 200.
+        st.frames++;
+        step = playerPos - ownPos;
+        step.z = (playerPos.z + 550.0f) - ownPos.z;
+        step.Normalized3();
+        if (playerPos.z + 550.0f != ownPos.z)
+            step.z *= 3.0f;
+        step.Copy(step * (st.frames < 0x3c ? ((float)st.frames / 60.0f) * 25.0f + 5.0f : 30.0f));
+        BlendMove(index, move, step, 0.7f, 0.3f);
+        if (distance2D < 200.0f)
+        {
+            st.state = BS004_STATE_TAIL_SWEEP;
+            st.lastState = BS004_STATE_TAIL_SWEEP;
+            st.frames = 0;
+        }
+        st.motion = 0;
+        moveMode = BS004_MOVE_WALK;
+        FaceMove(DAT_10db6ee8[index], move);
+        if (st.frames % 0xf == 0)
         {
             Matrix4 poseA;
             Matrix4 poseB;
-            MakeHandPoses(poseA, poseB, BS004_BONE_FOREARM_L, BS004_BONE_FOREARM_R);
+            MakeHandPoses(index, poseA, poseB, BS004_BONE_FOREARM_L, BS004_BONE_FOREARM_R);
             StartHandBursts(index, poseA, poseB);
         }
         break;
     }
     case BS004_STATE_SWIPE:
+    {
+        // The swipe: glides towards where the player was when it started (a twentieth of the way per frame), rising to
+        // hover height and dropping with the player's height while the claw comes down; it faces the way it moves.
         st.motion = 0xe;
+        moveMode = BS004_MOVE_WALK;
         DAT_10daaae8[index].stats[STAT_BUSY] = 1;
+        if (st.frames == 0)
+        {
+            move.Copy(playerPos - ownPos);
+            DAT_10802bf8[index].step.Copy(move.Divided(20.0f));
+        }
         st.frames++;
-        step.Fill(0.0f);
+        move.Fill(0.0f);
+        move.Copy(DAT_10802bf8[index].step);
         {
             int frame = DAT_10db6ee8[index].motion->frame;
             if (frame < 0x1b3 || DAT_10db6ee8[index].motion->blending != 0)
             {
-                step.z = ((playerPos.z - ownPos.z) + 250.0f) / (float)st.frames;
-                if (step.z < -20.0f)
-                    step.z = -20.0f;
+                move.z = ((playerPos.z - ownPos.z) + 250.0f) / (float)st.frames;
+                if (move.z < -20.0f)
+                    move.z = -20.0f;
             }
             else if (frame < 0x1b4 || DAT_10db6ee8[index].motionFrame > 0x1c1)
-                step.z = 0.0f;
+                move.z = 0.0f;
             else
             {
-                step.z = (BS004_HOVER_HEIGHT - ownPos.z) / (float)(0x1c2 - DAT_10db6ee8[index].motionFrame);
-                if (step.z > 20.0f)
-                    step.z = 20.0f;
+                move.z = (BS004_HOVER_HEIGHT - ownPos.z) / (float)(0x1c2 - DAT_10db6ee8[index].motionFrame);
+                if (move.z > 20.0f)
+                    move.z = 20.0f;
             }
         }
-        BlendMove(move, step, 0.5f, 0.5f);
-        moveMode = BS004_MOVE_WALK;
+        BlendMove(index, move, move, 0.5f, 0.5f);
         if (DAT_10db6ee8[index].motionFrame == 0x1c1)
         {
             DAT_10daaae8[index].stats[STAT_BUSY] = 0;
@@ -1082,16 +1272,18 @@ int Bs004_Update(int index)
         if (DAT_10db6ee8[index].motionFrame == 0x1a4)
         {
             EffectOptions options;
-            Matrix4 pose = RotationZ(Atan2(playerPos.x - ownPos.x, playerPos.y - ownPos.y) + BS004_PI);
-            SetUpOptions(index, options, 1.0f);
+            Vec4 where;
+            Matrix4 pose = RotationZ(Atan2(move.x, move.y) + BS004_PI);
+            options.m_0000 = 0;
+            options.m_0004 = DAT_10daaae8[index].stats[STAT_EFFECT_PARAM];
             options.m_000e = 5;
-            probe.Fill(0.0f);
-            StartEffect(index, 0x6d7, probe, &Bs004Bone(BS004_BONE_TAIL)->worldMatrix, &pose, &options);
+            StartEffect(index, 0x6d7, where, &Bs004Bone(BS004_BONE_TAIL)->worldMatrix, &pose, &options);
             FUN_10065b10(index, 0x2d8, 1, 0);
             FUN_100b9bb0(index, 0x1f6, 0, 1);
         }
-        FacePlayer(DAT_10db6ee8[index], ownPos, playerPos);
+        DAT_10db6ee8[index].targetHeading = Atan2(move.x, move.y) + BS004_PI;
         break;
+    }
     case BS004_STATE_TAIL_SWEEP:
     {
         Matrix4 poseA;
@@ -1102,9 +1294,9 @@ int Bs004_Update(int index)
         step.z = (playerPos.z + 550.0f) - ownPos.z;
         step.Normalized3();
         step.Copy(step * 5.0f);
-        BlendMove(move, step, 0.7f, 0.3f);
+        BlendMove(index, move, step, 0.7f, 0.3f);
         moveMode = BS004_MOVE_WALK;
-        FacePlayer(DAT_10db6ee8[index], ownPos, playerPos);
+        FaceMove(DAT_10db6ee8[index], move);
         if (st.frames > 0x14 && DAT_10db6ee8[index].motionFrame == 0x116)
         {
             st.state = BS004_STATE_PICK;
@@ -1119,13 +1311,13 @@ int Bs004_Update(int index)
         {
             if ((DAT_10db6ee8[index].motionFrame & 1) != 0)
             {
-                MakeHandPoses(poseA, poseB, BS004_BONE_FINGER_L, BS004_BONE_FINGER_R);
+                MakeHandPoses(index, poseA, poseB, BS004_BONE_FINGER_L, BS004_BONE_FINGER_R);
                 StartHandBursts(index, poseA, poseB);
             }
         }
         else
         {
-            MakeHandPoses(poseA, poseB, BS004_BONE_FINGER_L, BS004_BONE_FINGER_R);
+            MakeHandPoses(index, poseA, poseB, BS004_BONE_FINGER_L, BS004_BONE_FINGER_R);
             StartHandBursts(index, poseA, poseB);
             if (DAT_10db6ee8[index].motionFrame == 0x108)
             {
@@ -1141,15 +1333,11 @@ int Bs004_Update(int index)
             }
             if (DAT_10db6ee8[index].motionFrame > 0x103)
             {
-                Vec4 spread;
-                for (int burst = 0; burst < 4; burst++)
-                {
-                    float wide = burst < 2 ? 0.66731f : 0.333f;
-                    float narrow = burst < 2 ? 0.333f : 0.66731f;
-                    spread.Copy(DAT_10802bb8[index][0] * wide + move * narrow);
-                    poseA.SetTranslation(spread);
-                    StartEffect(index, BS004_EFFECT_PAIR, spread, 0, &poseA, 0);
-                }
+                Vec4 where;
+                StartSpreadBurst(index, poseA, where, BS004_SPREAD_WIDE, BS004_SPREAD_NARROW);
+                StartSpreadBurst(index, poseA, where, BS004_SPREAD_WIDE, BS004_SPREAD_NARROW);
+                StartSpreadBurst(index, poseA, where, BS004_SPREAD_NARROW, BS004_SPREAD_WIDE);
+                StartSpreadBurst(index, poseA, where, BS004_SPREAD_NARROW, BS004_SPREAD_WIDE);
             }
         }
         break;
@@ -1161,7 +1349,12 @@ int Bs004_Update(int index)
         step.Fill(0.0f);
         if (DAT_10db6ee8[index].motionFrame == 0x124)
         {
-            float pitch = acosf(offset.z / (distance3D > 0.0f ? distance3D : 1.0f));
+            // The slam throws the creature forward: 25 along its facing, 10 up, which becomes its last move.
+            step.y = BS004_SLAM_LUNGE_SPEED;
+            step.RotateZ(-DAT_10db6ee8[index].heading);
+            step.z = BS004_SLAM_LUNGE_LIFT;
+            DAT_10802bf8[index].position.Copy(step);
+            float pitch = FUN_10001f60(offset.z / (distance3D > 0.0f ? distance3D : 1.0f));
             EffectOptions options;
             if (pitch > 0.7854f)
                 pitch = 0.7854f;
@@ -1175,7 +1368,7 @@ int Bs004_Update(int index)
             FUN_10065b10(index, 0x2da, 1, 0);
             FUN_100b9bb0(index, 0x1f7, 0, 1);
         }
-        BlendMove(move, step, 0.8f, 0.2f);
+        BlendMove(index, move, step, 0.8f, 0.2f);
         moveMode = BS004_MOVE_WALK;
         FacePlayer(DAT_10db6ee8[index], ownPos, playerPos);
         if (DAT_10db6ee8[index].motionFrame == 0x134)
@@ -1184,157 +1377,176 @@ int Bs004_Update(int index)
         {
             Matrix4 poseA;
             Matrix4 poseB;
-            MakeHandPoses(poseA, poseB, BS004_BONE_FINGER_L, BS004_BONE_FINGER_R);
+            MakeHandPoses(index, poseA, poseB, BS004_BONE_FINGER_L, BS004_BONE_FINGER_R);
             StartHandBursts(index, poseA, poseB);
             if (DAT_10db6ee8[index].motionFrame > 0x122)
             {
-                Vec4 spread;
-                for (int burst = 0; burst < 4; burst++)
-                {
-                    float wide = burst < 2 ? 0.66731f : 0.333f;
-                    float narrow = burst < 2 ? 0.333f : 0.66731f;
-                    spread.Copy(DAT_10802bb8[index][0] * wide + move * narrow);
-                    poseB.SetTranslation(spread);
-                    StartEffect(index, BS004_EFFECT_PAIR, spread, 0, &poseB, 0);
-                }
+                Vec4 where;
+                StartSpreadBurst(index, poseB, where, BS004_SPREAD_WIDE, BS004_SPREAD_NARROW);
+                StartSpreadBurst(index, poseB, where, BS004_SPREAD_WIDE, BS004_SPREAD_NARROW);
+                StartSpreadBurst(index, poseB, where, BS004_SPREAD_NARROW, BS004_SPREAD_WIDE);
+                StartSpreadBurst(index, poseB, where, BS004_SPREAD_NARROW, BS004_SPREAD_WIDE);
             }
         }
         break;
     }
     case BS004_STATE_RISE_A:
-    case BS004_STATE_RISE_B:
-    case BS004_STATE_PLUNGE_A:
-    case BS004_STATE_PLUNGE_B:
-    {
-        // 14/15 fly up to height 950 and drop; 16/17 go up to 2550 and drop harder (state 17 also fades the screen).
-        bool high = st.state == BS004_STATE_RISE_B || st.state == BS004_STATE_PLUNGE_B;
-        bool dropping = st.state == BS004_STATE_PLUNGE_A || st.state == BS004_STATE_PLUNGE_B;
-        float top = high ? 2550.0f : 950.0f;
-        st.motion = dropping ? 0xb : 2;
-        DAT_10daaae8[index].stats[STAT_BUSY] = dropping ? 0 : 1;
+        // Climbs to BS004_RISE_LOW_TOP, drifting towards the player, then hands over to the plunge.
+        st.motion = 2;
         moveMode = BS004_MOVE_FLY;
         st.frames++;
-        if (high && !dropping)
-            DAT_10daaae8[index].stats[STAT_VALUE_4] = 5;
-        if (!dropping)
+        DAT_10daaae8[index].stats[STAT_BUSY] = 1;
+        if (st.frames < BS004_RISE_SETTLE_FRAMES)
         {
-            step.Fill(0.0f);
-            if (st.frames < 0x3c)
-            {
-                step.z = -2.0f;
-                BlendMove(move, step, 0.8f, 0.2f);
-            }
-            else
-            {
-                st.motion = 10;
-                if (st.frames == 0x3c)
-                {
-                    step = ownPos - ownPos;
-                    step = target - ownPos;
-                    step.Copy(step * 0.5f);
-                    step.z = top - ownPos.z;
-                    step.Copy(step.Divided(high ? 56.0f : 28.0f));
-                    DAT_10802c08[index][0].z = (top - ownPos.z) / (high ? 56.0f : 28.0f);
-                }
-                BlendMove(move, step, 0.8f, 0.2f);
-                if (DAT_10db6ee8[index].motionFrame == 0x156 && (high ? st.frames > 0x5a && ownPos.z > 1000.0f
-                                                         : playerPos.z + 500.0f < ownPos.z))
-                {
-                    st.state = high ? BS004_STATE_PLUNGE_B : BS004_STATE_PLUNGE_A;
-                    st.lastState = st.state;
-                    st.frames = 0;
-                }
-            }
-            if (high && st.frames == 0x3c)
-                FUN_10065b10(index, 0x2dd, 1, 0);
+            move.Fill(0.0f);
+            move.z = -4.0f;
+            BlendMove(index, move, move, 0.8f, 0.2f);
         }
         else
         {
-            step.Fill(0.0f);
-            if (high)
-                DAT_10daaae8[index].stats[STAT_VALUE_4] = DAT_1020b48c[index].value;
-            if (st.frames < 0xf)
+            st.motion = 10;
+            if (st.frames == BS004_RISE_SETTLE_FRAMES)
+                PlanRise(index, move, ownPos, playerPos, BS004_RISE_LOW_TOP, 28.0f);
+            BlendMove(index, move, DAT_10802bf8[index].step, 0.8f, 0.2f);
+            if (DAT_10db6ee8[index].motionFrame == BS004_MOTION_FRAME_RISE_TOP && playerPos.z + 500.0f < ownPos.z)
             {
-                step.z = (float)(0xf - st.frames) * 1.6f;
-                BlendMove(move, step, 0.7f, 0.3f);
+                st.state = BS004_STATE_PLUNGE_A;
+                st.lastState = BS004_STATE_PLUNGE_A;
+                st.frames = 0;
             }
-            else if (st.frames < 0x1e)
+        }
+        FacePlayer(DAT_10db6ee8[index], ownPos, playerPos);
+        break;
+    case BS004_STATE_PLUNGE_A:
+    {
+        // Drops on the spot below it: a short lift, then a fall at 2.4 per frame, the landing blast, a recoil and a fade out.
+        DAT_10daaae8[index].stats[STAT_BUSY] = 0;
+        st.frames++;
+        st.motion = 0xb;
+        moveMode = BS004_MOVE_FLY;
+        if (st.frames == 1)
+            PlanPlunge(index, move, ownPos, playerPos, BS004_RISE_LOW_TOP);
+        if (st.frames < 0xf)
+        {
+            move.Copy(DAT_10802bf8[index].step);
+            move.z = (float)(0xf - st.frames) * 1.6f;
+            BlendMove(index, move, move, 0.7f, 0.3f);
+        }
+        else if (st.frames < 0x1e)
+        {
+            move.Copy(DAT_10802bf8[index].step);
+            move.z = (float)(0xf - st.frames) * 2.4f;
+            BlendMove(index, move, move, 0.7f, 0.3f);
+            moveMode = BS004_MOVE_FLY;
+            if (st.frames == 0x19)
             {
-                step.z = (float)(0xf - st.frames) * 2.4f;
-                BlendMove(move, step, 0.7f, 0.3f);
-                if (st.frames == 0x19)
-                {
-                    FUN_10065b10(index, high ? 0x2de : 0x2db, 1, 0);
-                    FUN_100b9bb0(index, high ? 0x1f9 : 0x1fe, 0, high ? 0 : 1);
-                }
+                FUN_10065b10(index, 0x2db, 1, 0);
+                FUN_100b9bb0(index, 0x1fe, 0, 1);
             }
-            else if (st.frames < 1000)
+        }
+        else if (st.frames < BS004_PLUNGE_LANDED && ownPos.z > 10.0f)
+        {
+            move.Copy(DAT_10802bf8[index].step);
+            move.z = (float)(0x1e - st.frames) * 2.4f - 36.0f;
+            BlendMove(index, move, move, 0.7f, 0.3f);
+            moveMode = BS004_MOVE_FLY;
+        }
+        else if (st.frames < BS004_PLUNGE_LANDED)
+            LandFromPlunge(index, move, ownPos, 0x2dc, 0x6e7);
+        else
+            FinishPlunge(index, st, move, 40.0f, false);
+        if (st.frames < BS004_PLUNGE_DONE)
+            SpinAndBurst(index, ownPos, 0.2f, false);
+        break;
+    }
+    case BS004_STATE_RISE_B:
+        // Like state 14 but up to BS004_RISE_HIGH_TOP, slower and with the voice line at the start of the climb.
+        st.motion = 2;
+        moveMode = BS004_MOVE_FLY;
+        st.frames++;
+        DAT_10daaae8[index].stats[STAT_BUSY] = 1;
+        DAT_10daaae8[index].stats[STAT_VALUE_4] = 5;
+        if (st.frames < BS004_RISE_SETTLE_FRAMES)
+        {
+            move.Fill(0.0f);
+            move.z = -2.0f;
+            BlendMove(index, move, move, 0.8f, 0.2f);
+            FacePlayer(DAT_10db6ee8[index], ownPos, playerPos);
+            break;
+        }
+        if (st.frames == BS004_RISE_SETTLE_FRAMES)
+            FUN_10065b10(index, 0x2dd, 1, 0);
+        st.motion = 10;
+        if (st.frames == BS004_RISE_SETTLE_FRAMES)
+            PlanRise(index, move, ownPos, playerPos, BS004_RISE_HIGH_TOP, 56.0f);
+        BlendMove(index, move, DAT_10802bf8[index].step, 0.8f, 0.2f);
+        if (DAT_10db6ee8[index].motionFrame == BS004_MOTION_FRAME_RISE_TOP && st.frames > 0x5a && ownPos.z > 1000.0f)
+        {
+            st.state = BS004_STATE_PLUNGE_B;
+            st.lastState = BS004_STATE_PLUNGE_B;
+            st.frames = 0;
+        }
+        FacePlayer(DAT_10db6ee8[index], ownPos, playerPos);
+        break;
+    case BS004_STATE_PLUNGE_B:
+    {
+        // Like state 15 from the high point: the screen is tinted while it falls, three shards per frame, a harder landing.
+        FUN_1000ec70(0xf, 1.0f, 0.6f, 0.6f, 1.0f);
+        int frames = st.frames;
+        st.frames = frames + 1;
+        int restoredValue = DAT_1020b48c[index].value;
+        DAT_10daaae8[index].stats[STAT_BUSY] = 0;
+        st.motion = 0xb;
+        moveMode = BS004_MOVE_FLY;
+        DAT_10daaae8[index].stats[STAT_VALUE_4] = restoredValue;
+        if (frames + 1 == 1)
+            PlanPlunge(index, move, ownPos, playerPos, BS004_RISE_HIGH_TOP);
+        if (st.frames < 0xf)
+        {
+            move.Copy(DAT_10802bf8[index].step);
+            move.z = (float)(0xf - st.frames) * 1.6f;
+            BlendMove(index, move, move, 0.7f, 0.3f);
+        }
+        else if (st.frames == 0xf)
+        {
+            // Sometimes it hangs for one more frame (more often the longer it did not).
+            int hangs = DAT_1020b490[index].value;
+            if (FUN_1013f880() % 300 < 10 - hangs / 5)
             {
-                if (ownPos.z <= 10.0f)
-                {
-                    EffectOptions options;
-                    Matrix4 pose;
-                    FUN_1016b230("");
-                    FUN_10055ee0();
-                    FUN_1003ad20(high ? 0x2df : 0x2dc, 0, 1.0f);
-                    st.motion = 0xd;
-                    st.frames = 1000;
-                    DAT_10db6ee8[index].SetPosition(ownPos.x, ownPos.y, 0.0f);
-                    SetUpOptions(index, options, 1.4f);
-                    MakePose(pose, 0.0f, ownPos);
-                    StartEffect(index, high ? 0x6ec : 0x6e7, ownPos, 0, &pose, &options);
-                    StartEffect(index, 0x6db, ownPos, 0, &pose, &options);
-                }
-                else
-                {
-                    step.z = (float)(0x1e - st.frames) * (high ? 1.2f : 2.4f) - 36.0f;
-                    BlendMove(move, step, 0.7f, 0.3f);
-                }
-            }
-            else if (st.frames < 0x3eb)
-                st.motion = 0xd;
-            else if (st.frames < 2000)
-            {
-                st.motion = 0xd;
-                st.frames = 2000;
-                move.Copy(move * -2.0f);
-                DAT_10802c08[index][0].z = high ? 80.0f : 40.0f;
+                st.frames = 0xe;
+                DAT_1020b490[index].value = hangs + 1;
             }
             else
             {
-                if (high)
-                    FUN_1000ec70(0xf, 1.0f, 1.0f, 1.0f, 1.0f);
-                st.motion = 0xd;
-                BlendMove(move, step, 0.2f, 0.8f);
-                move.Copy(move * 0.9f);
-                if (st.frames > 0x7ed)
-                {
-                    st.state = BS004_STATE_PICK;
-                    st.motion = 2;
-                }
-            }
-            if (st.frames < 2000)
-            {
-                float spin = DAT_10db9364 + (high ? 0.6f : 0.2f);
-                DAT_10db9364 = spin;
-                DAT_10db6ee8[index].targetHeading = spin;
-                if (st.frames > 0xf && st.frames < 1000)
-                {
-                    EffectOptions options;
-                    Matrix4 pose;
-                    pose.SetIdentity();
-                    SetUpOptions(index, options, 1.0f);
-                    options.flags |= 2;
-                    StartEffect(index, 0x6e5, ownPos, 0, &pose, 0);
-                    StartEffect(index, 0x6e5, ownPos, 0, &pose, 0);
-                    if (high)
-                        StartEffect(index, 0x6e5, ownPos, 0, &pose, 0);
-                    StartEffect(index, 0x45d, ownPos, 0, &pose, &options);
-                }
+                DAT_1020b490[index].value = 0;
+                PlanPlunge(index, move, ownPos, playerPos, BS004_RISE_HIGH_TOP);
             }
         }
-        if (!dropping)
-            FacePlayer(DAT_10db6ee8[index], ownPos, playerPos);
+        else if (st.frames < 0x1e)
+        {
+            move.Copy(DAT_10802bf8[index].step);
+            move.z = (float)(0xf - st.frames) * 2.4f;
+            BlendMove(index, move, move, 0.7f, 0.3f);
+            moveMode = BS004_MOVE_FLY;
+            if (st.frames == 0x19)
+            {
+                FUN_10065b10(index, 0x2de, 1, 0);
+                FUN_100b9bb0(index, 0x1f9, 0, 0);
+            }
+        }
+        else if (st.frames < BS004_PLUNGE_LANDED && ownPos.z > 10.0f)
+        {
+            move.Copy(DAT_10802bf8[index].step);
+            move.z = (float)(0x1e - st.frames) * 1.2f - 36.0f;
+            BlendMove(index, move, move, 0.7f, 0.3f);
+            moveMode = BS004_MOVE_FLY;
+        }
+        else if (st.frames < BS004_PLUNGE_LANDED)
+            LandFromPlunge(index, move, ownPos, 0x2df, 0x6ec);
+        else
+            FinishPlunge(index, st, move, 80.0f, true);
+        if (st.frames < BS004_PLUNGE_DONE)
+            SpinAndBurst(index, ownPos, 0.6f, true);
         break;
     }
     case BS004_STATE_GROUND_BLAST:
@@ -1376,20 +1588,20 @@ int Bs004_Update(int index)
             st.motion = 0x15;
         else if (DAT_10db6ee8[index].motionFrame == 0x1e0)
         {
-            float pitch = acosf(offset.z / (distance3D > 0.0f ? distance3D : 1.0f));
+            float pitch = FUN_10001f60(offset.z / (distance3D > 0.0f ? distance3D : 1.0f));
             EffectOptions options;
             SetUpOptions(index, options, 2.0f);
             if (pitch > 0.7854f)
                 pitch = 0.7854f;
             pitch = pitch * -1.0f;
-            Matrix4 pose = RotationX(pitch) * RotationZ(DAT_10db9364);
+            Matrix4 pose = RotationX(pitch) * RotationZ(DAT_10db6ee8[index].heading);
             StartEffect(index, 0x6f3, ownPos, 0, &pose, &options);
             FUN_10065b10(index, 0x2e1, 1, 0);
             FUN_100b9bb0(index, 0x1f5, 0, 1);
             probe.Fill(0.0f);
             probe.y = -1.0f;
             probe.RotateX(pitch);
-            probe.RotateZ(DAT_10db9364);
+            probe.RotateZ(DAT_10db6ee8[index].heading);
             if (probe.z < -0.01f)
             {
                 probe.Copy(probe * (ownPos.z / probe.z));
@@ -1411,7 +1623,7 @@ int Bs004_Update(int index)
         }
         else
             st.motion = 0x15;
-        BlendMove(move, step, 0.9f, 0.1f);
+        BlendMove(index, move, step, 0.9f, 0.1f);
         break;
     case BS004_STATE_FIRE_RAIN:
         st.motion = 0x10;
@@ -1419,7 +1631,7 @@ int Bs004_Update(int index)
         moveMode = BS004_MOVE_WALK;
         st.frames++;
         step.z = (600.0f - ownPos.z) / 20.0f;
-        BlendMove(move, step, 0.9f, 0.1f);
+        BlendMove(index, move, step, 0.9f, 0.1f);
         if (st.frames == 0)
         {
             FUN_10065b10(index, 0x2e2, 1, 0);
@@ -1428,14 +1640,14 @@ int Bs004_Update(int index)
         else if (st.frames > 0x18 && st.frames % 7 == 0 && FUN_1013f880() % 0x1e < 0x14)
         {
             EffectOptions options;
-            Matrix4 pose = RotationZ(DAT_10db9364);
+            Matrix4 pose = RotationZ(DAT_10db6ee8[index].heading);
             SetUpOptions(index, options, 0.75f);
             probe.Fill(0.0f);
             probe.y = -150.0f;
             probe.x = (float)(FUN_1013f880() % 600 - 300);
             probe.z = (float)(FUN_1013f880() % 600 - 300);
             probe.RotateX((float)(FUN_1013f880() % 60 - 30) / 180.0f * BS004_PI);
-            probe.RotateZ(((float)(FUN_1013f880() % 60 - 30) / 180.0f) * BS004_PI + DAT_10db9364);
+            probe.RotateZ(((float)(FUN_1013f880() % 60 - 30) / 180.0f) * BS004_PI + DAT_10db6ee8[index].heading);
             probe.Copy(probe + ownPos);
             pose.SetTranslation(probe);
             StartEffect(index, 0x6fc, probe, 0, &pose, &options);
@@ -1655,6 +1867,7 @@ int Bs004_Update(int index)
         DAT_10db6ee8[index].PlayMotion(st.motion, 0, 3, 1.0f);
         st.playingMotion = st.motion;
     }
+    DAT_10802bf8[index].position.Copy(move);
     if (moveMode == BS004_MOVE_WALK)
     {
         FUN_100241e0(index, move.x * DAT_10db6ee8[index].speedScale, move.y * DAT_10db6ee8[index].speedScale, move.z * DAT_10db6ee8[index].speedScale);

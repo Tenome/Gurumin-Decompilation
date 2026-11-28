@@ -48,8 +48,7 @@ extern "C" int FUN_1000e810(void)
 // Penalty: writes a random value into a random entry of the 16-entry noise table.
 inline void TAMPER()
 {
-    int noise = rand();
-    DAT_104c0270[rand() % 16] = noise;
+    DAT_104c0270[rand() % 16] = rand();
 }
 
 // AntiTamper_Check: counts frames, penalises an active debugger flag, compares every guard copy with its value

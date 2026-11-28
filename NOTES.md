@@ -866,3 +866,13 @@ answers for every toy below, so its allocator is the same family).
   scaled and clamped locals let cl fold the second evaluation of max() that the original keeps.
 - AtlThrow in sound3d is MFC's version (it throws the MFC memory and OLE exceptions). Including <afx.h> before
   <atlbase.h> produces it.
+
+## Register-rule levers found in round 20 (L1, H17)
+- A named local holding a call result can outrank an induction web. AntiTamper_Check matched when
+  `int noise = rand(); table[rand() % 16] = noise;` became `table[rand() % 16] = rand();`. Both compile to the same
+  call order. The named local counts a definition plus a use; the expression is a lower-priority CSE temp.
+- sound3d _GetParam matched once the `slot` local became the expression written at each use (a macro); the local
+  had outranked `kind`. Its switch defaults lost their `return 0`: an unknown pair now leaves the control id at
+  its 'none' value and one check after the switch returns 0. With a return in every default, cl kept the last
+  copy of the return-0 epilogue.
+- _SetParam: a `||` guard split into two `if (...) return 0;` tests (271 to 13 bytes), then one store moved.

@@ -1,25 +1,25 @@
 {
  "measures": {
-  "fuzzy_match_percent": 52.6569,
+  "fuzzy_match_percent": 52.6748,
   "total_code": "1825755",
-  "matched_code": "453838",
-  "matched_code_percent": 24.8576,
+  "matched_code": "455500",
+  "matched_code_percent": 24.9486,
   "total_data": "0",
   "matched_data": "0",
   "matched_data_percent": 0.0,
   "total_functions": 1462,
-  "matched_functions": 1151,
-  "matched_functions_percent": 78.7278,
+  "matched_functions": 1154,
+  "matched_functions_percent": 78.933,
   "complete_code": "6861",
   "complete_code_percent": 0.3758,
   "complete_data": "0",
   "complete_data_percent": 0.0,
   "total_units": 505,
-  "complete_units": 243,
-  "matched_rules_code": "453211",
-  "matched_rules_code_percent": 24.8232,
-  "matched_rules_functions": 1150,
-  "matched_rules_functions_percent": 78.6594
+  "complete_units": 244,
+  "matched_rules_code": "454873",
+  "matched_rules_code_percent": 24.9142,
+  "matched_rules_functions": 1153,
+  "matched_rules_functions_percent": 78.8646
  },
  "units": [
   {
@@ -823,32 +823,32 @@
   {
    "name": "app/anti_tamper",
    "measures": {
-    "fuzzy_match_percent": 98.5014,
+    "fuzzy_match_percent": 100.0,
     "total_code": "1065",
-    "matched_code": "267",
-    "matched_code_percent": 25.0704,
+    "matched_code": "1065",
+    "matched_code_percent": 100.0,
     "total_data": "0",
     "matched_data": "0",
     "matched_data_percent": 0.0,
     "total_functions": 3,
-    "matched_functions": 2,
-    "matched_functions_percent": 66.6667,
-    "complete_code": "0",
-    "complete_code_percent": 0.0,
+    "matched_functions": 3,
+    "matched_functions_percent": 100.0,
+    "complete_code": "1065",
+    "complete_code_percent": 100.0,
     "complete_data": "0",
     "complete_data_percent": 0.0,
     "total_units": 1,
-    "complete_units": 0,
-    "matched_rules_code": "267",
-    "matched_rules_code_percent": 25.0704,
-    "matched_rules_functions": 2,
-    "matched_rules_functions_percent": 66.6667
+    "complete_units": 1,
+    "matched_rules_code": "1065",
+    "matched_rules_code_percent": 100.0,
+    "matched_rules_functions": 3,
+    "matched_rules_functions_percent": 100.0
    },
    "sections": [
     {
      "name": ".text",
      "size": "1065",
-     "fuzzy_match_percent": 98.5014
+     "fuzzy_match_percent": 100.0
     }
    ],
    "functions": [
@@ -871,14 +871,14 @@
     {
      "name": "_FUN_1000e870",
      "size": "798",
-     "fuzzy_match_percent": 98.0,
+     "fuzzy_match_percent": 100.0,
      "metadata": {
       "virtual_address": "268494960"
      }
     }
    ],
    "metadata": {
-    "complete": false,
+    "complete": true,
     "source_path": "decomp/src/anti_tamper.cpp"
    }
   },
@@ -2925,7 +2925,7 @@
   {
    "name": "app/bs004_update",
    "measures": {
-    "fuzzy_match_percent": 24.128,
+    "fuzzy_match_percent": 23.2422,
     "total_code": "30154",
     "matched_code": "0",
     "matched_code_percent": 0.0,
@@ -2950,14 +2950,14 @@
     {
      "name": ".text",
      "size": "30154",
-     "fuzzy_match_percent": 24.128
+     "fuzzy_match_percent": 23.2422
     }
    ],
    "functions": [
     {
      "name": "?Bs004_Update@@YAHH@Z",
      "size": "30154",
-     "fuzzy_match_percent": 24.128,
+     "fuzzy_match_percent": 23.2422,
      "metadata": {
       "virtual_address": "269236672"
      }
@@ -30551,32 +30551,32 @@
   {
    "name": "sound3d/sound_mixer",
    "measures": {
-    "fuzzy_match_percent": 51.0946,
+    "fuzzy_match_percent": 72.184,
     "total_code": "2739",
-    "matched_code": "212",
-    "matched_code_percent": 7.7401,
+    "matched_code": "1076",
+    "matched_code_percent": 39.2844,
     "total_data": "0",
     "matched_data": "0",
     "matched_data_percent": 0.0,
     "total_functions": 8,
-    "matched_functions": 5,
-    "matched_functions_percent": 62.5,
+    "matched_functions": 7,
+    "matched_functions_percent": 87.5,
     "complete_code": "0",
     "complete_code_percent": 0.0,
     "complete_data": "0",
     "complete_data_percent": 0.0,
     "total_units": 1,
     "complete_units": 0,
-    "matched_rules_code": "212",
-    "matched_rules_code_percent": 7.7401,
-    "matched_rules_functions": 5,
-    "matched_rules_functions_percent": 62.5
+    "matched_rules_code": "1076",
+    "matched_rules_code_percent": 39.2844,
+    "matched_rules_functions": 7,
+    "matched_rules_functions_percent": 87.5
    },
    "sections": [
     {
      "name": ".text",
      "size": "2739",
-     "fuzzy_match_percent": 51.0946
+     "fuzzy_match_percent": 72.184
     }
    ],
    "functions": [
@@ -30607,7 +30607,7 @@
     {
      "name": "_GetParam",
      "size": "436",
-     "fuzzy_match_percent": 29.0948,
+     "fuzzy_match_percent": 100.0,
      "metadata": {
       "virtual_address": "268472112"
      }
@@ -30615,7 +30615,7 @@
     {
      "name": "_SetParam",
      "size": "428",
-     "fuzzy_match_percent": 37.2685,
+     "fuzzy_match_percent": 100.0,
      "metadata": {
       "virtual_address": "268472560"
      }

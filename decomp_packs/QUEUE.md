@@ -107,3 +107,17 @@ Round H11 (named-local-vs-temporary rule, early-return tails, parameter reuse):
 - QuantiseBand: declaring the three counts before the three error sums puts the sums at [esp+0x10..0x18] and the counts at [esp+0x1c..0x24] as in the original (the H12 note said declaration order had no effect; it does when the counts come first and the sums second, with `int countA = 0, countB = 0, countC = 0;` above `int errorSumA = 0, ...`). 863 -> 857 differing bytes. roundOffset/reconstructionOffset still swap ebp/ebx (declaring reconstructionOffset first is worse, 232 lines), and the three zero stubs stay. `double average = 0.5;` then `if (count != 0)` instead of the else arm is worse (1936 bytes).
 - EncodeStream: indexing the band models by a loop counter (`models->bandModel(index, 0/1/2)`) gives 320 bytes (original 345) and 82 differing lines against 86 for the pointer form; neither has the original's run-time `models - bottom` differences. Not adopted.
 - ToRgbBytes: unchanged; the clamp stubs after the ret still do not come from any arm order or early-return form tried so far. TransformLevel, InverseWaveletLevel and BandStatistics were not touched (the behaviour harnesses were not needed).
+
+## Round H17 (register-role walls; no new matches, 34 of 51)
+
+- QuantiseBand: roundOffset/reconstructionOffset (ebx/ebp) are a near tie; one extra reference to reconstructionOffset
+  flips them to the original's roles (round ebp, recon ebx). Natural spellings tried without the flip: unnamed expressions
+  (hoisting, 1665 diffs), early-return Measure helper, nested `else if (value < 0)`, reconstructionOffset declared first
+  (same roles, other computation order), declaration orders of sums and counts (slot order of the address-taken sums and
+  counts does not follow either). See sound3d round H17 for the lever that closed GetParam/SetParam (drop a named local
+  that only names a CSE'd expression, one shared failure check); QuantiseBand has no such local whose removal helps.
+- EncodeBand: the original keeps `model` in edi from the entry (pushed first, so the early `estimate == 0` return pops
+  only edi) and `count`/position/consumed in memory; ours holds count in ebx for the first test and model in esi. count's web
+  is short in ours (call argument and the first loop test) and is reloaded from its slot in the original.
+- WriteStream, EncodeStream: not changed (EncodeStream's band pointers are already one local per band; the original's
+  run-time `models - ebx` differences come from three separate pointer webs strength-reduced into one induction pointer).

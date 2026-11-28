@@ -130,18 +130,21 @@ extern "C" int MixClose(void)
     return 0;
 }
 
-// Returns the control id GetParam/SetParam use for a line and index, or -1 when there is none.
-// kind 0 auxiliary, 1 CD, 2 telephone, 3 master; index 5 = volume, 6 = master peak meter, 4 = spare control.
-// Cases are listed in the order the original compiled them.
+// Cache slot of a (kind, index) pair. Written as a macro because the original has no slot variable: a named local
+// gets its own register priority and takes the callee-saved register the original gives the kind.
+#define PARAM_SLOT(kind, index) ((kind) * MIXER_PARAM_STRIDE + (index))
+
+// Control ids for GetParam/SetParam: kind 0 auxiliary, 1 CD, 2 telephone, 3 master; index 5 = volume, 6 = master peak
+// meter, 4 = spare control (SetParam only). A (kind, index) with no control leaves dwControlID at MIXER_NO_CONTROL and
+// the caller returns 0 from one place, as the original does.
 // GetParam: current volume of a mixer line. The value is read once per (kind, index), cached, and returned as a
 // positive number. Returns 0 when the mixer is not open, the control does not exist or the call fails.
 extern "C" int GetParam(int kind, int index)
 {
-    int slot = kind * MIXER_PARAM_STRIDE + index;
-    if (g_paramCached[slot] != 0)
-        return g_paramValue[slot];
+    if (g_paramCached[PARAM_SLOT(kind, index)] != 0)
+        return g_paramValue[PARAM_SLOT(kind, index)];
     int value;
-    g_paramCached[slot] = 1;
+    g_paramCached[PARAM_SLOT(kind, index)] = 1;
     if (MixerControls::handle == 0)
         return 0;
     MIXERCAPS caps;
@@ -149,7 +152,7 @@ extern "C" int GetParam(int kind, int index)
     MMRESULT result = mixerGetDevCaps((UINT)MixerControls::handle, &caps, sizeof(caps));
     if (result == MMSYSERR_INVALHANDLE) {
         if (mixerOpen(&MixerControls::handle, 0, 0, 0, 0) == MMSYSERR_NOERROR)
-            return g_paramValue[slot];
+            return g_paramValue[PARAM_SLOT(kind, index)];
         return 0;
     }
     if (result != MMSYSERR_NOERROR)
@@ -157,40 +160,31 @@ extern "C" int GetParam(int kind, int index)
     MIXERCONTROLDETAILS details;
     memset(&details, 0, sizeof(details));
     details.dwControlID = MIXER_NO_CONTROL;
-    DWORD controlId;
     switch (kind) {
     case KIND_TELEPHONE:
-        if (index != PARAM_INDEX_VOLUME)
-            return 0;
-        controlId = MixerControls::phoneVolume;
+        if (index == PARAM_INDEX_VOLUME)
+            details.dwControlID = MixerControls::phoneVolume;
         break;
     case KIND_CD:
-        if (index != PARAM_INDEX_VOLUME)
-            return 0;
-        controlId = MixerControls::cdVolume;
+        if (index == PARAM_INDEX_VOLUME)
+            details.dwControlID = MixerControls::cdVolume;
         break;
     case KIND_AUX:
-        if (index != PARAM_INDEX_VOLUME)
-            return 0;
-        controlId = MixerControls::auxVolume;
+        if (index == PARAM_INDEX_VOLUME)
+            details.dwControlID = MixerControls::auxVolume;
         break;
     case KIND_MASTER:
         switch (index) {
         case PARAM_INDEX_VOLUME:
-            controlId = MixerControls::masterVolume;
+            details.dwControlID = MixerControls::masterVolume;
             break;
         case PARAM_INDEX_PEAK:
-            controlId = MixerControls::peakMeter;
+            details.dwControlID = MixerControls::peakMeter;
             break;
-        default:
-            return 0;
         }
         break;
-    default:
-        return 0;
     }
-    details.dwControlID = controlId;
-    if (controlId == MIXER_NO_CONTROL)
+    if (details.dwControlID == MIXER_NO_CONTROL)
         return 0;
     EnterCriticalSection(&g_audioLock);
     details.cbStruct = sizeof(details);
@@ -207,7 +201,7 @@ extern "C" int GetParam(int kind, int index)
         level = 0;
     }
     LeaveCriticalSection(&g_audioLock);
-    g_paramValue[slot] = level;
+    g_paramValue[PARAM_SLOT(kind, index)] = level;
     return level;
 }
 
@@ -215,7 +209,9 @@ extern "C" int GetParam(int kind, int index)
 // value was sent, 0 when it equals the cached value, the mixer is not open or there is no such control.
 extern "C" int SetParam(int kind, int index, int value)
 {
-    if (g_paramValue[kind * MIXER_PARAM_STRIDE + index] == value || MixerControls::handle == 0)
+    if (g_paramValue[PARAM_SLOT(kind, index)] == value)
+        return 0;
+    if (MixerControls::handle == 0)
         return 0;
     MIXERCAPS caps;
     memset(&caps, 0, sizeof(caps));
@@ -229,75 +225,64 @@ extern "C" int SetParam(int kind, int index, int value)
     MIXERCONTROLDETAILS details;
     memset(&details, 0, sizeof(details));
     details.dwControlID = MIXER_NO_CONTROL;
-    DWORD controlId;
     switch (kind) {
     case KIND_TELEPHONE:
         switch (index) {
         case PARAM_INDEX_SPARE:
-            controlId = MixerControls::phoneSpare;
+            details.dwControlID = MixerControls::phoneSpare;
             break;
         case PARAM_INDEX_VOLUME:
-            controlId = MixerControls::phoneVolume;
+            details.dwControlID = MixerControls::phoneVolume;
             break;
-        default:
-            return 0;
         }
         break;
     case KIND_CD:
         switch (index) {
         case PARAM_INDEX_SPARE:
-            controlId = MixerControls::cdPanAgain;
+            details.dwControlID = MixerControls::cdPanAgain;
             break;
         case PARAM_INDEX_VOLUME:
-            controlId = MixerControls::cdVolume;
+            details.dwControlID = MixerControls::cdVolume;
             break;
-        default:
-            return 0;
         }
         break;
     case KIND_AUX:
         switch (index) {
         case PARAM_INDEX_SPARE:
-            controlId = MixerControls::auxSpare;
+            details.dwControlID = MixerControls::auxSpare;
             break;
         case PARAM_INDEX_VOLUME:
-            controlId = MixerControls::auxVolume;
+            details.dwControlID = MixerControls::auxVolume;
             break;
-        default:
-            return 0;
         }
         break;
     case KIND_MASTER:
         switch (index) {
         case PARAM_INDEX_SPARE:
-            controlId = MixerControls::masterSpare;
+            details.dwControlID = MixerControls::masterSpare;
             break;
         case PARAM_INDEX_VOLUME:
-            controlId = MixerControls::masterVolume;
+            details.dwControlID = MixerControls::masterVolume;
             break;
         case PARAM_INDEX_PEAK:
-            controlId = MixerControls::peakMeter;
+            details.dwControlID = MixerControls::peakMeter;
             break;
-        default:
-            return 0;
         }
         break;
-    default:
-        return 0;
     }
-    details.dwControlID = controlId;
-    if (controlId == MIXER_NO_CONTROL)
+    if (details.dwControlID == MIXER_NO_CONTROL)
         return 0;
     EnterCriticalSection(&g_audioLock);
     details.cbStruct = sizeof(details);
     details.cbDetails = sizeof(int);
     // The control's value buffer is a copy: the parameter itself stays in a register for the cache update below.
-    int controlValue = value;
+    int controlValue;
     details.paDetails = &controlValue;
     details.cChannels = 1;
+    controlValue = value;
     mixerSetControlDetails((HMIXEROBJ)MixerControls::handle, &details, MIXER_SETCONTROLDETAILSF_VALUE);
     LeaveCriticalSection(&g_audioLock);
-    g_paramValue[kind * MIXER_PARAM_STRIDE + index] = value;
+    g_paramValue[PARAM_SLOT(kind, index)] = value;
     return 1;
 }
 

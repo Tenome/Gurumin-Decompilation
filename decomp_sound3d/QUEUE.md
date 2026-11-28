@@ -143,3 +143,49 @@ Round H11 (named locals that were temporaries, function-scope address-taken loca
 - AtlThrow: the original is MFC's `if (hr == E_OUTOFMEMORY) AfxThrowMemoryException(); else AfxThrowOleException(hr);` (atlexcept.h under `_AFX`). `#include <afx.h>` before atlbase.h in atl_conversion.cpp and atl_string_fakes.cpp reproduces it; ours had thrown a CAtlException.
 - GetParam/SetParam (sound_mixer.cpp, not matched, structure closer): master line index test is a `switch` (original `sub eax,5; je; dec eax`), the result is a second local `level` (the original loads the address-taken `value` into esi and negates there). SetParam: the control value buffer is a copy (`controlValue`, address taken; the parameter `value` stays in ebp for the cache store, the cache pointer is a CSE spilled into the dead `index` slot), which made body and registers identical to the original. Left: GetParam register order (original: kind ebp, index esi, slot ebx; ours kind ebx), the original keeps the first `return 0` epilogue (after the mixerOpen success return) where ours keeps the last; SetParam prologue order (`mov eax,ebx; shl eax,6` before the `push esi`) and the epilogue schedule of `*cached = value; return 1`.
 - Not closed, new hypotheses tried without effect: PlaySEExtended (`&&` nesting, nested else returns, braces: same 9 bytes or the 176-byte layout), InitTrackedAllocator (a `char label[8]` copied to the global: 55-110 diff bytes, cookie frame not reproduced), MmioFile::Open (all six orders of the three path buffers, with directory before/after them: the buffers sit in first-use order whatever the declaration order; the original has them in reverse first-use order), FindOrLoadSound (the original keeps the zero in ebp for the whole function and `slot` in esi with a stack home; ours gives ebp to `slot` and rematerialises zero), SoundChannel::Open (the 720 orders of the six format stores were searched, best 27 diff bytes (applied: nBlockAlign before wBitsPerSample, was 52), no match; the original loads bitsPerSample into cx right after the nBlockAlign store and moves `mov ecx,9` after it, ours loads it into ax last).
+
+## Round H17 (register-role walls; 138 -> 140 of 156)
+
+- New MATCH: _GetParam 0x10008f30 and _SetParam 0x100090f0 (src/sound_mixer.cpp). Levers, in the order they mattered:
+  (1) No `slot` local in GetParam: `kind * MIXER_PARAM_STRIDE + index` is written out at each use (macro PARAM_SLOT; cl
+  CSEs it into one web). The named local gave the slot a higher priority than the kind and the kind took ebx; the
+  original has index esi, slot ebx, kind ebp. A probe (extra `g_paramValue[slot]` references at the top) shows the gap was
+  under one entry-weight reference: one extra reference made the slot outrank the index, none left it behind the kind.
+  (2) The control id is never returned from inside the switch: unknown (kind, index) leave `details.dwControlID` at
+  MIXER_NO_CONTROL (switch arms are `if (index == VOLUME) id = ...;` / inner switch without `default`), one
+  `if (details.dwControlID == MIXER_NO_CONTROL) return 0;` after it. With `return 0` in every default cl kept the LAST
+  copy of the shared return-0 epilogue (at the end); with a single check the original's layout comes out (the return-0
+  epilogue right after the mixerOpen success block, the handle == 0 path joining the final epilogue at eax = 0).
+  SetParam: (3) the guard is two statements, `if (g_paramValue[...] == value) return 0; if (handle == 0) return 0;`; the `||`
+  form put `shl eax,6` after `mov esi` and spilled the cache pointer late (271 -> 13 diff bytes); (4) the value copy
+  `controlValue = value` comes after `details.cChannels = 1` (its store sits right before the call in the original).
+  Rule of thumb confirmed: before touching declaration order, drop the named local that only names a CSE'd expression, and
+  turn `return 0` defaults into fall-through to one shared check.
+- QuantiseBand (Packs): the roundOffset/reconstructionOffset swap is a near tie. One extra reference to
+  reconstructionOffset at the top (any `if (reconstructionOffset == k)`) flips them to the original's roles (round ebp, recon
+  ebx), so the gap is below one entry-weight reference; but the unnamed-expression forms `((scale - 1) / 2)` /
+  `((quality - 1) / 2)` (hoisting changes, 1665 diffs), a nested-vs-early-return Measure helper, `level == 0` early return,
+  and declaring reconstructionOffset first (roles unchanged, only the computation order moves) do not make the flip. The
+  pass-two coefficient web also takes ebx where the original gives it ebp (zero constant and the coefficient share ebp
+  there). Slot order of the six address-taken sums/counts does not follow declaration order (sums-first and counts-first
+  both give counts at 0x10) and is not a function of the local names at /O2.
+- _MixOpen: the original keeps &g_mixerControl in ebp (2 uses per site: memset and pamxctrl) and 0x94 in ebx, the import
+  pointer in esi, and the 0x18 cbStruct as an immediate; ours keeps 0x18 in ebp and the control address as an immediate
+  (ebx = 0x94, esi = import as the original). So an address constant is promoted in the original and not in ours although
+  both have two uses per site; not reproduced (no spelling of g_mixerControl/QueryControlId tried so far changes it).
+- RewindDecoder: ours has op = esi and the counter = edi, the original op = edi and counter = esi (vc ebx, os ebp equal). The
+  counter needs more weight than `op`; `++headerPackets`, `while (++headerPackets < 2)`, unsigned counter, os/op/vc locals
+  and declaration order change nothing, an extra reference to the counter after the loops changes the picture (this no
+  longer reloaded into edi) without reaching the original. The original also keeps the top-of-loop test
+  (`cmp esi,2; jge; jmp body`) that cl folds in ours.
+- PlaySEExtended: the original keeps the FIRST `xor eax,eax; ret` (je over it) and the ready test jumps back to it; ours
+  keeps the second. Early returns, `else if`, `== 0`, ready-first nesting and a single trailing `return 0` (176 bytes) tried
+  again; the sibling IPlaySEB (return -1) compiles like ours, so the zero return in the original is not the same IL.
+- GetBaseFileName: original holds baseName in ebx, i esi, nameStart ebp, dotPos edi and stores the memset zeros through
+  esi (i's zero); ours uses scratch registers for dotPos and a separate zero. Strlen result into a `length` local,
+  conditional expression inside the index and memset-before-initialisers did not move it (135-150 diffs against 139).
+- SoundChannel::Open: the 27 diff bytes are scratch-register choices (eax vs ecx for the DSBCAPS flag lea, ecx vs edx
+  for the CreateSoundBuffer vtable load and the stereo*3 lea) plus the `push 0` placement; a named `flags` local, the
+  ternary flag forms, `!= 2` arm order and `+` operand order leave them unchanged (moving lpwfxFormat is far worse).
+- Not reworked (no new idea within the lane): FindOrLoadSound (its archived branch differs structurally, not only in the
+  zero constant's register), StartDecoder.
