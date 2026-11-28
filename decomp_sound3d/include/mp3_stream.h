@@ -113,6 +113,18 @@ public:
 
     Mp3Stream() throw();                                    // 0x10001440
     int Close();                                            // 0x10001470
+
+    // Reads count bytes of the file into buffer (item size one byte). Returns the file read's result. In-class
+    // inline: LoadSource expands it; the compiler still emits the out-of-line copy (0x100014d0), which is never called.
+    LONG ReadFileBytes(void *buffer, int count) { return file.Read((HPSTR)buffer, 1, count); }
+
+    // Moves the read position the decoder reports (WaveStream::Seek, 0x10002b30, expands it in place). Out-of-line
+    // copy 0x100014f0. Always returns 0.
+    int Seek(unsigned int newPosition)
+    {
+        position = newPosition;
+        return 0;
+    }
     void BuildWavHeader(const WavSourceFormat *format);     // 0x10001500
     void LoadSource();                                      // 0x10001630 sets totalBytes
     unsigned int Read(BYTE *buffer, unsigned int count);    // 0x10001710

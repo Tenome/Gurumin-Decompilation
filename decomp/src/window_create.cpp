@@ -83,7 +83,7 @@ GameWindow::~GameWindow()
 // 0x1013e4f0. Handles the messages the game cares about: quit, paint, focus changes (active), IME composition (forwarded
 // to the callbacks set by the text input code), middle-button capture and the mouse wheel; it closes the IME's
 // own window (WM_IME_SETCONTEXT) because the game draws the composition itself. Everything else goes to
-// DefWindowProc. Not byte-identical yet (see open.tsv).
+// DefWindowProc.
 LRESULT __stdcall GameWindow::WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
@@ -97,7 +97,13 @@ LRESULT __stdcall GameWindow::WindowProc(HWND window, UINT message, WPARAM wPara
     case WM_ACTIVATEAPP:
         active = wParam;
         break;
+    // Key down and key up are listed (the original's switch has both labels; the pivot of its case tree depends on
+    // them) but only ever re-test Escape and fall through to DefWindowProc.
     case WM_KEYDOWN:
+        if (wParam == VK_ESCAPE)
+            break;
+        break;
+    case WM_KEYUP:
         if (wParam == VK_ESCAPE)
             break;
         break;
@@ -133,7 +139,9 @@ LRESULT __stdcall GameWindow::WindowProc(HWND window, UINT message, WPARAM wPara
         wheelDelta += (short)HIWORD(wParam);
         break;
     case WM_IME_SETCONTEXT:
-        SendMessageA(ImmGetDefaultIMEWnd(window), WM_CLOSE, 0, 0);
+        // The IME window is fetched before the message arguments are pushed.
+        HWND imeWindow = ImmGetDefaultIMEWnd(window);
+        SendMessageA(imeWindow, WM_CLOSE, 0, 0);
         return 0;
     }
     return DefWindowProcA(window, message, wParam, lParam);

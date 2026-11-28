@@ -92,13 +92,12 @@ void WaveStream::Seek(unsigned int newPosition)
     }
     if (kind == STREAM_OGG) {
         OggStream *ogg = (OggStream *)decoder;
-        ogg->position = newPosition;
-        ogg->m_2734 = 0;
+        ogg->Seek(newPosition);
         filePosition = newPosition;
     }
     if (kind == STREAM_MP3) {
         Mp3Stream *mp3 = (Mp3Stream *)decoder;
-        mp3->position = newPosition;
+        mp3->Seek(newPosition);
         filePosition = newPosition;
     }
     position = newPosition;

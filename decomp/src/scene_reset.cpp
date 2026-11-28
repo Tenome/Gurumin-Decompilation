@@ -419,7 +419,8 @@ extern "C" int FUN_100fb7b0(void)
         else
             DAT_10daaae8[16].kind = KIND_FOLLOWER;
     }
-    else if (DAT_10daaae8[16].kind != KIND_FOLLOWER)
+    // Not an else-if: the original tests the follower kind and then the map again (cl keeps the second test)
+    if (DAT_10daaae8[16].kind != KIND_FOLLOWER && DAT_10c62ed0 < MAP_FIRST_LATE)
         DAT_10daaae8[16].kind = KIND_FOLLOWER;
     if (DAT_10daaae8[18].kind != KIND_FOLLOWER)
         DAT_10daaae8[18].kind = KIND_FOLLOWER;

@@ -199,6 +199,27 @@ extern "C" int IPlaySEB(const char *name, float *x, float *y, float *z, int hasP
     return channel;
 }
 
+// PlaySEExtended: plays a sound effect on the first idle effect channel with the full argument list of PlaySE (the
+// velocity vectors too). Returns 0 when the effects are muted or the engine is off, otherwise -1 (the channel is not
+// reported). Nothing calls it (0x100096c0).
+int PlaySEExtended(const char *name, float *x, float *y, float *z, float *vx, float *vy, float *vz, int hasPos,
+                   int loop, float volume)
+{
+    if (g_seMuted != 0)
+        return 0;
+    if (!g_ready)
+        return 0;
+    EnterCriticalSection(&g_seLock);
+    for (int channel = 0; channel < SE_CHANNEL_COUNT; channel++) {
+        if (!g_seChannel[channel].IsPlaying()) {
+            g_seChannel[channel].PlaySE(name, loop, x, y, z, vx, vy, vz, hasPos, volume);
+            break;
+        }
+    }
+    LeaveCriticalSection(&g_seLock);
+    return -1;
+}
+
 // ISetListen: queues the 3D listener position and orientation (ten floats).
 extern "C" int ISetListen(float first, float p2, float p3, float p4, float p5, float p6, float p7, float p8, float p9, float p10)
 {

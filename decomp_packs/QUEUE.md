@@ -89,3 +89,7 @@ Round H11 (named-local-vs-temporary rule, early-return tails, parameter reuse):
   merge them. BiasByte results assigned straight to model->plane[].bias (no reuse of errorSum) is shorter than the
   original (1888 against 1954), so the reuse stays.
 - ExecPack: unchanged (the original keeps `stream.reserved = 8` as an immediate after `mov eax,8`).
+
+## Round H13
+
+- No new matches (34 of 51). EncodeBand, WriteStream, TransformLevel, InverseWaveletLevel, QuantiseBand(s) and the rest were not reworked this round.

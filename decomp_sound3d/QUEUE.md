@@ -119,3 +119,11 @@ Round H11 (named locals that were temporaries, function-scope address-taken loca
 - _MixOpen: QueryControlId with an out parameter (`*controlId = ...` in each branch, which would give the original's
   store-per-branch) was bigger (1792 against 1696 bytes, original 1663); the original also keeps 0x94 and the control
   address in registers across the sites. Not applied.
+
+## Round H13
+
+- Inventory: 23 missed starts and 15 built-but-unlisted functions added through module.json extra_functions; triage rerun (156 functions).
+- New MATCH: 6 ATL thunks, AtlA2WHelper/AtlW2AHelper, Allocate, CTempBuffer/CW2AEX small methods, MmioFile ctor, OwnedText ctor/dtor, Mp3Stream ReadFileBytes/Seek/LoadSource, OggStream::Seek.
+- Lever: a referenced in-class inline member gets an out-of-line COMDAT copy even when expanded everywhere, so never-called originals match by referencing it from a matched function. ATL thunks match by taking their address in a const pointer.
+- Walls: WaveStream::Read (stack slots, 629 diffs), PlaySEExtended (9 byte diffs, early-return guard layout; forms A/B/C/E/G of the guard tried), MmioFile::Open buffer order, EncodeStream/EncodeChunk/EncodeJpegRgb.
+- Not reached: remaining open functions in decomp_packs (no change, 34 of 51).

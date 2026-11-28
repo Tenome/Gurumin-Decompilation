@@ -16,3 +16,9 @@ using namespace ATL;
 
 template class ATL::CW2AEX<128>;
 template class ATL::CTempBuffer<char, 128, ATL::CCRTAllocator>;
+
+// The ANSI/wide converters of <atlconv.h> (the 4 argument forms, with the code page), called by the CW2AEX/CA2WEX
+// constructors the program never instantiates. Taking their addresses makes the compiler emit them out of line:
+//   10001390 AtlA2WHelper (lpw[0] = 0, then MultiByteToWideChar), 100013d0 AtlW2AHelper (WideCharToMultiByte)
+extern LPWSTR (WINAPI *const g_atlA2WHelper)(LPWSTR, LPCSTR, int, UINT) = AtlA2WHelper;
+extern LPSTR (WINAPI *const g_atlW2AHelper)(LPSTR, LPCWSTR, int, UINT) = AtlW2AHelper;

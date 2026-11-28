@@ -64,6 +64,14 @@ public:
         isOpen = 0;
     }
     int FeedChunk();                  // 0x10001be0 feeds libogg, 0 at the end of the file
+
+    // Moves the read position the decoder reports and clears the offset the reads correct it by (WaveStream::Seek,
+    // 0x10002b30, expands it in place). Out-of-line copy 0x10001cc0.
+    void Seek(unsigned int newPosition)
+    {
+        position = newPosition;
+        m_2734 = 0;
+    }
     int StartDecoder();               // 0x10001ce0 parses the header packets and sets up the synthesis state
     int RewindDecoder();              // 0x10001ec0 restarts the decoder at the first page (headers only)
     int Decode(BYTE *output);         // 0x100024b0 decodes one block of PCM, returns its bytes

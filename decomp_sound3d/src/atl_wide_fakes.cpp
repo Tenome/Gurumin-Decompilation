@@ -19,3 +19,9 @@ extern int (WINAPI *const g_lstrcmpiWFake)(LPCWSTR, LPCWSTR) = lstrcmpiWFake;
 extern LPWSTR (WINAPI *const g_charLowerWFake)(LPWSTR) = CharLowerWFake;
 extern LPWSTR (WINAPI *const g_charUpperWFake)(LPWSTR) = CharUpperWFake;
 extern void (WINAPI *const g_atlThrow)(HRESULT) = AtlThrow;
+
+// The thunks the string-thunk table of <cstringt.h> points at: each installs the Win9x fake or the NT function on its first call, then jumps through the table entry.
+extern int (WINAPI *const g_compareStringWThunk)(LCID, DWORD, LPCWSTR, int, LPCWSTR, int) = CompareStringWThunk;
+extern int (WINAPI *const g_lstrcmpiWThunk)(LPCWSTR, LPCWSTR) = lstrcmpiWThunk;
+extern LPWSTR (WINAPI *const g_charLowerWThunk)(LPWSTR) = CharLowerWThunk;
+extern LPWSTR (WINAPI *const g_charUpperWThunk)(LPWSTR) = CharUpperWThunk;

@@ -86,11 +86,11 @@ void Mp3Stream::LoadSource()
     }
     source = operator new(dataLength);
     sourcePtr = (unsigned char *)source;
-    sourceBytesRead = file.Read((HPSTR)source, 1, sourceSize);
-    frameBytes = info.samplesPerFrame;
+    sourceBytesRead = ReadFileBytes(source, sourceSize);
     format.channels = info.channels;
     format.bitsPerSample = PCM_OUTPUT_BITS;
     format.sampleRate = info.sampleRate;
+    frameBytes = info.samplesPerFrame;
     format.bytesPerFrame = frameBytes;
     BuildWavHeader(&format);
     if (frameBuffer) {

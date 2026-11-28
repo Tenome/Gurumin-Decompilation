@@ -772,3 +772,25 @@ other huge drafts (Bs00x_Update, DrawLit, RunScriptFrames) for the same gap.
   median-pivot tree. Where the original has direct jump tables and cross-jumped tails, it wrote one body per
   label, with the bodies in the original's address order. cl then merges the identical tails itself. This took
   enemy_voice from 32% to 46% and char_kind_select from 44% to 55% fuzzy.
+
+## Sequential tests keep a redundant re-test; which tail copy cl keeps (lane F2)
+- Scene_Reset's slot 16 kind (`if (map > 99) { WATCHER or FOLLOWER } else if (kind != FOLLOWER) kind = FOLLOWER`) matched its
+  block once written as two statements: `if (map > 99) {...}` then `if (kind != FOLLOWER && map < 100) kind = FOLLOWER;`.
+  The original keeps `cmp edx,0x64; jge` after the kind test: cl threads a known-false test (map <= 99 skips the first
+  `if`, the follower store jumps to the end) but not a known-true one, so the second test of the map survives on the
+  WATCHER and the map < 100 paths. When an original has a re-test no else-if spelling produces, look for two sequential
+  ifs whose second condition repeats the first.
+- Map_ShowEquipment, Ime_DrawComposition and Enemy_StrafeAndBurst all show the same layout difference: the original
+  keeps the *later* copy of a cross-jumped tail (earlier arms jump forward into it), ours keeps the first. Toys: a lone
+  if / else-if pair followed by `return 0` (or by nothing) keeps the later copy; the same pair followed by further
+  statements, or with a third arm, keeps the first. Neither block-scoped temporaries, a switch, flag locals nor test
+  inversion changed which copy survives in the real functions; treat it as not under source control (see also the
+  ImeDraw note above).
+
+- F1 sweep (round 16): the median pivot of a switch tree counts every label cl keeps. GameWindow::WindowProc matched once a second
+  keyboard label (WM_KEYUP, body `if (wParam == VK_ESCAPE) break; break;` like WM_KEYDOWN) moved the first pivot from 0x10f to 0x10e;
+  a label whose body is a plain `break` is dropped by cl and does not count. Char_UpdateByKind shows the same (original pivots at
+  0x27 because labels 6 and 9 are kept). Merged identical return blocks: the survivor and the register style (eax movzx / ecx / edx
+  rotation) of each block decide what cl merges (Keyboard_IsButtonDown). `ImmGetDefaultIMEWnd(window)` as a local before
+  SendMessageA reproduces the original call-before-push order. All remaining switch-structure mismatches are in drafts that miss
+  20-45% of their bytes (one body per label is exactly the missing code there).

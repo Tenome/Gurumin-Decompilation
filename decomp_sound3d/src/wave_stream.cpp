@@ -353,7 +353,7 @@ int WaveStream::Read(BYTE *buffer, int bytes)
             filePosition += dataOffset + WAV_HEADER_BYTES;
             return 1;
         }
-        file.Read((HPSTR)buffer, 1, bytes);
+        file.Read((HPSTR)buffer, bytes, 1);
         filePosition += bytes;
         return 1;
     }
@@ -438,7 +438,7 @@ int WaveStream::Read(BYTE *buffer, int bytes)
         if (seekPending) {
             file.Seek(WAV_HEADER_BYTES, SEEK_SET);
             DWORD skippedBytes = WAV_HEADER_BYTES;
-            while ((int)(position - ADPCM_DECODED_BLOCK_BYTES) > (int)skippedBytes) {
+            while ((int)skippedBytes < (int)(position - ADPCM_DECODED_BLOCK_BYTES)) {
                 file.Read((HPSTR)&length, 1, 4);
                 file.Seek(length, SEEK_CUR);
                 skippedBytes += ADPCM_DECODED_BLOCK_BYTES;

@@ -225,12 +225,6 @@ extern "C" int FUN_1001b0a0(int index, int alternative, int quiet)
                 case 5:
                     *kind = 0x1fc31;
                     break;
-                case 6:
-                    *kind = 0x24a51;
-                    break;
-                case 16:
-                    *kind = 0x24a51;
-                    break;
                 case 7:
                     *kind = 0x22341;
                     break;
@@ -242,6 +236,12 @@ extern "C" int FUN_1001b0a0(int index, int alternative, int quiet)
                     break;
                 case 15:
                     *kind = 0x29871;
+                    break;
+                case 6:
+                    *kind = 0x24a51;
+                    break;
+                case 16:
+                    *kind = 0x24a51;
                     break;
                 }
             }
