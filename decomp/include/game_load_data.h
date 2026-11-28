@@ -94,7 +94,7 @@ struct EffectOptions;
 extern "C" int FUN_10093cc0(float x, float y, float z, float size, EffectOptions *options);   // effect hit test (host callback 0)
 struct Vec4;
 extern "C" int FUN_1005c250(float command, float a, float b, float c, const Vec4 *position);   // screen effect hook (host callback 1)
-extern "C" int FUN_10010040();
+extern "C" int FUN_10010040(float x, float y, float z, float variant, EffectOptions *options);   // aim hook (host callback 3, effect_aim.cpp)
 extern "C" int FUN_1000ff80();
 
 // Loading_Tick (loading_tick.cpp): shows the progress in DAT_104c0320; also the host's load notification.

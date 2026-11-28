@@ -63,7 +63,7 @@ int Camera_Refresh(void);                         // camera_refresh.cpp
 int FUN_1014b1c0(short value);                    // type_parse.cpp
 int FUN_100106e0(const char *path);               // Save_Write (C++ linkage)
 int FUN_1000c720(Matrix4 *view, const Matrix4 &projection, Vec4 *defaultLight);   // Characters_Draw (character_draw.cpp)
-extern "C" void FUN_1000c620(Matrix4 *world, const Matrix4 *view, int a3, const Matrix4 *shadowMatrix, float shadowX,
+extern "C" int FUN_1000c620(Matrix4 *world, const Matrix4 *view, int a3, const Matrix4 *shadowMatrix, float shadowX,
                              float shadowY, float shadowZ, int shadowTexture, float shadowScale, int shadowSize,
                              const Vec4 *lightDirection, float modelSize, AnimModel *model, float alpha);
 

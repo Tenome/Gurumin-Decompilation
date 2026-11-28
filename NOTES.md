@@ -752,3 +752,23 @@ other huge drafts (Bs00x_Update, DrawLit, RunScriptFrames) for the same gap.
 - The banner half sizes (`halfW, halfH, glowHalfW, glowHalfH`, plus `fade` in the timer HUDs) are declared once at
   the top of the function, C style. As per-branch locals, glowHalfH's spill shared the `step`/`width` slot instead of
   the cast temporaries' slot.
+
+## Two tests of one flag, effect aim callback (lane E2)
+- ListBank::LoadText 0x100fb6d0 matched once the line-end test and the blanking were two separate ifs on `inComment`
+  (`if (inComment == 1) { if (c == '\r' || c == '\n') inComment = 0; }` then `if (inComment == 1) { blank }`). cl 13.00
+  always lays out `if (a || b) A else B` with B first and A (the short block) at the end, whatever the spelling (toys:
+  plain, `&&` inverted, switch, do/while(0)+break, continue, return); the original's `je A; jne B; A: ...; jmp join; B:`
+  is the layout of `if (a || b) A;` with B as the next statement. The second `cmp edi, 1` disappears because the compiler
+  threads the known value of inComment (the same threading makes the comment start jump past the first test).
+- The host aim callback 0x10010040 (EffectOptions typed: m_0014 = locked slot, m_0030 = Vec4 out, m_000e = list) and the
+  map root's draw callback 0x1000c620 (slots 0x5c..0x7b near the shadow position) matched at the first attempt. A
+  `for (slot = 0x3a; slot < 0x7c; ...)` over DAT_1021f3c0[slot] is compiled with a rebased induction variable
+  ([esi + 0x1021f3fa], compare on esi + 0x3a): the original really indexes by slot.
+- MotionList::InsertByName stays at 41 bytes: the inlined Insert's fail block survives as the *last* copy in the original
+  (`jl FAIL; cmp 0x7f; jle OK; FAIL: ...`), the standalone Insert 0x101ad550 only matches with the two separate ifs.
+
+## Stacked case labels vs one body per label (round 15, enemy_voice / char_kind_select)
+- When several case labels share one body (`case 3: case 7: ...`), cl 13.00 builds a byte-indexed table and a
+  median-pivot tree. Where the original has direct jump tables and cross-jumped tails, it wrote one body per
+  label, with the bodies in the original's address order. cl then merges the identical tails itself. This took
+  enemy_voice from 32% to 46% and char_kind_select from 44% to 55% fuzzy.

@@ -410,6 +410,7 @@ struct CharState
                     };
                     union                         // 0x14
                     {
+                        int walkerIdle;           // npc_route_walk.cpp: cleared when the route is read (otherwise unused)
                         int bossRockFrames;         // bs003_update.cpp: frames left of the thrown-rock fall (counts down from 180)
                         int podRipeness;            // enemy_pod_lobber.cpp: frames counted while it idles; raises the chance a pod starts growing
                         int flierGround;          // route_flier.cpp: height of the ground under it in whole units (-5000 = none)
@@ -492,6 +493,7 @@ struct CharState
                     };
                     union                         // 0x1c
                     {
+                        int standing;             // npc_route_walk.cpp: 1 once it stands at a point, 0 while it walks
                         int flierLastX;           // route_flier.cpp: x of its position last frame (whole units)
                         int heldDown;             // game_frame.cpp (kind 'M', a floor button): non-zero while something stands on it
                         int frameTick;             // enemy_chase_lunge.cpp: frames counted since it was set up (starts at its slot); staggers the probes between enemies
@@ -522,6 +524,7 @@ struct CharState
                     };
                     union                         // 0x20
                     {
+                        int promptTimer;          // npc_route_walk.cpp: frames since the last key prompt (0 = none pending, counts up from 1)
                         int flierLastY;           // route_flier.cpp: y of its position last frame (whole units)
                         int halted;                // enemy_chase_lunge.cpp: 1 = it stopped chasing (blocked or at a ledge) and re-tests the way every 60th frame
                         int rivalStuckFrames;     // target_race.cpp (rival): frames its way was blocked while running
@@ -550,6 +553,7 @@ struct CharState
                     };
                     union                         // 0x24
                     {
+                        int walkStyle;            // npc_route_walk.cpp: route record's last digit: 0 = walks a route, else stands
                         int flierLastZ;           // route_flier.cpp: z of its position last frame (whole units)
                         int hiddenFrames;          // enemy_chase_lunge.cpp: frames it is held out of play (colours blanked, no shadow), counted down
                         int rivalSkipTarget;      // target_race.cpp (rival): the target it gave up on (not picked again at once)
@@ -600,6 +604,7 @@ struct CharState
                     };
                     union                         // 0x2c
                     {
+                        int fixedFacing;          // npc_route_walk.cpp: facing in quarter turns (0 = faces the player)
                         int m_002c;
                         int probeDelay;          // enemy_pounce_breath.cpp: frames to the next sight probe (10 after one)
                         int farewellFrames;       // partner_follow.cpp: frames left of the farewell message (60 at the start; it leaves at 1)
@@ -621,6 +626,7 @@ struct CharState
                     };
                     union                         // 0x30
                     {
+                        int firstPoint;           // npc_route_walk.cpp: the route point it started at (Map_RoutePosition measures from it)
                         int podNodesFound;          // enemy_pod_lobber.cpp: 1 once the pod nodes of the model were looked up
                         int m_0030;
                         int probeResult;         // enemy_pounce_breath.cpp: result of the last sight probe (0 free, 2 = a step with a height)
@@ -640,6 +646,7 @@ struct CharState
                     };
                     union                         // 0x34
                     {
+                        int promptKind;           // npc_route_walk.cpp: key prompt shown now and then (0..2; the record's last digit - 1)
                         int podPiecesLive;          // enemy_pod_lobber.cpp: lobbed pods still flying this frame
                         int m_0034;
                         int probeHeight;         // enemy_pounce_breath.cpp: height the last sight probe found (whole units)

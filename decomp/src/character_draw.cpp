@@ -8,6 +8,7 @@
 #include "char_vars.h"
 #include "matrix4.h"
 #include "model_bank.h"
+#include "node.h"
 #include "render_state.h"
 #include "render_vars.h"
 #include "texture_object.h"
@@ -102,6 +103,31 @@ int FUN_1000c720(Matrix4 *view, const Matrix4 &projection, Vec4 *defaultLight)
                 DAT_10f655c4 = 0;
             }
         }
+    }
+    return 1;
+}
+
+#define FIRST_NEARBY_SLOT 0x5c        // the slots the nearby-model pass draws: 0x5c..0x7b
+#define END_NEARBY_SLOT 0x7c
+#define NOT_PLACED_X (-100000.0f)     // a model whose x is not above this has not been placed in the world
+#define NEARBY_RANGE 800.0f           // models farther than this from the shadow caster's position are skipped
+
+// 0x1000c620 (the map root node's draw callback, set up by the map loaders). After the node's own subtree is drawn it
+// also draws the model trees of the slots 0x5c..0x7b that are placed in the world (x above -100000) and lie within 800
+// units on the x/y plane of the position the caller passes (shadowX, shadowY, shadowZ), skipping the model the call
+// itself draws for. The arguments are Node::Draw's own, handed through; the pass argument is 0. Returns 1.
+extern "C" int FUN_1000c620(Matrix4 *world, const Matrix4 *view, int a3, const Matrix4 *shadowMatrix, float shadowX,
+                            float shadowY, float shadowZ, int shadowTexture, float shadowScale, int shadowSize,
+                            const Vec4 *lightDirection, float modelSize, AnimModel *model, float alpha)
+{
+    Vec4 position;
+    position.Set(shadowX, shadowY, shadowZ, 0.0f);
+    for (int slot = FIRST_NEARBY_SLOT; slot < END_NEARBY_SLOT; slot++)
+    {
+        if (model != &DAT_10db6ee8[slot] && DAT_10db6ee8[slot].root != 0 && DAT_10db6ee8[slot].matrix._41 > NOT_PLACED_X &&
+            (position - DAT_10db6ee8[slot].matrix.GetTranslation()).Length2D() < NEARBY_RANGE)
+            DAT_10db6ee8[slot].root->Draw(world, view, 0, shadowMatrix, shadowX, shadowY, shadowZ, shadowTexture,
+                                          shadowScale, shadowSize, lightDirection, modelSize, model, alpha);
     }
     return 1;
 }

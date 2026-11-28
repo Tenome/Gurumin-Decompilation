@@ -67,6 +67,8 @@
 
 // Bars in each of the two rows of the key-held gauges.
 #define BAR_COUNT 25
+// The held-key bars grow in whole steps of this many pixels.
+#define BAR_STEP_PIXELS 3
 
 // Number of window slots of the Game object.
 #define WINDOW_SLOT_COUNT 3
@@ -269,7 +271,8 @@ int FieldHud_Draw(void)
             else
                 height = 0.0f;
             int steps = (int)(height / 3.0f);
-            int lift = -(steps * 3);
+            int rise = steps * BAR_STEP_PIXELS;
+            int lift = -rise;
             HUD_TEXTURE(texWaku03).DrawTinted(barX, lift + 0x160, barX + 8, 0x160, 0.50390625f,
                                               (float)(lift + 0x40) / 256.0f, 0.52734375f, 0.25f, 0.8f, 1.0f,
                                               0.0f, 0.0f);
@@ -289,7 +292,8 @@ int FieldHud_Draw(void)
             else
                 height = 0.0f;
             int steps = (int)(height / 3.0f);
-            int lift = -(steps * 3);
+            int rise = steps * BAR_STEP_PIXELS;
+            int lift = -rise;
             HUD_TEXTURE(texWaku03).DrawTinted(barX, lift + 0x160, barX + 8, 0x160, 0.50390625f,
                                               (float)(lift + 0x40) / 256.0f, 0.52734375f, 0.25f, 0.8f, 1.0f,
                                               0.0f, 0.0f);

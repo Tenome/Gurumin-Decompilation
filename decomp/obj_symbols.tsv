@@ -387,7 +387,7 @@ _sqrtf	10002010
 ?AssignValue@ListBank@@QAEHPBDPBUScriptValue@@D@Z	10037560
 ?FindVariable@ListBank@@QAEHPBDPAH11@Z	10037090
 ?Start@EffectManager@@QAEHHUVec4@@HHPBUMatrix4@@HH1PBUEffectOptions@@PAH@Z	10172350
-?RegisterBuiltin@ListBank@@QAEHPBDFP6AHPAU1@H@Z@Z	10036ca0
+?RegisterBuiltin@ListBank@@QAEHPBDFP6AXHPATScriptArgument@@PAU1@@Z@Z	10036ca0
 ?Companion0_Update@@YAHH@Z	100b0250
 ?Companion1_Update@@YAHH@Z	100b0880
 ?FUN_100b5c30@@YAHH@Z	100b5c30

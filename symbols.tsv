@@ -1227,3 +1227,5 @@ address	name	evidence
 1016b010	Camera_SetEffectMode	sets the scene effect mode DAT_1101de24; mode 0 also clears the colour effect and resets both scales; called from game reset and map setup (decomp/src/camera.cpp, matched)
 1016c300	Camera_IsBusy	1 while an event, effect or fade runs, so game_frame input checks skip; called from game_frame (decomp/src/camera.cpp, matched)
 10199880	RenderQueue_Push	appends a node with its parameters to the 0x40-entry draw queue, copying extra data and matrix into pools; called from the node queue draw code (decomp/src/render_queue.cpp, matched)
+10010040	EffectAim_PickTarget	host aim callback of the effect manager (slot 3): keeps or picks the enemy slot a homing effect steers at and writes the point 60 units above it (matched, decomp/src/effect_aim.cpp)
+1000c620	MapRoot_DrawNearbyModels	draw callback of the map root node: also draws the model trees of slots 0x5c..0x7b within 800 units of the shadow position (matched, decomp/src/character_draw.cpp)

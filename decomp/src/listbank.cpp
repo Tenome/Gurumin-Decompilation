@@ -841,6 +841,8 @@ int ListBank::GetIndexPart(const char *name, char *part, int n)
 // "//" comments outside double quotes are blanked out on the way: from the second slash to the end of the line
 // every character becomes '\r', and the first slash is dropped. Returns 1.
 // The copied character is always read back through text[out] (never through a local), the way the original does.
+// The end-of-line test and the blanking are two separate tests of inComment (the compiler skips the second one after a
+// line end), not an if/else: an else puts the blanking before the line-end block.
 int ListBank::LoadText(const char *source, int length)
 {
     int in = 0;
@@ -871,15 +873,13 @@ int ListBank::LoadText(const char *source, int length)
         if (inComment == 1)
         {
             if (text[out] == '\r' || text[out] == '\n')
-            {
                 inComment = 0;
-            }
-            else
-            {
-                text[out] = '\r';
-                out--;
-                textLength--;
-            }
+        }
+        if (inComment == 1)
+        {
+            text[out] = '\r';
+            out--;
+            textLength--;
         }
         out++;
         textLength++;

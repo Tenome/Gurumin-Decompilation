@@ -72,7 +72,7 @@ struct EffectOptions
             char m_0010_3;
         };
     };
-    int m_0014;
+    int m_0014;                                      // 0x14: character slot the aim hook locked onto (0 = none; FUN_10010040)
     int m_0018;
     int m_001c;
     int m_0020;
@@ -80,7 +80,7 @@ struct EffectOptions
                                                      // An array: locals of this type get a /GS cookie
                                                      // (npc_frozen.cpp, char_move.cpp, switch_effects.cpp)
     int owner;                                       // 0x2c: owner (character index + 100), 0 = none
-    Vec4 *m_0030;                                    // 0x30: where a hook writes a direction (Step's steering)
+    Vec4 *m_0030;                                    // 0x30: where a hook writes a point (the aim hook: 60 units above its target)
     const Vec4 *m_0034;                              // 0x34: first end of the box a hook tests
     const Vec4 *m_0038;                              // 0x38: second end of the box
     int m_003c;
@@ -277,7 +277,7 @@ struct EffectLight
 
 // Callbacks of the host that EffectManager::Step calls (slots 0, 1, 3 and 4 of DAT_1101de40, game_load_data.h).
 // Slot 0 tests the effect's hit box (-1 = blocked), slot 1 asks for a screen effect (`command` 0 flash, 1 fade,
-// 2 tint, 4 shake), slot 3 aims the effect at a direction it writes through options->m_0030 (> 0 = it did) and
+// 2 tint, 4 shake), slot 3 aims the effect at a point it writes through options->m_0030 (> 0 = it did) and
 // slot 4 tells whether the position is still wanted (0 = not).
 typedef int (*EffectHitHook)(float x, float y, float z, float size, EffectOptions *options);
 typedef int (*EffectScreenHook)(float command, float a, float b, float c, float d);

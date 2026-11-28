@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 
+#include "field_hud.h"
 #include "mmv_player.h"
 #include "texture_object.h"
 #include "game_vars.h"
@@ -21,7 +22,7 @@ extern "C" void FUN_1013f070(int mode, int a, int b);  // sets the 2D blend mode
 // dark four-way shadow behind it, and the map icon (128x128) around its centre. The alpha follows the frame counter
 // (fade in over 15 frames, out after 80) and the map screen's own fade. Nothing is drawn while the movie is hidden
 // or not yet decoded. Returns 0.
-extern "C" int FUN_1001ed80(void)
+extern "C" int FUN_1001ed80(int mapNumber)
 {
     int x;
     int y;

@@ -39,16 +39,24 @@ extern "C" int FUN_1001b0a0(int index, int alternative, int quiet)
             *kind = 0x2766;
             break;
         case 0x34:
+            *kind = 0x45;
+            break;
         case 0x35:
             *kind = 0x45;
             break;
         case 0x36:
+            *kind = 0x4e81;
+            if (alternative != 0)
+                *kind = 0x2771;
+            break;
         case 0x37:
             *kind = 0x4e81;
             if (alternative != 0)
                 *kind = 0x2771;
             break;
         case 0x38:
+            *kind = 0x111d1;
+            break;
         case 0x39:
             *kind = 0x111d1;
             break;
@@ -75,6 +83,8 @@ extern "C" int FUN_1001b0a0(int index, int alternative, int quiet)
         switch (group)
         {
         case 1:
+            *kind = 0x44;
+            break;
         case 2:
             *kind = 0x44;
             break;
@@ -93,21 +103,47 @@ extern "C" int FUN_1001b0a0(int index, int alternative, int quiet)
                 switch (hundreds)
                 {
                 case 1:
+                    *kind = 0;
+                    break;
                 case 2:
+                    *kind = 0;
+                    break;
                 case 4:
+                    *kind = 0;
+                    break;
                 case 5:
+                    *kind = 0;
+                    break;
                 case 6:
+                    *kind = 0;
+                    break;
                 case 7:
+                    *kind = 0;
+                    break;
                 case 8:
+                    *kind = 0;
+                    break;
                 case 9:
+                    *kind = 0;
+                    break;
                 case 10:
+                    *kind = 0;
+                    break;
                 case 11:
+                    *kind = 0;
+                    break;
                 case 12:
+                    *kind = 0;
+                    break;
                 case 14:
+                    *kind = 0;
+                    break;
                 case 16:
                     *kind = 0;
                     break;
                 case 3:
+                    *kind = 0x1ae11;
+                    break;
                 case 13:
                     *kind = 0x1ae11;
                     break;
@@ -116,34 +152,39 @@ extern "C" int FUN_1001b0a0(int index, int alternative, int quiet)
                     break;
                 }
             }
-            else if (base != 0x31 || hundreds != 3)
-                *kind = base;
-            else
+            else if (base == 0x31)
             {
-                memset(DAT_10255160[index], 0, sizeof(DAT_10255160[index]));
-                if (*kind == 0x55)
-                {
-                    DAT_1020b430[index].state = 0;
-                    DAT_1020b430[index].wait = 0;
-                    // words 4..15: every variable after `range` (0x0c); talk and range are kept
-                    memset(&DAT_1020b430[index].words[4], 0, 12 * sizeof(int));
-                    DAT_1021bdf8[index][0] = 0;
-                    DAT_1021bdf8[index][1] = 0;
-                    memset(&DAT_1021bdf8[index][4], 0, 4 * sizeof(Node *));
-                }
+                if (hundreds != 3)
+                    *kind = base;
                 else
                 {
-                    memset(DAT_1020b430[index].words, 0, sizeof(DAT_1020b430[index].words));
-                    memset(DAT_1021bdf8[index], 0, 8 * sizeof(Node *));
+                    memset(DAT_10255160[index], 0, sizeof(DAT_10255160[index]));
+                    if (*kind == 0x55)
+                    {
+                        DAT_1020b430[index].state = 0;
+                        DAT_1020b430[index].wait = 0;
+                        // words 4..15: every variable after `range` (0x0c); talk and range are kept
+                        memset(&DAT_1020b430[index].words[4], 0, 12 * sizeof(int));
+                        DAT_1021bdf8[index][0] = 0;
+                        DAT_1021bdf8[index][1] = 0;
+                        memset(&DAT_1021bdf8[index][4], 0, 4 * sizeof(Node *));
+                    }
+                    else
+                    {
+                        memset(DAT_1020b430[index].words, 0, sizeof(DAT_1020b430[index].words));
+                        memset(DAT_1021bdf8[index], 0, 8 * sizeof(Node *));
+                    }
+                    DAT_10802bf8[index].position.Fill(0.0f);
+                    DAT_10802bf8[index].step.Fill(0.0f);
+                    DAT_10255a88[index] = 1;
+                    DAT_1020b430[index].talk = 0x3cd;
+                    DAT_1020b430[index].behaviour = 0x26;
+                    *kind = 0x62;
+                    apply = 0;
                 }
-                DAT_10802bf8[index].position.Fill(0.0f);
-                DAT_10802bf8[index].step.Fill(0.0f);
-                DAT_10255a88[index] = 1;
-                DAT_1020b430[index].talk = 0x3cd;
-                DAT_1020b430[index].behaviour = 0x26;
-                *kind = 0x62;
-                apply = 0;
             }
+            else
+                *kind = base;
         }
         else if (units != 0)
         {
@@ -152,14 +193,32 @@ extern "C" int FUN_1001b0a0(int index, int alternative, int quiet)
                 switch (units)
                 {
                 case 1:
+                    *kind = 0;
+                    break;
                 case 2:
+                    *kind = 0;
+                    break;
                 case 3:
+                    *kind = 0;
+                    break;
                 case 4:
+                    *kind = 0;
+                    break;
                 case 8:
+                    *kind = 0;
+                    break;
                 case 10:
+                    *kind = 0;
+                    break;
                 case 11:
+                    *kind = 0;
+                    break;
                 case 12:
+                    *kind = 0;
+                    break;
                 case 13:
+                    *kind = 0;
+                    break;
                 case 17:
                     *kind = 0;
                     break;
@@ -167,6 +226,8 @@ extern "C" int FUN_1001b0a0(int index, int alternative, int quiet)
                     *kind = 0x1fc31;
                     break;
                 case 6:
+                    *kind = 0x24a51;
+                    break;
                 case 16:
                     *kind = 0x24a51;
                     break;
