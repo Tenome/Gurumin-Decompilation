@@ -24,6 +24,11 @@ Transform::Transform()
 {
 }
 
+// 0x10172a30. Destructor: only the matrix member has one (tail call of 0x1013eda0 with this + 0x34).
+Transform::~Transform()
+{
+}
+
 // Sets the batch's vertex buffer and capacity.
 int TriangleBatch::SetBuffer(void *buffer, int capacity)
 {

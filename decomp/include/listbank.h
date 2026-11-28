@@ -14,7 +14,15 @@ struct ScriptValue;
 
 // Callback the host installs to receive parser messages: (1, message text) for errors, (5000, text offset) for
 // the position of the error in the script text.
-typedef void (*ParserCallback)(int code, int value);
+typedef int (*ParserCallback)(int code, int value);
+
+// The codes the parser reports to the callback (the first argument).
+enum ParserMessage
+{
+    PARSER_MESSAGE_STORE = 0,            // the game's callback keeps `value` (DAT_104c0208); the parser never sends it
+    PARSER_MESSAGE_ERROR_TEXT = 1,       // `value` points to the text of the error
+    PARSER_MESSAGE_ERROR_OFFSET = 5000   // `value` is the offset of the error in the script text
+};
 
 // One argument of a builtin call: the evaluator passes a pointer to the argument's value (an int or a float), or the
 // text itself for a string argument. The array of arguments has one entry per declared parameter.

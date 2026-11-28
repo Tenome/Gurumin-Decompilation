@@ -43,9 +43,6 @@
 #define NAME_BEGINNER "\x82" "a\x82\x85\x82\x87\x82\x89\x82\x8e\x82\x8e\x82\x85\x82\x92"
 #define NAME_PLEASURE "\x82o\x82\x8c\x82\x85\x82\x81\x82\x93\x82\x95\x82\x92\x82\x85"
 #define NAME_CRAZY "\x82" "b\x82\x92\x82\x81\x82\x9a\x82\x99"
-#define SAVE_NAME_FORMAT "gdata%02d.sav"
-
-#define SLOTS_PER_PAGE 7
 #define SECONDS_PER_HOUR 3600
 #define SECONDS_PER_MINUTE 60
 #define SOUND_MENU_CANCEL 0x394
@@ -54,6 +51,34 @@
 #define SCRATCH_SIZE 256
 #define SYSTEM_RECORD_COSTUMES 0x80
 #define QUIT_COMMAND_COUNT 5
+
+// Length of the buffer for a save file name.
+#define SAVE_NAME_LENGTH 0x100
+
+// 0x1003b180. Callback of the save slot list (Game::m_7654): when the cursor moves onto another slot, loads that
+// save's preview picture into the 256 x 256 texture "LOADPRE" (DAT_102024a0, which the dark panel draws), or only
+// frees the texture (-1 = none) when the slot is empty or unreadable. `caption` is not used. Always returns 0.
+extern "C" int FUN_1003b180(int cursor, char *caption)
+{
+    char name[SAVE_NAME_LENGTH];
+    unsigned char preview[SAVE_PREVIEW_BYTES];
+    if (DAT_104bff04 != cursor)
+    {
+        sprintf(name, SAVE_NAME_FORMAT, DAT_104c02c0 * SLOTS_PER_PAGE + cursor);
+        if (FUN_10011240(name, preview) != 0)
+        {
+            FUN_10174c70(DAT_102024a0, 1);
+            DAT_102024a0 = FUN_10175c90("LOADPRE", SAVE_PREVIEW_SIZE, SAVE_PREVIEW_SIZE, preview, 0, 0);
+        }
+        else
+        {
+            FUN_10174c70(DAT_102024a0, 1);
+            DAT_102024a0 = -1;
+        }
+        DAT_104bff04 = cursor;
+    }
+    return 0;
+}
 
 // 0x10064630 (Menu_SaveLoad). Runs the save/load/quit menu. The first call after DAT_1030c568 is set opens the
 // command list (window 0x222: DAT_104bfd20 is 0 for the quit menu, 1 for the save menu and 2 for the load menu).

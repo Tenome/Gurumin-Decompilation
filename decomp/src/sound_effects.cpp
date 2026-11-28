@@ -7,6 +7,7 @@
 #include "char_vars.h"
 #include "game_vars.h"
 #include "sound_vars.h"
+#include "menu_sound.h"
 
 extern "C" char *FUN_1013f910(const char *name);  // full path of a data file
 // 0x10010310: plays `path` at (x, y, z) through the 3D sound code (`loop` = 0 plays once); returns its handle.
@@ -107,4 +108,16 @@ extern "C" int FUN_1003ad20(int sound, const Vec3 *position, float volume)
         }
     }
     return -1;
+}
+
+// Sound effect of the menu cursor moving from one entry to the next.
+#define SOUND_MENU_CURSOR 0x38d
+
+// 0x1003b160. The sound callback of the menu windows (Game::m_7660): plays the cursor sound when the cursor moved to
+// another entry. Opening and closing a window make no sound here. Always returns 0.
+extern "C" int FUN_1003b160(int event)
+{
+    if (event == MENU_SOUND_CURSOR_MOVED)
+        FUN_1003ad20(SOUND_MENU_CURSOR, 0, 1.0f);
+    return 0;
 }

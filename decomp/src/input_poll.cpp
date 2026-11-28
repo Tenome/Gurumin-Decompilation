@@ -166,3 +166,17 @@ int Input::Update()
     }
     return 1;
 }
+
+// 0x10142ae0. Constructor: no DirectInput object, devices or set-up yet, and both button mappings (what each game
+// button is mapped to, and the key it is mapped to; 0 = the default) are cleared. Returns this.
+Input::Input()
+{
+    directInput = 0;
+    joystick = 0;
+    keyboard = 0;
+    mouse = 0;
+    ready = 0;
+    enumerated = 0;
+    memset(DAT_10f1bef0, 0, 32 * sizeof(int));
+    memset(DAT_10f60c30, 0, 32 * sizeof(int));
+}

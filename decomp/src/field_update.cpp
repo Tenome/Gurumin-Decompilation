@@ -139,7 +139,7 @@ extern "C" int FUN_101148b0(int index);                     // 0x101148b0 (char_
 extern "C" int FUN_1016ac50(const Vec4 *eye, const Vec4 *target, Matrix4 *view, Matrix4 *projection);   // Camera_LookAt
 #include "status_panel.h"
 extern "C" int FUN_10199dc0(float red, float green, float blue, float density, float nearZ, float farZ);   // projection.cpp: the fog of the map root
-extern "C" int FUN_100bb5e0(void);                          // 0x100bb5e0: the field scene routine
+#include "field_hud.h"
 extern "C" void FUN_100225b0(void);                         // the tracker's window callback of the field
 extern "C" int FUN_10017fc0(void);                          // 0x10017fc0 (node_fade.cpp)
 extern "C" int FUN_1004d4b0(void);                          // 0x1004d4b0 (region_view.cpp): per-frame region update
@@ -792,7 +792,7 @@ int Field_Update()
         else
             DAT_10da90d0.Set(0.0f, 0.0f, 0.0f, 1.0f);
         DAT_1042da68 = 0;
-        DAT_10f6553c = FUN_100bb5e0;
+        DAT_10f6553c = FieldHud_Draw;
         PlaceStartCamera(startPosition, DAT_1020344c);
         DAT_1020c2c0 = DAT_10c64a5c;
         DAT_10f65504 = DAT_104bf8b8 + 1;

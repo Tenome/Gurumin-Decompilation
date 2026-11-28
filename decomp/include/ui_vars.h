@@ -112,9 +112,11 @@ extern "C" char DAT_10f66bd0[];                           // composition string
 extern "C" char DAT_10f66cd0[];                           // result string
 extern "C" int DAT_10f66dd0;
 extern "C" int DAT_10f66dd4;
+extern "C" char DAT_10f669a8[];                           // the result string of the IME (appended to the text entered)
 extern "C" int DAT_10f66ddc;
 extern "C" int DAT_10f66de0;
 extern "C" int DAT_10f66de4;
+extern "C" int DAT_10f66dec;
 extern "C" int DAT_10f66de8;
 extern "C" int DAT_10f66df0;                              // 1 once input has finished
 extern "C" char DAT_10f66df8[];                           // the text entered so far

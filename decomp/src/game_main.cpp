@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "game_main.h"
+#include "menu_sound.h"
 
 #include "action_select_vars.h"
 #include "bgm_track.h"
@@ -326,7 +327,7 @@ int Game_Main(HINSTANCE instance, const char *commandLine, HINSTANCE moduleInsta
     }
 
     DAT_1101d878 = 1;
-    DAT_1101d854 = FUN_1005c2e0;
+    DAT_1101d854 = Footstep_Play;
     DAT_10f140c8 = moduleInstance;
     char userFolder[0x100];
     char userName[0x100];
@@ -828,7 +829,7 @@ int Game_Main(HINSTANCE instance, const char *commandLine, HINSTANCE moduleInsta
             DAT_1021cff8 = 0;
         }
         if (DAT_104bfe1c == 0)
-            DAT_10874848.RunQueuedEvents(FUN_101008e0);
+            DAT_10874848.RunQueuedEvents(Event_RunTrigger);
         FUN_100fc3e0();
         if (FUN_10137b10() == 0)
             break;

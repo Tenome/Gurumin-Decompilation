@@ -62,6 +62,7 @@ struct DShowStream
     LONGLONG frameTime;                      // 0x18: time per frame
     int width;                               // 0x20
     int height;                              // 0x24
+    ~DShowStream();                          // 0x1015c440: closes the stream (a tail call of Close)
     void Close();
     long Open(const char *path);
     void M_10148910();                       // 0x10148910 (ToggleHolder::M_10148910 in texcache.cpp: same object)

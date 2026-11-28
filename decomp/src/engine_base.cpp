@@ -11,6 +11,7 @@ extern "C" void FUN_1003ad20(int, int, float);
 #include "char_vars.h"
 #include "render_vars.h"
 #include "sound_vars.h"
+#include "ui_vars.h"
 
 extern "C" int FUN_10001b70(int);
 
@@ -42,6 +43,16 @@ extern "C" int FUN_1013e6d0(void)
 {
     FUN_101b21c0();
     return 1;
+}
+
+// 0x1013e6e0. The mouse object's wheel callback (Obj::m_003c, set up with the cursor callback 0x1000fd50): the wheel
+// movement the menu windows saved (DAT_10f657b8) while there is one, else the wheel movement collected by the
+// input update (DAT_10f6555c). Obj::Update turns the sign of the result into its wheel direction.
+extern "C" int FUN_1013e6e0(void)
+{
+    if (DAT_10f657b8 != 0)
+        return DAT_10f657b8;
+    return DAT_10f6555c;
 }
 
 // Starts the game-over sequence: plays sound effect 0x355, lowers the music unless muted (DAT_104c01b0),

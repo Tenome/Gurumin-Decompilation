@@ -77,7 +77,7 @@ int Game::DrawWindows(int frame)
     char rangeText[0x40];
     char caption[0x80];
     const char *text;
-    void (*describeEntry)(int cursor, char *caption);
+    int (*describeEntry)(int cursor, char *caption);
 
     fades[0] = m_7668[0];
     fades[1] = m_7668[1];

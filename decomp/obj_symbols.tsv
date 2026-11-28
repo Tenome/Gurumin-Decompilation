@@ -309,7 +309,7 @@ _TestDat_Load	1000beb0
 ?SetScriptFlag@Game@@QAEHHH@Z	10002300
 ?IsAnyWindowBusy@Game@@QAEHXZ	10007ee0
 ?CloseAllWindows@Game@@QAEXXZ	100082e0
-?SetWindowCallbackValue@Game@@QAEHHP6AXHPAD@Z@Z	10008390
+?SetWindowCallbackValue@Game@@QAEHHP6AHHPAD@Z@Z	10008390
 ?ConfirmWindow@Game@@QAEHH@Z	10008460
 ?SetWindowScroll@Game@@QAEHHH@Z	10008770
 ?SetWindowLastItem@Game@@QAEHHH@Z	100087b0
@@ -481,7 +481,6 @@ _FUN_101426d0@8	101426d0
 ?Restore@TextureObject@@QAEHXZ	10169e10
 ?UpdateImage@TextureObject@@QAEHH@Z	10169f70
 ?DrawString@FontRenderer@@QAEHHHHPBDGH@Z	1014f590
-
 ?DrawWith@TriangleBatch@@QAEHPAUTextureObject@@@Z	10172a40
 ?SetBuffer@TriangleBatch@@QAEHPAXH@Z	10172a80
 ?Reset@TriangleBatch@@QAEHXZ	10172aa0
@@ -512,7 +511,6 @@ _Enemy_IsBusy	100e1c40
 ?LightForRoot@ModelBank@@QAEPAUVec4@@PAUNode@@PAU2@1@Z	1017c5f0
 ?LightDirection@ModelBank@@QAEPAUVec4@@PAUAnimModel@@PAU2@1@Z	10164c10
 ?Advance@Playback@@QAEHXZ	1016a480
-
 ?FUN_1000e340@@YAHXZ	1000e340
 ?Sample@KeyBank@@QAEHMPAM000H@Z	101af960
 ?Sample@KeyTrack@@QAEHHPAM000H@Z	101afe00
@@ -671,7 +669,6 @@ _Enemy_IsBusy	100e1c40
 ?Scene_Frame@@YAHXZ	100f5a80
 ?NameEntry_Update@@YAHXZ	10116550
 ?Map_SetUpTrigger@@YAHPAUGameTrigger@@@Z	10058790
-
 ?UpdateWorldWithIk@Node@@QAEHPAMPAUMatrix4@@1HHH@Z	10194f40
 ?Map18_UpdateFootballGame@@YAHXZ	1007f1e0
 ?Bs003_Update@@YAHH@Z	100e25f0
@@ -690,3 +687,16 @@ _Enemy_IsBusy	100e1c40
 ?Bs006_Update@@YAHH@Z	100d24a0
 ?FUN_1011d810@@YAHXZ	1011d810
 ?Game_LoadData@@YAHXZ	100cb0c0
+?FreeScripts@Game@@QAEXXZ	10002030
+??1EffectModel@@QAE@XZ	1000bea0
+??1Transform@@QAE@XZ	10172a30
+??1ModelBank@@QAE@XZ	10037b20
+??1GameWindow@@QAE@XZ	1013e4e0
+??0UnusedEngineObject@@QAE@XZ	10007df0
+??1UnusedEngineObject@@QAE@XZ	10007e00
+?Footstep_Play@@YAXHHPAUVec4@@@Z	1005c2e0
+?FieldHud_Draw@@YAHXZ	100bb5e0
+??1ImeContext@@QAE@XZ	1015d4f0
+??1DShowStream@@QAE@XZ	1015c440
+??0Input@@QAE@XZ	10142ae0
+?Event_RunTrigger@@YAHPAUGameTrigger@@@Z	101008e0

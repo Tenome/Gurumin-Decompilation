@@ -29,7 +29,7 @@ void Game::CloseAllWindows()
 }
 
 // Sets menu `id`'s callback value m_7654. 0 when not open.
-int Game::SetWindowCallbackValue(int id, void (*callback)(int cursor, char *caption))
+int Game::SetWindowCallbackValue(int id, int (*callback)(int cursor, char *caption))
 {
     int slot = FindSlot(id);
     if (slot == 3)

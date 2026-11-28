@@ -42,6 +42,14 @@ extern "C" int FUN_100106a0(void)
     return 1;
 }
 
+// 0x100106d0. Callback of the command list window (Game::m_7654): remembers the command under the cursor
+// (DAT_104bfd30). `caption` is not used. Always returns 0.
+extern "C" int FUN_100106d0(int cursor, char *caption)
+{
+    DAT_104bfd30 = cursor;
+    return 0;
+}
+
 // Marks character `index` as defeated (m_00a5) unless it is busy; returns 1 when busy.
 extern "C" int FUN_10011f80(int index)
 {

@@ -4,7 +4,7 @@
 
 #include <windows.h>
 
-typedef void (*WindowCallback)();   // an IME event callback, called by GameWindow::WindowProc
+typedef int (*WindowCallback)();    // an IME event callback, called by GameWindow::WindowProc (returns 0)
 
 // The engine's window: creates the Win32 window and forwards its messages to the virtual WindowProc.
 struct RenderWindow
@@ -26,6 +26,7 @@ struct RenderWindow
     int middleCapture;                   // 0x124: the middle button holds the mouse capture
     HICON icon;                          // 0x128
     RenderWindow();
+    ~RenderWindow() { window = 0; }  // inline: the window handle is forgotten (the window dies with the process)
     void RegisterWindowClass(HINSTANCE instance);
     void Create(HINSTANCE instance);
 };
@@ -35,6 +36,7 @@ struct GameWindow : RenderWindow
 {
     LRESULT __stdcall WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam);
     GameWindow();
+    ~GameWindow();  // 0x1013e4e0 (with the RenderWindow destructor expanded inline)
 };
 
 extern "C" GameWindow DAT_10f65698;       // the game window

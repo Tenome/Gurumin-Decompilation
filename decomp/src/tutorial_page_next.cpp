@@ -22,6 +22,20 @@
 #include "ui_vars.h"
 #include "tutorial_book.h"
 
+// Copies the zero-terminated `source` to `dest` one byte at a time, the way the game does it (the compiler does not
+// turn it into a block copy).
+static __forceinline void CopyString(char *dest, const char *source)
+{
+    const char *src = source;
+    char c;
+    do
+    {
+        c = *src;
+        dest[src - source] = c;
+        src++;
+    } while (c != 0);
+}
+
 
 extern "C" int FUN_1001e1a0(const char *name, const char *alphaName);  // Texture_Load
 extern "C" int FUN_1000ed70(const char *text, int style, int frames);  // shows a message
@@ -123,7 +137,7 @@ extern "C" int FUN_1004f4f0(void)
         DAT_104bf8cc = 0;
         DAT_104bf8d0 = 0;
         DAT_10467ea0[0] = 0;
-        strcpy(DAT_10219bc0, LAST_PAGE_TEXT);
+        CopyString(DAT_10219bc0, LAST_PAGE_TEXT);
         return 0;
     }
     if (found < 2)
@@ -161,13 +175,8 @@ extern "C" int FUN_1004f4f0(void)
 // the message box is set to FIRST_PAGE_TEXT instead. Returns 0.
 extern "C" int FUN_1004f860(void)
 {
-    int atFirstPage;
-    if (DAT_104c03e8 != 0)
-        atFirstPage = DAT_102194c0 < 0x19;
-    else
-        atFirstPage = DAT_102194c0 < 3;
     DAT_104c03e0 = 0;
-    if (atFirstPage)
+    if (DAT_104c03e8 != 0 ? DAT_102194c0 < 0x19 : DAT_102194c0 < 3)
     {
         DAT_104c03e4 = 0;
         if (DAT_1020b430[PLAYER_SLOT].messageDelay == 0)
@@ -178,7 +187,6 @@ extern "C" int FUN_1004f860(void)
         return 0;
     }
     DAT_104c03e4 = 2;
-    int found = 0;
     int cover = FUN_1001e1a0(DAT_102028e8[0], 0);
     DAT_1030b870[0] = cover;
     int newRight = cover;
@@ -188,7 +196,11 @@ extern "C" int FUN_1004f860(void)
     int right = FUN_1001e1a0(DAT_102028e8[DAT_104483e0], 0);
     DAT_1030b870[DAT_104483e0] = right;
     DAT_10836c70.ResetFrameTimer();
-    for (int i = DAT_102194c0 - 1 > 0 ? DAT_102194c0 - 1 : 0; i >= 0; i--)
+    int found = 0;
+    // Search from the page before the left one (never below page 0).
+    int start = DAT_102194c0 - 1;
+    start = start > 0 ? start : 0;
+    for (int i = start; i > -1; i--)
     {
         int flag = DAT_1030c908[i];
         if (flag == 0)
@@ -258,7 +270,7 @@ extern "C" int FUN_1004f860(void)
         DAT_104bf8cc = 0;
         DAT_104bf8d0 = 0;
         DAT_10467ea0[0] = 0;
-        strcpy(DAT_10219bc0, FIRST_PAGE_TEXT);
+        CopyString(DAT_10219bc0, FIRST_PAGE_TEXT);
         return 0;
     }
     if (found < 2)

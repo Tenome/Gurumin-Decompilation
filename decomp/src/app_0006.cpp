@@ -2,8 +2,20 @@
 // holding menu `id` (3 = not open). Per slot: m_0110 open flag, m_0140 cursor position, m_0188..m_01d0 layout.
 // m_01dc[id] marks menus that remember their cursor, m_0434[id] holds the remembered position.
 
+#include <stdlib.h>
 #include <string.h>
 #include "game.h"
+
+// 0x10002030. Frees every "#Script" section loaded by LoadMapData and clears its slot.
+void Game::FreeScripts()
+{
+    for (int i = 0; i < SCRIPT_LIMIT; i++)
+    {
+        if (scripts[i] != 0)
+            free(scripts[i]);
+        scripts[i] = 0;
+    }
+}
 
 // Looks up a named script constant (case-insensitive prefix match over the m_95e14 table); -1 when unknown.
 int Game::FindConstant(const char *name)

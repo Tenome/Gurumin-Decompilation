@@ -36,7 +36,6 @@ extern "C" int FUN_10161120(char *out, const char *path);   // Path_GetBaseName
 #define CHAR_TABLE_LIMIT 160
 #define OBJ_ANIME_LIMIT 0x400
 #define FACE_FRAME_LIMIT 0x80
-#define SCRIPT_LIMIT 0x1000
 // Strings each record is checked for (the last character of a string must stay the terminator).
 #define SKILL_LABEL_COUNT 0x1c
 #define ABILITY_LABEL_COUNT 0x18

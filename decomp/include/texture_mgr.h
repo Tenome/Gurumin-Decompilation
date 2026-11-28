@@ -21,5 +21,6 @@ struct Transform
     ZeroVec scale;
     Matrix4 matrix;
     Transform();
+    ~Transform();  // 0x10172a30: destroys the matrix member (never called)
 };
 #endif

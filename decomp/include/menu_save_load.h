@@ -5,6 +5,13 @@
 
 #include "scene_draw.h"
 
+// Save slots: seven per page of the slot list, in files gdata00.sav, gdata01.sav, ...
+#define SLOTS_PER_PAGE 7
+#define SAVE_NAME_FORMAT "gdata%02d.sav"
+// The preview picture at the start of a save file: 256 x 256 pixels of 3 bytes each.
+#define SAVE_PREVIEW_SIZE 256
+#define SAVE_PREVIEW_BYTES 0x30000
+
 // Menu window ids used by the save/load menu.
 enum SaveLoadWindow
 {
@@ -49,8 +56,8 @@ extern "C" int DAT_10c646e4;                  // non-zero = the save was trigger
 extern "C" int DAT_10c66d18;
 extern "C" char DAT_10f65370[];               // the config file name
 
-extern "C" void FUN_1003b180(int cursor, char *caption);      // 0x1003b180: writes the caption of the slot under the cursor
-extern "C" void FUN_100106d0(int cursor, char *caption);      // 0x100106d0: writes the caption of the command under the cursor
+extern "C" int FUN_1003b180(int cursor, char *caption);       // 0x1003b180: loads the preview picture of the slot under the cursor
+extern "C" int FUN_100106d0(int cursor, char *caption);       // 0x100106d0 (app_0010.cpp): remembers the command under the cursor
 extern "C" void FUN_1014b480(void);                           // 0x1014b480 (Render_ResetSwapTarget, render_reset.cpp)
 extern "C" int FUN_100106a0(void);                            // 0x100106a0 (Dialog_CloseAll)
 extern "C" int FUN_10010520(const char *message, int yesValue, int noValue);   // 0x10010520 (Dialog_YesNo)
@@ -62,5 +69,9 @@ extern "C" int FUN_1015fe20(const char *file, const char *section, const char *k
 extern "C" int FUN_1015fea0(const char *path, int index, unsigned int value);                       // SystemSav_WriteRecord
 
 extern "C" int FUN_10064630(void);   // 0x10064630 (Menu_SaveLoad)
+
+int FUN_10011240(const char *name, void *thumbnail);          // 0x10011240 (Save_ReadThumbnail, save_slot.cpp, C++ linkage)
+extern "C" int FUN_10174c70(int slot, int force);             // 0x10174c70 (Texture_Release)
+extern "C" int FUN_10175c90(const char *name, int width, int height, const unsigned char *pixels, int alpha, int a);   // 0x10175c90 (Texture_CreateFromPixels)
 
 #endif

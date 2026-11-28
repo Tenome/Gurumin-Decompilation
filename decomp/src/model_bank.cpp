@@ -134,6 +134,12 @@ int ModelBank::AddFlarePoint(Vec4 position, const Matrix4 *viewProjection)
     return 1;
 }
 
+// 0x10037b20. Destructor: destroys the 16 model records (a vector destructor call over AnimModel::~AnimModel).
+// The bank is a global that is never destroyed explicitly; the linker kept this copy.
+ModelBank::~ModelBank()
+{
+}
+
 // 0x1017c8e0. Constructs the bank: the vector tables and model records are constructed (zeroed vectors) and the bank
 // starts disabled.
 ModelBank::ModelBank()

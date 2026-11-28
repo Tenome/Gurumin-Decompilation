@@ -77,6 +77,9 @@ struct GameNamedEntry
 
 // The game object: global instance DAT_104b7200. Holds menu textures, HUD state, the script variable tables and
 // 32 node bodies for menu models.
+// Number of "#Script" sections the map data can hold (Game::scripts).
+enum { SCRIPT_LIMIT = 0x1000 };
+
 struct Game : Object
 {
     int m_0000;
@@ -157,7 +160,7 @@ struct Game : Object
     int m_7648;
     int m_764c;
     int *m_7650;                // 0x7650: while it points at a non-zero flag the windows ignore input
-    void (*m_7654[3])(int cursor, char *caption);   // 0x7654: per-window callback writing the caption of the entry under the cursor
+    int (*m_7654[3])(int cursor, char *caption);    // 0x7654: per-window callback run when the cursor is over an entry (the save slot window loads the slot's preview, the command list notes the command); may write a caption
     void (*m_7660)(int);
     FontRenderer *textRenderer;   // 0x7664: draws the window marks (set by LoadMenuTextures)
     float m_7668[3];            // 0x7668: per-window fade
@@ -201,7 +204,7 @@ struct Game : Object
     int mapEventCount;          // 0x2bcc74
     int pad_2bcc78;
     MapCharMotion charMot[0x40];        // 0x2bcc7c
-    char *scripts[0x1000];              // 0x3e997c: the "#Script" sections, allocated by LoadMapData
+    char *scripts[SCRIPT_LIMIT];            // 0x3e997c: the "#Script" sections, allocated by LoadMapData
     char *text;                 // 0x3ed97c: script text being tokenised
     int pos;                    // 0x3ed980: read position in `text`
     int end;                    // 0x3ed984: text length
@@ -256,7 +259,7 @@ struct Game : Object
     int ReadWordInLine();
     int IsAnyWindowBusy();
     void CloseAllWindows();
-    int SetWindowCallbackValue(int id, void (*callback)(int cursor, char *caption));
+    int SetWindowCallbackValue(int id, int (*callback)(int cursor, char *caption));
     int ConfirmWindow(int id);
     int SetWindowScroll(int id, int value);
     int SetWindowLastItem(int id, int count);
@@ -272,6 +275,7 @@ struct Game : Object
     int DrawWindowMarks(int frame);
     int DrawWindows(int frame);  // 0x100094e0 (game_draw_windows.cpp)
     int DrawDebugText(const char *text, int x, int y);
+    void FreeScripts();  // 0x10002030: frees every loaded script section (app_0006.cpp)
     int FindConstant(const char *name);
     int CloseWindow(int id);
     int SetWindowCursor(int id, int value);

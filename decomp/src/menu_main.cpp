@@ -84,9 +84,6 @@
 #define NAME_PLEASURE "\x82o\x82\x8c\x82\x85\x82\x81\x82\x93\x82\x95\x82\x92\x82\x85"
 #define NAME_CRAZY "\x82" "b\x82\x92\x82\x81\x82\x9a\x82\x99"
 #define NAME_CRAZY_BONUS "\x82" "b\x82\x92\x82\x81\x82\x9a\x82\x99\x81i\x82\xa8\x82\xdc\x82\xaf\x81j"
-#define SAVE_NAME_FORMAT "gdata%02d.sav"
-
-#define SLOTS_PER_PAGE 7
 #define SECONDS_PER_HOUR 3600
 #define SECONDS_PER_MINUTE 60
 #define SOUND_MENU_PICK 0x357

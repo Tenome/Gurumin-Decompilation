@@ -9,4 +9,13 @@ struct Object
     ~Object();
 };
 
+// A class derived from Object that carries no data of its own. Its constructor (0x10007df0) calls Object::Object and
+// its destructor (0x10007e00) tail-calls Object::~Object; nothing in the game constructs or destroys one, the linker
+// kept both (probably the leftover of a removed feature).
+struct UnusedEngineObject : Object
+{
+    UnusedEngineObject();
+    ~UnusedEngineObject();
+};
+
 #endif

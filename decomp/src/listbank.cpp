@@ -1049,7 +1049,7 @@ int ListBank::InitLibrary()
 #include "script_vars.h"
 #include "script_game_builtin.h"
 
-extern "C" void FUN_10017f20(int code, int value);      // the game's parser message callback
+extern "C" int FUN_10017f20(int code, int value);       // the game's parser message callback (parser_callback.cpp)
 // Script_GameBuiltin: script_game_builtin.h (0x10138280)
 
 // 0x1013ad90 (Script_RegisterGameBuiltins). Sets up the game's script parser: the library built-ins, the keyword

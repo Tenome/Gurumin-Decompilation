@@ -155,6 +155,7 @@ struct Input
     EffectDesc effect;               // 0x30
     PeriodicForce periodic;          // 0x68: the effect's type-specific data (magnitude 0..10000)
 
+    Input();                                         // 0x10142ae0 (input_poll.cpp): no devices yet, clears the button maps
     int Shutdown();                                  // 0x101437f0 (input_font.cpp): releases the devices
     int Rumble(float divisor, int milliseconds);     // 0x10142700 (input_font.cpp): starts the rumble effect
     int Update();                                    // 0x10142790 (input_poll.cpp): creates or polls the devices

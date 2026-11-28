@@ -26,6 +26,7 @@ struct EffectModel
     KeyBank keys;       // 0x80
     int changed;        // 0xb04: 1 after a key or the rotation was changed, reset to 0 at setup
     EffectModel();
+    ~EffectModel();  // 0x1000bea0: only the matrix member has a destructor (never called, nothing destroys an EffectModel)
     int M_1000b9f0(const char *path, int value, int start, int end);
     int Draw(const Matrix4 &view);                                // 0x1000baf0
     int Free();                                                   // 0x1000be10: releases the model, the slot is free again

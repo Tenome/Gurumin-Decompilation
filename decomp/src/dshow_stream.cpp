@@ -29,6 +29,12 @@ void DShowStream::Close()
     stream = 0;
 }
 
+// 0x1015c440. Destructor: closes the stream (a tail call of Close).
+DShowStream::~DShowStream()
+{
+    Close();
+}
+
 // 0x1015c450 (DShowStream::Open). Opens movie file `path`: creates the multimedia stream, adds its primary video
 // stream, opens the file, gets the DirectDraw media stream and its time per frame, and creates a surface in the
 // stream's format with a stream sample drawing into it. Each failing step prints "failed: DShowStream::Open(n)"

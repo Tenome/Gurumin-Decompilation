@@ -141,7 +141,15 @@ DWORD ImeContext::GetPageSize()
     return buffer->dwPageSize;
 }
 
+// 0x1015d4f0. Destructor: releases the input context and the candidate buffer (a tail call of Release). Nothing in the
+// game destroys the global IME context; the linker kept the copy.
+ImeContext::~ImeContext()
+{
+    Release();
+}
+
 #include "ui_vars.h"
+#include "menu_text.h"
 
 // Stores the IME option value DAT_10f66bbc. Returns 1.
 extern "C" int FUN_1015d500(int value)
@@ -250,10 +258,44 @@ extern "C" int FUN_1015fd30(void)
         strcpy(DAT_10f66ef8, DAT_10f66df8);
     return 0;
 }
-extern "C" void FUN_1015f3e0();        // reads the composition string
-extern "C" void FUN_1015f400();        // reads the result string
-extern "C" void FUN_1015f490();        // reads the cursor position
-extern "C" void FUN_1015f4b0();        // reads the clause attributes
+// 0x1015f3e0. IME callback: the composition string changed, copy it into DAT_10f66bd0. Returns 0.
+extern "C" int FUN_1015f3e0()
+{
+    DAT_10f68124.GetCompositionString(DAT_10f66bd0);
+    return 0;
+}
+
+// 0x1015f400. IME callback: a result string arrived. Appends it to the text entered so far (converted to full width
+// when text input is allowed), cuts the text at the maximum length and clears the result. Returns 0.
+extern "C" int FUN_1015f400()
+{
+    DAT_10f68124.GetResultString(DAT_10f669a8);
+    if (DAT_10f669a8[0] != 0)
+    {
+        strcat(DAT_10f66df8, DAT_10f669a8);
+        if (DAT_10203428 == 1)
+            FUN_1015d520(DAT_10f66df8);
+        DAT_10f66df8[DAT_10f66bbc] = 0;
+        DAT_10f669a8[0] = 0;
+        DAT_10f65698.compositionResult = 0;
+    }
+    return 0;
+}
+
+// 0x1015f490. IME callback: the cursor position inside the composition changed. Returns 0.
+extern "C" int FUN_1015f490()
+{
+    DAT_10f66ddc = DAT_10f68124.M_1015d400();
+    return 0;
+}
+
+// 0x1015f4b0. IME callback: the clause attributes changed. Reads the composition value twice. Returns 0.
+extern "C" int FUN_1015f4b0()
+{
+    DAT_10f66de4 = DAT_10f68124.GetCompositionValue();
+    DAT_10f66dec = DAT_10f68124.GetCompositionValue();
+    return 0;
+}
 
 // Starts text input into `buffer` (name entry): resets the input state, attaches the IME to the game window and
 // installs the four IME callbacks. FUN_1015fd30 ends it. Returns 1.

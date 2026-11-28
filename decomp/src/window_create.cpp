@@ -73,6 +73,13 @@ GameWindow::GameWindow()
 {
 }
 
+// 0x1013e4e0. Destructor: puts the RenderWindow vtable back and clears the window handle (RenderWindow's inline
+// destructor expanded here). Nothing in the game destroys the GameWindow instance by a call. The linker also kept a
+// second copy at 0x1013e6c0 that only jumps here (see open.tsv).
+GameWindow::~GameWindow()
+{
+}
+
 // 0x1013e4f0. Handles the messages the game cares about: quit, paint, focus changes (active), IME composition (forwarded
 // to the callbacks set by the text input code), middle-button capture and the mouse wheel; it closes the IME's
 // own window (WM_IME_SETCONTEXT) because the game draws the composition itself. Everything else goes to

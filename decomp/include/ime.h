@@ -21,6 +21,7 @@ struct ImeContext
     CANDIDATELIST *buffer;
 
     ImeContext();
+    ~ImeContext();  // 0x1015d4f0: releases the context (a tail call of Release)
     int Release();
     int Attach(HWND target);
     int IsOpen();

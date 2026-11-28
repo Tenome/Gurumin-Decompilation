@@ -19,6 +19,12 @@ EffectModel::EffectModel()
 {
 }
 
+// 0x1000bea0. Destructor: only destroys the matrix member (the shared empty destructor 0x1013eda0, tail-called with
+// this + 0x40). Nothing in the game destroys an EffectModel (the slots are a global array), the linker kept it anyway.
+EffectModel::~EffectModel()
+{
+}
+
 // 0x1000b9f0 (EffectModel::Setup). Loads the effect model `path` (folder 0 of FUN_1013f8a0) and plays frames start..end.
 // A negative start counts back from the end (stored in frame, start becomes 0); a negative end means
 // "up to the model's last frame" (Node::M_10199340 returns the frame count). Releases any previous model first.

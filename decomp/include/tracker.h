@@ -21,6 +21,7 @@ struct Tracker
     int M_10001010(int p, int q, int r);   // 0x10001010 (Obj::M_10001010 in app_0001.cpp)
     int M_10001110(int *pos, char *a, char *b, char *c, int *d, char *e);   // Mouse_GetState
     int M_10001090(int x, int y);
+    int M_10001050(const POINT *point, int left, int top, int width, int height);   // 0x10001050 (PointInRect in app_0001.cpp; ignores `this`)
     int M_10001440();
     int M_10001550();
     int M_10001450();

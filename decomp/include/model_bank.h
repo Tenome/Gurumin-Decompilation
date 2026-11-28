@@ -55,6 +55,7 @@ struct ModelBank
     char pad_31514[0xc];
     int flareCount;         // 0x31520: flare points collected this frame
     Vec4 flareScreen[0x20]; // 0x31524: screen position of each flare point (x, y, depth, w)
+    ~ModelBank();                                                        // 0x10037b20: destroys the 16 model records
     ModelBank();                                                         // 0x1017c8e0
     // 0x10164c10: a light direction for `model` seen from `position` towards `target` (0 when the bank is off); overlay_draw.cpp writes into the returned vector.
     Vec4 *LightDirection(AnimModel *model, Vec4 *position, Vec4 *target);

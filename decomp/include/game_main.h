@@ -92,10 +92,9 @@ extern "C" int FUN_10023d30(void);                              // Map_Unload
 extern "C" int FUN_100fc3e0(void);                              // Script_RunQueued
 extern "C" int FUN_10137b10(void);                              // Game_FrameStep (frame_step.cpp)
 extern "C" int FUN_1013fb10(int active, int target, int frames);   // FrameBlend_Start
-extern "C" int FUN_101008e0(GameTrigger *trigger);             // queued event callback
-extern "C" void FUN_1005c2e0(int a, int b, Vec4 *position);     // plays the footstep sound at `position`
+int Event_RunTrigger(GameTrigger *trigger);                     // 0x101008e0 (event_trigger_run.cpp, C++ linkage: EH frame)
+void Footstep_Play(int a, int b, Vec4 *position);                // 0x1005c2e0 (footstep_callback.cpp, C++ linkage: EH frame)
 extern "C" void __cdecl FUN_10091e10(int event, int code, int flag);   // model contact callback
-extern "C" int FUN_1003b160(int event);                         // sound event callback
 extern "C" int FUN_101602d0(const char *path, int *sum, unsigned int *check);   // File_Checksum
 extern "C" int FUN_10160360(const char *path, int base, int index, void *first, void *second);   // File_ReadRecord
 
