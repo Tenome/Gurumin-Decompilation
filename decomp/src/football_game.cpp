@@ -138,7 +138,7 @@ static __forceinline void FootballSayEither(int slot, const char *evenLine, cons
 }
 
 // The call-out of a player who passes the ball ahead (short pass lines of the roster's five characters).
-static void FootballSayPass(int slot)
+static __forceinline void FootballSayPass(int slot)
 {
     switch (slot)
     {
@@ -161,7 +161,7 @@ static void FootballSayPass(int slot)
 }
 
 // The call-out of a player who passes the ball across to a mate.
-static void FootballSayCrossPass(int slot)
+static __forceinline void FootballSayCrossPass(int slot)
 {
     switch (slot)
     {
@@ -184,7 +184,7 @@ static void FootballSayCrossPass(int slot)
 }
 
 // The call-out of a player who shoots at the goal.
-static void FootballSayShot(int slot)
+static __forceinline void FootballSayShot(int slot)
 {
     switch (slot)
     {
@@ -207,7 +207,7 @@ static void FootballSayShot(int slot)
 }
 
 // The call-out of a player of the other team who steals a pass.
-static void FootballSayCut(int slot)
+static __forceinline void FootballSayCut(int slot)
 {
     switch (slot)
     {
@@ -924,30 +924,33 @@ int Map18_UpdateFootballGame()
             power = 45.0f;
             kick = FB_KICK_HIGH_SHOT;
             break;
+        case 0x12:
+            power = 50.0f;
+            kick = FB_KICK_HARD_SHOT;
+            break;
+        case 0x25:
+            power = 30.0f;
+            kick = FB_KICK_LOB_UP;
+            break;
+        case 0x24:
+            power = 20.0f;
+            kick = FB_KICK_LOB_DOWN;
+            break;
         case 0x10:
         case 0x14:
             power = 50.0f;
             kick = FB_KICK_HIGH_SHOT;
             break;
-        default:
-            power = 27.0f;
-            break;
-        case 0x12:
-            power = 50.0f;
+        case 0x23:
+        case 0x26:
+        case 0x29:
+        case 0x2a:
+            power = 55.0f;
             kick = FB_KICK_HARD_SHOT;
-            break;
-        case 0x13:
-        case 0x18:
-            power = 50.0f;
-            kick = FB_KICK_SLIDE;
             break;
         case 0x15:
             power = 55.0f;
             kick = FB_KICK_CHIP;
-            break;
-        case 0x16:
-            power = 55.0f;
-            kick = FB_KICK_SLOW_LOB_B;
             break;
         case 0x17:
             power = 50.0f;
@@ -957,24 +960,21 @@ int Map18_UpdateFootballGame()
             power = 60.0f;
             kick = FB_KICK_SLIDE;
             break;
-        case 0x23:
-        case 0x26:
-        case 0x29:
-        case 0x2a:
-            power = 55.0f;
-            kick = FB_KICK_HARD_SHOT;
-            break;
-        case 0x24:
-            power = 20.0f;
-            kick = FB_KICK_LOB_DOWN;
-            break;
-        case 0x25:
-            power = 30.0f;
-            kick = FB_KICK_LOB_UP;
-            break;
         case 0x28:
             power = 20.0f;
             kick = FB_KICK_LOB_UP;
+            break;
+        case 0x16:
+            power = 55.0f;
+            kick = FB_KICK_SLOW_LOB_B;
+            break;
+        case 0x13:
+        case 0x18:
+            power = 50.0f;
+            kick = FB_KICK_SLIDE;
+            break;
+        default:
+            power = 27.0f;
             break;
         }
         float strength = power / velocity.Length2D();

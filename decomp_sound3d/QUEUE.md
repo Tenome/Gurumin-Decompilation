@@ -127,3 +127,10 @@ Round H11 (named locals that were temporaries, function-scope address-taken loca
 - Lever: a referenced in-class inline member gets an out-of-line COMDAT copy even when expanded everywhere, so never-called originals match by referencing it from a matched function. ATL thunks match by taking their address in a const pointer.
 - Walls: WaveStream::Read (stack slots, 629 diffs), PlaySEExtended (9 byte diffs, early-return guard layout; forms A/B/C/E/G of the guard tried), MmioFile::Open buffer order, EncodeStream/EncodeChunk/EncodeJpegRgb.
 - Not reached: remaining open functions in decomp_packs (no change, 34 of 51).
+
+## Round H14
+
+- New MATCH: WindowHolder::ClearWindow (0x10009400) and WindowHolder::Release (0x10009410), the two uncalled methods (g_window = 0 returning this, and an empty one) in src/sound_window_holder.cpp with include/window_holder.h; 133 -> 135 of 156 (the build counts 135).
+- 0x10001210 is MmioFile::Seek (the dead out-of-line copy, mapped in obj_symbols.tsv): all but the register of the final target differ (original keeps the target in edx and does add edx,[esp+4]; ours eax plus a reload). Tried offset+target, target+offset, early CUR test, ternary base: same or worse. 20 byte diffs, the inline expansions keep matching.
+- PlaySEExtended: guard forms tried this round on top of A/B/C/E/G: nested ifs with one return 0 at the end, `||` guard, `else if`, ready-first, inline guard helper. The original keeps the FIRST xor/ret block (je L; xor eax,eax; ret; L: ...; je back to it); ours keeps the later copy or puts return 0 last (176 bytes). Not under source control (see NOTES "which tail copy cl keeps"). Unchanged, 9 diffs.
+- Not reworked (no new idea): Update3DPan, FindOrLoadSound, SoundChannel::Init, _MixOpen, RewindDecoder/StartDecoder, WaveStream::Read.

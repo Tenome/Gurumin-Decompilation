@@ -111,13 +111,6 @@ enum ValueCommand
     VALUE_CLEAR_POST_EFFECT = 0x4e69        // post effect strength 0
 };
 
-// A costume bit and the furniture spot it stands for (VALUE_KAGU_PLACE_BOUGHT).
-struct BoughtFurniture
-{
-    unsigned int bit;
-    int spot;
-};
-
 // One furniture spot of the item stand (0x20 bytes; DAT_1090865c, indexed by the spot number).
 struct KaguSpot
 {

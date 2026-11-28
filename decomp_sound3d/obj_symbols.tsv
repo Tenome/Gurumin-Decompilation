@@ -150,3 +150,6 @@ _SetParam	100090f0
 ?Seek@Mp3Stream@@QAEHI@Z	100014f0
 ?Seek@OggStream@@QAEXI@Z	10001cc0
 ?PlaySEExtended@@YAHPBDPAM11111HHM@Z	100096c0
+?Seek@MmioFile@@QAEHJH@Z	10001210
+?ClearWindow@WindowHolder@@QAEPAV1@XZ	10009400
+?Release@WindowHolder@@QAEXXZ	10009410

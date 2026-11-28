@@ -86,42 +86,44 @@ extern "C" float FUN_10001f80(float y, float x);                           // at
         CURRENT_WINDOW.m_0020 = 0; \
     } while (0)
 
-// The furniture items a costume bit stands for, in the order VALUE_KAGU_PLACE_BOUGHT places them.
-static const BoughtFurniture BOUGHT_FURNITURE[] = {
-    { 0x10000000, 0x26 }, { 0x8000000, 0x23 }, { 0x4000000, 0x24 }, { 0x2000000, 0x27 }, { 0x1000000, 0x25 },
-    { 0x100000, 0x2c },   { 0x80000, 0x29 },   { 0x40000, 0x2a },   { 0x20000, 0x2b },   { 0x10000, 0x28 },
-    { 0x1000, 0xb },      { 0x800, 9 },        { 0x400, 10 },       { 0x200, 7 },        { 0x100, 8 },
-    { 0x10, 5 },          { 8, 3 },            { 4, 2 },            { 2, 0 },            { 1, 4 }
-};
+// Places the furniture of kagu spot `spot` when the costume mask `bits` holds `bit` (VALUE_KAGU_PLACE_BOUGHT).
+#define PLACE_IF_BOUGHT(bit, spot) \
+    if ((bits & (bit)) != 0) \
+        Script_ValueCommand(VALUE_KAGU_PLACE, spot);
 
-// The costume bit of costume item `item` (49..78), 0 for the others.
-static unsigned int CostumeBitOfItem(int item)
-{
-    switch (item)
-    {
-    case 49: return 0x1000;
-    case 50: return 0x4000000;
-    case 51: return 0x8000000;
-    case 58: return 0x1000000;
-    case 59: return 4;
-    case 60: return 0x100;
-    case 63: return 0x400;
-    case 64: return 0x2000000;
-    case 65: return 0x20000;
-    case 66: return 0x800;
-    case 67: return 0x10000;
-    case 68: return 2;
-    case 69: return 0x200;
-    case 70: return 0x40000;
-    case 71: return 0x100000;
-    case 72: return 0x80000;
-    case 73: return 0x10;
-    case 74: return 1;
-    case 75: return 8;
-    case 78: return 0x10000000;
-    }
-    return 0;
-}
+// The costume items (49..78) and the bit each one sets in the costume mask DAT_10c64adc, in the order of the
+// original's case bodies. Expanded into the switch of VALUE_COSTUME_SET_BIT and into the one of VALUE_COSTUME_CLEAR_ALL.
+#define FOR_EACH_COSTUME_ITEM(X) \
+    X(74, 0x1) \
+    X(68, 0x2) \
+    X(59, 0x4) \
+    X(75, 0x8) \
+    X(73, 0x10) \
+    X(60, 0x100) \
+    X(69, 0x200) \
+    X(63, 0x400) \
+    X(66, 0x800) \
+    X(49, 0x1000) \
+    X(67, 0x10000) \
+    X(65, 0x20000) \
+    X(70, 0x40000) \
+    X(72, 0x80000) \
+    X(71, 0x100000) \
+    X(58, 0x1000000) \
+    X(64, 0x2000000) \
+    X(50, 0x4000000) \
+    X(51, 0x8000000) \
+    X(78, 0x10000000)
+
+#define COSTUME_CASE_SET(item, bit) \
+    case item: \
+        costumes |= bit; \
+        break;
+
+#define COSTUME_CASE_CLEAR(item, bit) \
+    case item: \
+        costumes &= ~(bit); \
+        break;
 
 // The price after the helmet discounts (half, 0.9 or 0.95 of it) of `price`.
 static int DiscountedPrice(int price)
@@ -136,7 +138,7 @@ static int DiscountedPrice(int price)
 }
 
 // Starts effect `effect` at the player's position on a fresh placement matrix (result card fanfares).
-static void StartResultEffect(int effect, int frame)
+static __forceinline void StartResultEffect(int effect, int frame)
 {
     Matrix4 placement;
     Vec4 position;
@@ -346,11 +348,26 @@ int Script_ValueCommand(int id, int value)
     {
         unsigned int bits = DAT_10c64adc;
         Script_ValueCommand(VALUE_KAGU_CLEAR, 0);
-        for (int index = 0; index < (int)(sizeof(BOUGHT_FURNITURE) / sizeof(BOUGHT_FURNITURE[0])); index++)
-        {
-            if ((bits & BOUGHT_FURNITURE[index].bit) != 0)
-                Script_ValueCommand(VALUE_KAGU_PLACE, BOUGHT_FURNITURE[index].spot);
-        }
+        PLACE_IF_BOUGHT(0x10000000, 0x26)
+        PLACE_IF_BOUGHT(0x8000000, 0x23)
+        PLACE_IF_BOUGHT(0x4000000, 0x24)
+        PLACE_IF_BOUGHT(0x2000000, 0x27)
+        PLACE_IF_BOUGHT(0x1000000, 0x25)
+        PLACE_IF_BOUGHT(0x100000, 0x2c)
+        PLACE_IF_BOUGHT(0x80000, 0x29)
+        PLACE_IF_BOUGHT(0x40000, 0x2a)
+        PLACE_IF_BOUGHT(0x20000, 0x2b)
+        PLACE_IF_BOUGHT(0x10000, 0x28)
+        PLACE_IF_BOUGHT(0x1000, 0xb)
+        PLACE_IF_BOUGHT(0x800, 0x9)
+        PLACE_IF_BOUGHT(0x400, 0xa)
+        PLACE_IF_BOUGHT(0x200, 0x7)
+        PLACE_IF_BOUGHT(0x100, 0x8)
+        PLACE_IF_BOUGHT(0x10, 0x5)
+        PLACE_IF_BOUGHT(0x8, 0x3)
+        PLACE_IF_BOUGHT(0x4, 0x2)
+        PLACE_IF_BOUGHT(0x2, 0x0)
+        PLACE_IF_BOUGHT(0x1, 0x4)
     }
     else if (id == VALUE_HALVE_COUNT)
     {
@@ -361,7 +378,12 @@ int Script_ValueCommand(int id, int value)
     }
     else if (id == VALUE_COSTUME_SET_BIT)
     {
-        DAT_10c64adc |= CostumeBitOfItem(value);
+        unsigned int costumes = DAT_10c64adc;
+        switch (value)
+        {
+        FOR_EACH_COSTUME_ITEM(COSTUME_CASE_SET)
+        }
+        DAT_10c64adc = costumes;
     }
     else if (id == VALUE_COSTUME_COUNT)
     {
@@ -393,21 +415,24 @@ int Script_ValueCommand(int id, int value)
     }
     else if (id == VALUE_COSTUME_CLEAR_ALL)
     {
+        unsigned int costumes = DAT_10c64adc;
         for (int item = 0; item < 0x50; item++)
         {
-            if (DAT_103150c0[item] != 0)
+            if (DAT_103150c0[item] == 0)
+                continue;
+            switch (item)
             {
-                unsigned int bit = CostumeBitOfItem(item);
-                if (bit == 0)
-                    continue;
-                DAT_10c64adc &= ~bit;
-                DAT_103150c0[item] = 0;
+            FOR_EACH_COSTUME_ITEM(COSTUME_CASE_CLEAR)
+            default:
+                continue;
             }
+            DAT_103150c0[item] = 0;
         }
         DAT_103150c0[0x26] = 0;
         DAT_103150c0[0x27] = 0;
         DAT_103150c0[0x34] = 0;
         DAT_103150c0[0x35] = 0;
+        DAT_10c64adc = costumes;
         FUN_1000e810();
     }
     else if (id == VALUE_SHOW_RESULT)
@@ -651,8 +676,23 @@ int Script_ValueCommand(int id, int value)
     }
     else if (id == VALUE_CHAR_CLEAR_STATE)
     {
-        for (int word = 0; word < 0x10; word++)
-            DAT_1020b430[value].words[word] = 0;
+        // written out: the original clears the 16 words with 16 stores
+        DAT_1020b430[value].words[0] = 0;
+        DAT_1020b430[value].words[1] = 0;
+        DAT_1020b430[value].words[2] = 0;
+        DAT_1020b430[value].words[3] = 0;
+        DAT_1020b430[value].words[4] = 0;
+        DAT_1020b430[value].words[5] = 0;
+        DAT_1020b430[value].words[6] = 0;
+        DAT_1020b430[value].words[7] = 0;
+        DAT_1020b430[value].words[8] = 0;
+        DAT_1020b430[value].words[9] = 0;
+        DAT_1020b430[value].words[10] = 0;
+        DAT_1020b430[value].words[11] = 0;
+        DAT_1020b430[value].words[12] = 0;
+        DAT_1020b430[value].words[13] = 0;
+        DAT_1020b430[value].words[14] = 0;
+        DAT_1020b430[value].words[15] = 0;
     }
     else if (id == VALUE_CHAR_SET_KIND)
     {
@@ -943,6 +983,8 @@ int Script_ValueCommand(int id, int value)
     }
     else if (id == VALUE_PLAYER_FACE_POINT)
     {
+        Vec4 pointB;
+        Vec4 pointA;
         DAT_10c63590 = (int)(DAT_10db6ee8[0].heading * 1000.0f);
         DAT_104c00d0 = 0x41f;
         pointB.Copy(DAT_10db6ee8[0].matrix.GetTranslation());
@@ -957,6 +999,8 @@ int Script_ValueCommand(int id, int value)
     }
     else if (id == VALUE_PLAYER_TURN_RELATIVE)
     {
+        Vec4 pointB;
+        Vec4 pointA;
         pointB.Copy(DAT_10db6ee8[0].matrix.GetTranslation());
         pointA.Copy(DAT_118e69e8);
         DAT_10db6ee8[0].targetHeading = (float)value * PI_APPROX / DEGREES_HALF_TURN - HeadingBetween(pointB, pointA);
@@ -1090,6 +1134,8 @@ int Script_ValueCommand(int id, int value)
     }
     else if (id == VALUE_CHAR_FACE_POINT)
     {
+        Vec4 pointB;
+        Vec4 pointA;
         pointB.Copy(DAT_10db6ee8[value].matrix.GetTranslation());
         pointA.Copy(DAT_118e69e8);
         DAT_10db6ee8[value].targetHeading = -HeadingBetween(pointB, pointA);
@@ -1109,6 +1155,8 @@ int Script_ValueCommand(int id, int value)
     }
     else if (id == VALUE_PLAYER_TURN_TO_REGISTERS)
     {
+        Vec4 pointB;
+        Vec4 pointA;
         pointB.Copy(DAT_10db6ee8[0].matrix.GetTranslation());
         pointA.x = (float)DAT_10c6356c;
         pointA.y = (float)DAT_10c63570;
@@ -1194,6 +1242,8 @@ int Script_ValueCommand(int id, int value)
     {
         int nearest = 0;
         float nearestDistance = 300.0f;
+        Vec4 pointA;
+        Vec4 pointB;
         pointA.Copy(DAT_10db6ee8[0].matrix.GetTranslation());
         for (int slot = 1; slot < 92; slot++)
         {
@@ -1349,6 +1399,7 @@ int Script_ValueCommand(int id, int value)
     }
     else if (id == VALUE_PUSH_AWAY)
     {
+        Vec4 pointB;
         pointB.x = (float)DAT_10c6356c;
         pointB.y = (float)DAT_10c63570;
         pointB.z = (float)DAT_10c63574;

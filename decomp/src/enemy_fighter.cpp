@@ -65,10 +65,12 @@
 #define STATE_STEP W(FIGHTER_WORD_STEP)
 
 // Starts a swing effect and then its trail (the options follow the fighter).
-static void Fighter_Swing(int index, int swingEffect, int trailEffect, Node *swingNode, Node *trailNode, int sound)
+static __forceinline void Fighter_Swing(int index, int swingEffect, int trailEffect, Node *swingNode, Node *trailNode, int sound)
 {
     EffectOptions options;
-    Matrix4 turn = RotationZ(DAT_10db6ee8[index].heading);
+    Matrix4 turn;
+    turn.SetIdentity();
+    turn = RotationZ(DAT_10db6ee8[index].heading);
     Vec4 origin;
     options.m_0000 = 0;
     options.m_0004 = DAT_10daaae8[index].stats[3];
@@ -86,7 +88,7 @@ static void Fighter_Swing(int index, int swingEffect, int trailEffect, Node *swi
 }
 
 // Plays one of the fighter's grunts: the long voice set when script flag 0xf79 is set, else the short one.
-static void Fighter_Grunt(int index)
+static __forceinline void Fighter_Grunt(int index)
 {
     int voice;
     if (DAT_10874848.TestScriptFlag(FIGHTER_VOICE_FLAG) == 0)
@@ -97,7 +99,7 @@ static void Fighter_Grunt(int index)
 }
 
 // Picks one of the strike steps at random (never step 0xf more often than one time in 200).
-static int Fighter_RandomStrike(int index, int fatigueLimit)
+static __forceinline int Fighter_RandomStrike(int index, int fatigueLimit)
 {
     int roll;
     do
@@ -333,8 +335,11 @@ int Enemy_UpdateFighter(int index)
         {
             place.Copy(model.matrix.GetTranslation());
             place.z += 50.0f;
-            for (roll = 0; roll < 5; roll++)
-                FUN_1001d8b0(index, 0x2580, place, -1, -1, 0, 0, 0, 0, 0);
+            FUN_1001d8b0(index, 0x2580, place, -1, -1, 0, 0, 0, 0, 0);
+            FUN_1001d8b0(index, 0x2580, place, -1, -1, 0, 0, 0, 0, 0);
+            FUN_1001d8b0(index, 0x2580, place, -1, -1, 0, 0, 0, 0, 0);
+            FUN_1001d8b0(index, 0x2580, place, -1, -1, 0, 0, 0, 0, 0);
+            FUN_1001d8b0(index, 0x2580, place, -1, -1, 0, 0, 0, 0, 0);
         }
         roll = DAT_1020b4ac[index].value;
         if (roll != 0)
@@ -615,12 +620,12 @@ int Enemy_UpdateFighter(int index)
                 case 0:
                     ring.y = radius;
                     break;
+                case 2:
+                    ring.x = radius;
+                    break;
                 case 1:
                 case 3:
                     ring.y = -radius;
-                    break;
-                case 2:
-                    ring.x = radius;
                 }
                 tries++;
                 if ((tries & 3) == 0 && tries > 3)
@@ -885,8 +890,7 @@ int Enemy_UpdateFighter(int index)
     switch (STATE_STEP)
     {
     case 0:
-    case 2:
-    case 5:
+        // Step 0: the back-step. Hops backwards with the first frames of the motion.
         if (model.m_238c == 1)
         {
             if (W(FIGHTER_WORD_SIDE) == 0)
@@ -899,24 +903,23 @@ int Enemy_UpdateFighter(int index)
         else if (W(FIGHTER_WORD_SIDE) == 0)
         {
             motion = 1;
-            if (STATE_STEP == 0)
-                motionSnap = 1;
+            motionSnap = 1;
             break;
         }
         if (model.m_238c != 1)
         {
-            FIGHTER_STEP_FORWARD(STATE_STEP == 0 ? -24.0f : STATE_STEP == 2 ? 16.0f : 32.0f);
+            FIGHTER_STEP_FORWARD(-24.0f);
             model.targetHeading = model.heading;
         }
-        if (STATE_FRAME == (STATE_STEP == 0 ? 3 : 6))
+        if (STATE_FRAME == 3)
         {
             model.m_238c = 1;
             model.AddMotionSpeed(48.0f);
             FUN_10065b10(index, 0x182, 1, 0);
         }
-        if (STATE_FRAME < (STATE_STEP == 0 ? 0x25 : 0x28))
+        if (STATE_FRAME < 0x25)
         {
-            motion = STATE_STEP == 0 ? 4 : 3;
+            motion = 4;
             break;
         }
         motion = 1;
@@ -944,67 +947,231 @@ int Enemy_UpdateFighter(int index)
         }
         finished = 1;
         break;
+    case 2:
+        // Step 2: the slow lunge forward.
+        if (model.m_238c == 1)
+        {
+            if (W(FIGHTER_WORD_SIDE) == 0)
+            {
+                W(FIGHTER_WORD_SIDE) = 1;
+                STATE_FRAME = 0;
+                FIGHTER_FACE_PLAYER();
+            }
+        }
+        else if (W(FIGHTER_WORD_SIDE) == 0)
+        {
+            motion = 1;
+            break;
+        }
+        if (model.m_238c != 1)
+        {
+            FIGHTER_STEP_FORWARD(16.0f);
+            model.targetHeading = model.heading;
+        }
+        if (STATE_FRAME == 6)
+        {
+            model.m_238c = 1;
+            model.AddMotionSpeed(48.0f);
+            FUN_10065b10(index, 0x182, 1, 0);
+        }
+        if (STATE_FRAME < 0x28)
+        {
+            motion = 3;
+            break;
+        }
+        motion = 1;
+        if (model.m_238c == 1)
+            finished = 1;
+        break;
     case 3:
-    case 4:
-        model.targetHeading = atan2f(aim.x, aim.y) + (STATE_STEP == 4 ? 3.14159f : 0.0f);
+        // Step 3: walks towards the player until it is far or blocked.
+        model.targetHeading = atan2f(aim.x, aim.y);
         FIGHTER_STEP_FORWARD(22.0f);
         motion = 0;
-        if (STATE_STEP == 3 ? (distance > 700.0f || W(FIGHTER_WORD_BLOCKED) != 0)
-                            : (W(FIGHTER_WORD_BLOCKED) != 0 || distance < 200.0f))
+        if (distance > 700.0f || W(FIGHTER_WORD_BLOCKED) != 0)
+            finished = 1;
+        break;
+    case 4:
+        // Step 4: backs away from the player until it is near or blocked.
+        model.targetHeading = atan2f(aim.x, aim.y) + 3.14159f;
+        FIGHTER_STEP_FORWARD(22.0f);
+        motion = 0;
+        if (W(FIGHTER_WORD_BLOCKED) != 0 || distance < 200.0f)
+            finished = 1;
+        break;
+    case 5:
+        // Step 5: the fast lunge forward.
+        if (model.m_238c == 1)
+        {
+            if (W(FIGHTER_WORD_SIDE) == 0)
+            {
+                W(FIGHTER_WORD_SIDE) = 1;
+                STATE_FRAME = 0;
+                FIGHTER_FACE_PLAYER();
+            }
+        }
+        else if (W(FIGHTER_WORD_SIDE) == 0)
+        {
+            motion = 1;
+            break;
+        }
+        if (model.m_238c != 1)
+        {
+            FIGHTER_STEP_FORWARD(32.0f);
+            model.targetHeading = model.heading;
+        }
+        if (STATE_FRAME == 6)
+        {
+            model.m_238c = 1;
+            model.AddMotionSpeed(48.0f);
+            FUN_10065b10(index, 0x182, 1, 0);
+        }
+        if (STATE_FRAME < 0x28)
+        {
+            motion = 3;
+            break;
+        }
+        motion = 1;
+        if (model.m_238c == 1)
             finished = 1;
         break;
     case 6:
-    case 7:
-    case 8:
-    case 9:
-    case 0xa:
-    case 0xb:
     {
+        // Step 6: the first slash (the swing effect starts on frame 6).
         int c = STATE_FRAME;
-        int last = 0;       // first frame after the step ends
-        int fastFrom = 0;   // frames of the forward push [fastFrom, fastTo)
-        int fastTo = 0;
-        int turnUntil = 6;
         DAT_1020b484[index].value = 1;
-        if (STATE_STEP == 6 || STATE_STEP == 7 || STATE_STEP == 8 || STATE_STEP == 9 || STATE_STEP == 0xb)
-        {
-            if (STATE_STEP == 0xb ? (c == 1 || c == 0xf) : c == 3)
-                Fighter_Grunt(index);
-        }
-        switch (STATE_STEP)
-        {
-        case 6: last = 0x1d; fastFrom = 7; fastTo = 0x19; motion = 5; break;
-        case 7: last = 0x2c; fastFrom = 7; fastTo = 0x2a; motion = 6; break;
-        case 8: last = 0x1d; fastFrom = 0; fastTo = 0x10; motion = 7; break;
-        case 9: last = 0xe; fastFrom = 0; fastTo = 0xf; motion = 8; turnUntil = 5; break;
-        case 0xa: last = 0x16; fastFrom = 0; fastTo = 0x16; motion = 9; turnUntil = 5; break;
-        case 0xb: last = 0x2c; fastFrom = 7; fastTo = 0x1e; motion = 10; break;
-        }
-        if (c < turnUntil)
+        if (c == 3)
+            Fighter_Grunt(index);
+        motion = 5;
+        if (c < 6)
             model.targetHeading = atan2f(aim.x, aim.y) + 3.14159f;
-        if (c >= fastFrom && c < fastTo)
+        if (c >= 7 && c < 0x19)
             FIGHTER_STEP_FORWARD(12.0f);
-        if (c >= last)
+        if (c >= 0x1d)
             motion = -1;
-        if (STATE_STEP == 6 && c == 6 || STATE_STEP == 7 && c == 0x13)
+        if (c == 6)
         {
             Fighter_Swing(index, 0x434, FIGHTER_SWING_SIDE, DAT_1021bdf8[index][FIGHTER_NODE_BODY],
                           DAT_1021bdf8[index][FIGHTER_NODE_BODY], 0);
             break;
         }
-        if (STATE_STEP == 8 && c == 0xc)
+        if (c == 5)
+        {
+            DAT_10218fc0[index] = 1;
+            model.heading = atan2f(aim.x, aim.y) + 3.14159f;
+            break;
+        }
+        if (c >= 0x1d)
+            finished = 1;
+        DAT_10218fc0[index] = 1;
+        break;
+    }
+    case 7:
+    {
+        // Step 7: the long slash (the swing effect starts on frame 0x13).
+        int c = STATE_FRAME;
+        DAT_1020b484[index].value = 1;
+        if (c == 3)
+            Fighter_Grunt(index);
+        motion = 6;
+        if (c < 6)
+            model.targetHeading = atan2f(aim.x, aim.y) + 3.14159f;
+        if (c >= 7 && c < 0x2a)
+            FIGHTER_STEP_FORWARD(12.0f);
+        if (c >= 0x2c)
+            motion = -1;
+        if (c == 0x13)
+        {
+            Fighter_Swing(index, 0x434, FIGHTER_SWING_SIDE, DAT_1021bdf8[index][FIGHTER_NODE_BODY],
+                          DAT_1021bdf8[index][FIGHTER_NODE_BODY], 0);
+            break;
+        }
+        if (c == 5)
+        {
+            DAT_10218fc0[index] = 1;
+            model.heading = atan2f(aim.x, aim.y) + 3.14159f;
+            break;
+        }
+        if (c >= 0x2c)
+            finished = 1;
+        DAT_10218fc0[index] = 1;
+        break;
+    }
+    case 8:
+    {
+        // Step 8: the kick with the left foot.
+        int c = STATE_FRAME;
+        DAT_1020b484[index].value = 1;
+        if (c == 3)
+            Fighter_Grunt(index);
+        motion = 7;
+        if (c < 6)
+            model.targetHeading = atan2f(aim.x, aim.y) + 3.14159f;
+        if (c < 0x10)
+            FIGHTER_STEP_FORWARD(12.0f);
+        if (c >= 0x1d)
+            motion = -1;
+        if (c == 0xc)
         {
             Fighter_Swing(index, FIGHTER_SWING_EFFECT, FIGHTER_SWING_OFF, DAT_1021bdf8[index][FIGHTER_NODE_LEFT_TOE],
                           DAT_1021bdf8[index][FIGHTER_NODE_LEFT_TOE], 0x181);
             break;
         }
-        if (STATE_STEP == 9 && c == 5)
+        if (c == 5)
+        {
+            DAT_10218fc0[index] = 1;
+            model.heading = atan2f(aim.x, aim.y) + 3.14159f;
+            break;
+        }
+        if (c >= 0x1d)
+            finished = 1;
+        DAT_10218fc0[index] = 1;
+        break;
+    }
+    case 9:
+    {
+        // Step 9: the punch with the left hand.
+        int c = STATE_FRAME;
+        DAT_1020b484[index].value = 1;
+        if (c == 3)
+            Fighter_Grunt(index);
+        motion = 8;
+        if (c < 5)
+            model.targetHeading = atan2f(aim.x, aim.y) + 3.14159f;
+        if (c < 0xf)
+            FIGHTER_STEP_FORWARD(12.0f);
+        if (c >= 0xe)
+            motion = -1;
+        if (c == 5)
         {
             Fighter_Swing(index, FIGHTER_SWING_EFFECT, FIGHTER_SWING_OFF, DAT_1021bdf8[index][FIGHTER_NODE_BODY],
                           DAT_1021bdf8[index][FIGHTER_NODE_LEFT_HAND], 0x180);
             break;
         }
-        if (STATE_STEP == 0xa && (c == 8 || c == 1 || c == 0x10))
+        if (c == 4)
+        {
+            DAT_10218fc0[index] = 1;
+            model.heading = atan2f(aim.x, aim.y) + 3.14159f;
+            break;
+        }
+        if (c >= 0xe)
+            finished = 1;
+        DAT_10218fc0[index] = 1;
+        break;
+    }
+    case 0xa:
+    {
+        // Step 0xa: the three-hit combo (grunt and swing on frames 1, 8 and 0x10).
+        int c = STATE_FRAME;
+        DAT_1020b484[index].value = 1;
+        motion = 9;
+        if (c < 5)
+            model.targetHeading = atan2f(aim.x, aim.y) + 3.14159f;
+        if (c < 0x16)
+            FIGHTER_STEP_FORWARD(12.0f);
+        if (c >= 0x16)
+            motion = -1;
+        if (c == 8 || c == 1 || c == 0x10)
         {
             Fighter_Grunt(index);
             Fighter_Swing(index, FIGHTER_SWING_EFFECT, c == 8 ? FIGHTER_SWING_SIDE : 0,
@@ -1012,289 +1179,405 @@ int Enemy_UpdateFighter(int index)
                           c == 1 ? 0x17d : c == 8 ? 0x17e : 0x17f);
             break;
         }
-        if (STATE_STEP == 0xb && (c == 6 || c == 0xe))
-        {
-            Node *node = DAT_1021bdf8[index][c == 6 ? FIGHTER_NODE_LEFT_TOE : FIGHTER_NODE_RIGHT_TOE];
-            Fighter_Swing(index, FIGHTER_SWING_EFFECT, FIGHTER_SWING_OFF, node, node, c == 6 ? 0x17b : 0x17c);
-            break;
-        }
-        if (c == (STATE_STEP == 9 ? 4 : 5))
+        if (c == 5)
         {
             DAT_10218fc0[index] = 1;
             model.heading = atan2f(aim.x, aim.y) + 3.14159f;
             break;
         }
-        if (c >= last)
+        if (c >= 0x16)
+            finished = 1;
+        DAT_10218fc0[index] = 1;
+        break;
+    }
+    case 0xb:
+    {
+        // Step 0xb: the double kick (left foot on frame 6, right foot on frame 0xe).
+        int c = STATE_FRAME;
+        DAT_1020b484[index].value = 1;
+        if (c == 1 || c == 0xf)
+            Fighter_Grunt(index);
+        motion = 10;
+        if (c < 6)
+            model.targetHeading = atan2f(aim.x, aim.y) + 3.14159f;
+        if (c >= 7 && c < 0x1e)
+            FIGHTER_STEP_FORWARD(12.0f);
+        if (c >= 0x2c)
+            motion = -1;
+        if (c == 6)
+        {
+            Fighter_Swing(index, FIGHTER_SWING_EFFECT, FIGHTER_SWING_OFF, DAT_1021bdf8[index][FIGHTER_NODE_LEFT_TOE],
+                          DAT_1021bdf8[index][FIGHTER_NODE_LEFT_TOE], 0x17b);
+            break;
+        }
+        if (c == 0xe)
+        {
+            Fighter_Swing(index, FIGHTER_SWING_EFFECT, FIGHTER_SWING_OFF, DAT_1021bdf8[index][FIGHTER_NODE_RIGHT_TOE],
+                          DAT_1021bdf8[index][FIGHTER_NODE_RIGHT_TOE], 0x17c);
+            break;
+        }
+        if (c == 5)
+        {
+            DAT_10218fc0[index] = 1;
+            model.heading = atan2f(aim.x, aim.y) + 3.14159f;
+            break;
+        }
+        if (c >= 0x2c)
             finished = 1;
         DAT_10218fc0[index] = 1;
         break;
     }
     case 0xc:
-    case 0xd:
-    case 0xe:
-    case 0x10:
-    case 0x11:
     {
+        // Step 0xc: the first ranged shot (hand effect on frame 1, hold, finish on frame 0xaa).
         int c;
-        int shot;       // effect started on the shot frame
         Node *shotNode = DAT_1021bdf8[index][FIGHTER_NODE_RIGHT_HAND];
-        if (STATE_STEP != 0xd && STATE_STEP != 0x11)
-            model.locked = 1;
-        if (STATE_STEP == 0x11)
-            DAT_1020b498[index].value = 0;
+        model.locked = 1;
         DAT_1020b484[index].value = 1;
         FIGHTER_HOLD_MOTION();
-        if (STATE_STEP == 0x11)
-            DAT_1020b47c[index].value = 1;
-        else
-            model.targetHeading = atan2f(aim.x, aim.y) + 3.14159f;
+        model.targetHeading = atan2f(aim.x, aim.y) + 3.14159f;
         c = STATE_FRAME;
-        options.m_0000 = 0;
-        options.m_0004 = slot.stats[3];
-        options.followOwner = 1;
-        options.owner = index;
-        matrix = RotationZ(model.heading);
-        if (STATE_STEP == 0xc)
+        if (c == 1)
         {
-            if (c == 1)
-            {
-                motion = 0xe;
-                motionSnap = 1;
-                hand.Copy(shotNode->worldMatrix.GetTranslation());
-                hand.z += 35.0f;
-                matrix.SetTranslation(hand);
-                options.m_0008 = 1.35f;
-                options.m_000e = 1;
-                FUN_1001d8b0(index, 0x427, effectPos, -1, -1, 0, 0, 0, &matrix, &options);
-                FUN_100b9bb0(index, 0x38, 0, 0);
-            }
-            else if (c == 0x37)
-            {
-                motion = 0xf;
-                motionSnap = 1;
-            }
-            else if (c < 0x38 || c > 0x95)
-            {
-                if (c == 0x96)
-                    motion = 1;
-                else if (c > 0xa9)
-                    finished = 1;
-            }
-            else
-                motion = 0xf;
-            if (STATE_FRAME > 0 && STATE_FRAME < 0x96)
-                slot.m_0141 = 1;
+            Vec4 shotPos;
+            Vec4 shotHand;
+            EffectOptions shotOptions;
+            Matrix4 shotMatrix;
+            shotMatrix.SetIdentity();
+            motion = 0xe;
+            motionSnap = 1;
+            shotPos.Fill(0.0f);
+            shotHand.Copy(shotNode->worldMatrix.GetTranslation());
+            shotHand.z += 35.0f;
+            shotMatrix = RotationZ(model.heading);
+            shotMatrix.SetTranslation(shotHand);
+            shotOptions.m_0004 = slot.stats[3];
+            shotOptions.followOwner = 1;
+            shotOptions.m_0008 = 1.35f;
+            shotOptions.m_0000 = 0;
+            shotOptions.m_000e = 1;
+            shotOptions.owner = index;
+            FUN_1001d8b0(index, 0x427, shotPos, -1, -1, 0, 0, 0, &shotMatrix, &shotOptions);
+            FUN_100b9bb0(index, 0x38, 0, 0);
         }
-        else if (STATE_STEP == 0xd)
+        else if (c == 0x37)
         {
-            if (c < 0x79 && c > 0x3c && c % 10 == 0)
-            {
-                Vec4 spot;
-                spot.Copy(place);
-                spot.z += (float)(FUN_1013f880() % 100) + 50.0f;
-                spot.x += (float)(FUN_1013f880() % 300) - 150.0f;
-                spot.y += (float)(FUN_1013f880() % 300) - 150.0f;
-                matrix = RotationX(-0.0525f) * RotationZ(atan2f(player.x - spot.x, player.y - spot.y) + FIGHTER_PI);
-                matrix.SetTranslation(spot);
-                options.m_0008 = 1.44f;
-                options.m_000e = 2;
-                FUN_1001d8b0(index, 0x429, effectPos, -1, -1, 0, 0, 0, &matrix, &options);
-            }
-            c = STATE_FRAME;
-            if (c == 1)
-            {
-                motion = 0x13;
-                motionSnap = 1;
-                hand.Copy(shotNode->worldMatrix.GetTranslation());
-                hand.z += 19.0f;
-                matrix = RotationZ(model.heading);
-                matrix.SetTranslation(hand);
-                options.m_0004 = 0;
-                options.m_000e = 2;
-                FUN_1001d8b0(index, 0x42c, effectPos, -1, -1, 0, 0, 0, &matrix, &options);
-                FUN_100b9bb0(index, 0x3a, 0, 0);
-            }
-            else if (c == 0x4f)
-            {
-                motion = 0x14;
-                motionSnap = 1;
-            }
-            else if (c < 0x50 || c > 0xb3)
-            {
-                if (c == 0xb4)
-                    motion = 1;
-                else if (c > 199)
-                    finished = 1;
-            }
-            else
-                motion = 0x14;
-            if (STATE_FRAME > 0 && STATE_FRAME < 0xb5)
-                slot.m_0141 = 1;
+            motion = 0xf;
+            motionSnap = 1;
         }
-        else if (STATE_STEP == 0xe)
+        else if (c < 0x38 || c > 0x95)
         {
-            if (c == 0)
-            {
-                motion = 0x10;
-                motionSnap = 1;
-            }
-            else if (c == 0xf || c == 0x3c)
-            {
-                hand.Copy(shotNode->worldMatrix.GetTranslation());
-                hand.z += 19.0f;
-                matrix = RotationZ(model.heading);
-                matrix.SetTranslation(hand);
-                options.m_000e = 3;
-                if (c == 0xf)
-                {
-                    options.m_0004 = 0;
-                    FUN_1001d8b0(index, 0x420, effectPos, -1, -1, 0, 0, 0, &matrix, &options);
-                    FUN_100b9bb0(index, 0x39, 0, 0);
-                }
-                else
-                {
-                    motion = 0x12;
-                    motionSnap = 1;
-                    options.m_0008 = 1.87f;
-                    FUN_1001d8b0(index, 0x41a, effectPos, -1, -1, 0, 0, 0, &matrix, &options);
-                }
-            }
-            else if (c == 0x2d)
-            {
-                motion = 0x11;
-                motionSnap = 1;
-            }
-            else if (c < 0x3d || c > 0x9a)
-            {
-                if (c == 0x9b)
-                    motion = 1;
-                else if (c > 0xae)
-                    finished = 1;
-            }
-            else
-                motion = 0x12;
-            c = STATE_FRAME;
-            if (c >= 0xe && c <= 0x9a)
-                slot.m_0141 = 1;
-            else if (c < 0xf)
-                DAT_10218fc0[index] = 1;
-        }
-        else if (STATE_STEP == 0x10)
-        {
-            if (c == 1)
-            {
-                motion = 0x17;
-                motionSnap = 1;
-                hand.Copy(shotNode->worldMatrix.GetTranslation());
-                hand.z += 20.0f;
-                matrix = RotationZ(model.heading);
-                matrix.SetTranslation(hand);
-                options.m_0008 = 2.3f;
-                options.m_000e = 1;
-                FUN_1001d8b0(index, 0x431, effectPos, -1, -1, 0, 0, 0, &matrix, &options);
-                FUN_100b9bb0(index, 0x3b, 0, 0);
-            }
-            else if (c == 0x15)
-            {
-                FUN_1016b230("82919191918264");
-                FUN_10055ee0();
-                motion = 0x18;
-                motionSnap = 1;
-            }
-            else if (c < 0x20 || c > 0xa0)
-            {
-                if (c == 0xa1)
-                    motion = 1;
-                else if (c > 0xb4)
-                    finished = 1;
-            }
-            else
-                motion = 0x18;
-            if (STATE_FRAME > 0 && STATE_FRAME < 0xa0)
-                slot.m_0141 = 1;
+            if (c == 0x96)
+                motion = 1;
+            else if (c > 0xa9)
+                finished = 1;
         }
         else
+            motion = 0xf;
+        if (STATE_FRAME > 0 && STATE_FRAME < 0x96)
+            slot.m_0141 = 1;
+        break;
+    }
+    case 0xd:
+    {
+        // Step 0xd: the rain of shots from above (an effect every 10 frames from 0x3d to 0x78, then the big shot).
+        int c;
+        Node *shotNode = DAT_1021bdf8[index][FIGHTER_NODE_RIGHT_HAND];
+        DAT_1020b484[index].value = 1;
+        FIGHTER_HOLD_MOTION();
+        model.targetHeading = atan2f(aim.x, aim.y) + 3.14159f;
+        c = STATE_FRAME;
+        if (c < 0x79 && c > 0x3c && c % 10 == 0)
         {
-            // Step 0x11: the dash. It slides with a speed that grows towards the player and ends in a burst.
-            float ease;
-            if (c == 0)
-            {
-                motionSnap = 1;
-                motion = 0xb;
-                DAT_10255160[index][0] = 0.0f;
-                DAT_10255160[index][1] = 0.0f;
-                FUN_100b9bb0(index, 0x37, 0, 0);
-            }
-            else if (c == 0xf)
-            {
-                motion = 0xc;
-                motionSnap = 1;
-                hand.Copy(DAT_1021bdf8[index][FIGHTER_NODE_FOOTSTEPS]->worldMatrix.GetTranslation());
-                hand.z += 20.0f;
-                matrix = RotationZ(model.heading);
-                matrix.SetTranslation(hand);
-                options.m_0008 = 1.98f;
-                options.m_000e = 5;
-                FUN_1001d8b0(index, 0x435, effectPos, -1, -1, &DAT_10868838[index][0], 0, 0, &matrix, &options);
-                matrix = DAT_1021bdf8[index][FIGHTER_NODE_BODY]->worldMatrix;
-                FUN_1001d8b0(index, 0x443, effectPos, -1, -1, &DAT_10868838[index][1], 0, 0, &matrix, &options);
-                DAT_102028d4 = 0;
-            }
-            else if (c < 0xf0)
-            {
-                motion = 0xc;
-                motionSnap = 1;
-                if (DAT_102028d4 > 0xed)
-                    STATE_FRAME = 0xef;
-            }
-            else if (c == 0xf0)
-            {
-                motion = 0xd;
-                motionSnap = 1;
-                DAT_102028d4 = -1;
-            }
-            else if (c == 0xff)
-                motion = 1;
-            else if (c > 0x11c)
-                finished = 1;
-            ease = DAT_10255160[index][0];
-            if (player.x > place.x && STATE_FRAME <= 0xe0 && STATE_FRAME >= 0x1f)
-                ease = ease >= 0.0f ? ease + 0.3f : ease + 0.9f;
-            else if (place.x > player.x && STATE_FRAME <= 0xe0 && STATE_FRAME >= 0x1f)
-                ease = ease <= 0.0f ? ease - 0.3f : ease - 0.9f;
-            else
-                ease = ease * 0.9f;
-            DAT_10255160[index][0] = ease;
-            ease = DAT_10255160[index][1];
-            if (player.y > place.y && STATE_FRAME <= 0xe0 && STATE_FRAME >= 0x1f)
-                ease = ease >= 0.0f ? ease + 0.4f : ease + 1.2f;
-            else if (place.y > player.y && STATE_FRAME <= 0xe0 && STATE_FRAME >= 0x1f)
-                ease = ease <= 0.0f ? ease - 0.4f : ease - 1.2f;
-            else
-                ease = ease * 0.9f;
-            DAT_10255160[index][1] = ease;
-            if (DAT_10255160[index][0] > 13.0f)
-                DAT_10255160[index][0] = 13.0f;
-            else if (DAT_10255160[index][0] < -13.0f)
-                DAT_10255160[index][0] = -13.0f;
-            if (DAT_10255160[index][1] > 13.0f)
-                DAT_10255160[index][1] = 13.0f;
-            else if (DAT_10255160[index][1] < -13.0f)
-                DAT_10255160[index][1] = -13.0f;
-            step.x = DAT_10255160[index][0];
-            step.y = DAT_10255160[index][1];
-            DAT_10868838[index][0] = DAT_1021bdf8[index][FIGHTER_NODE_FOOTSTEPS]->worldMatrix;
-            DAT_10868838[index][0]._43 += 30.0f;
-            DAT_10868838[index][1] = DAT_1021bdf8[index][FIGHTER_NODE_BODY]->worldMatrix;
-            if (STATE_FRAME < 0xd)
-                DAT_10218fc0[index] = 1;
+            Vec4 rainPos;
+            Vec4 spot;
+            EffectOptions rainOptions;
+            Matrix4 rainMatrix;
+            rainMatrix.SetIdentity();
+            rainPos.Fill(0.0f);
+            spot.Copy(place);
+            spot.z += (float)(FUN_1013f880() % 100) + 50.0f;
+            spot.x += (float)(FUN_1013f880() % 300) - 150.0f;
+            spot.y += (float)(FUN_1013f880() % 300) - 150.0f;
+            rainMatrix = RotationX(-0.0525f) * RotationZ(atan2f(player.x - spot.x, player.y - spot.y) + FIGHTER_PI);
+            rainMatrix.SetTranslation(spot);
+            rainOptions.m_0004 = slot.stats[3];
+            rainOptions.followOwner = 1;
+            rainOptions.m_0008 = 1.44f;
+            rainOptions.m_0000 = 0;
+            rainOptions.m_000e = 2;
+            rainOptions.owner = index;
+            FUN_1001d8b0(index, 0x429, rainPos, -1, -1, 0, 0, 0, &rainMatrix, &rainOptions);
         }
+        c = STATE_FRAME;
+        if (c == 1)
+        {
+            Vec4 shotPos;
+            Vec4 shotHand;
+            EffectOptions shotOptions;
+            Matrix4 shotMatrix;
+            shotMatrix.SetIdentity();
+            motion = 0x13;
+            motionSnap = 1;
+            shotPos.Fill(0.0f);
+            shotHand.Copy(shotNode->worldMatrix.GetTranslation());
+            shotHand.z += 19.0f;
+            shotMatrix = RotationZ(model.heading);
+            shotMatrix.SetTranslation(shotHand);
+            shotOptions.m_0004 = 0;
+            shotOptions.followOwner = 1;
+            shotOptions.m_0000 = 0;
+            shotOptions.m_000e = 2;
+            shotOptions.owner = index;
+            FUN_1001d8b0(index, 0x42c, shotPos, -1, -1, 0, 0, 0, &shotMatrix, &shotOptions);
+            FUN_100b9bb0(index, 0x3a, 0, 0);
+        }
+        else if (c == 0x4f)
+        {
+            motion = 0x14;
+            motionSnap = 1;
+        }
+        else if (c < 0x50 || c > 0xb3)
+        {
+            if (c == 0xb4)
+                motion = 1;
+            else if (c > 199)
+                finished = 1;
+        }
+        else
+            motion = 0x14;
+        if (STATE_FRAME > 0 && STATE_FRAME < 0xb5)
+            slot.m_0141 = 1;
+        break;
+    }
+    case 0xe:
+    {
+        // Step 0xe: the charged shot (charge on frame 0, shot on frame 0xf, the second shot on frame 0x3c).
+        int c;
+        Node *shotNode = DAT_1021bdf8[index][FIGHTER_NODE_RIGHT_HAND];
+        model.locked = 1;
+        DAT_1020b484[index].value = 1;
+        FIGHTER_HOLD_MOTION();
+        model.targetHeading = atan2f(aim.x, aim.y) + 3.14159f;
+        c = STATE_FRAME;
+        if (c == 0)
+        {
+            motion = 0x10;
+            motionSnap = 1;
+        }
+        else if (c == 0xf)
+        {
+            Vec4 shotPos;
+            Vec4 shotHand;
+            EffectOptions shotOptions;
+            Matrix4 shotMatrix;
+            shotMatrix.SetIdentity();
+            shotPos.Fill(0.0f);
+            shotHand.Copy(shotNode->worldMatrix.GetTranslation());
+            shotHand.z += 19.0f;
+            shotMatrix = RotationZ(model.heading);
+            shotMatrix.SetTranslation(shotHand);
+            shotOptions.m_0004 = 0;
+            shotOptions.followOwner = 1;
+            shotOptions.m_0000 = 0;
+            shotOptions.m_000e = 3;
+            shotOptions.owner = index;
+            FUN_1001d8b0(index, 0x420, shotPos, -1, -1, 0, 0, 0, &shotMatrix, &shotOptions);
+            FUN_100b9bb0(index, 0x39, 0, 0);
+        }
+        else if (c == 0x3c)
+        {
+            Vec4 shotPos;
+            Vec4 shotHand;
+            EffectOptions shotOptions;
+            Matrix4 shotMatrix;
+            shotMatrix.SetIdentity();
+            motion = 0x12;
+            motionSnap = 1;
+            shotPos.Fill(0.0f);
+            shotHand.Copy(shotNode->worldMatrix.GetTranslation());
+            shotHand.z += 19.0f;
+            shotMatrix = RotationZ(model.heading);
+            shotMatrix.SetTranslation(shotHand);
+            shotOptions.m_0004 = slot.stats[3];
+            shotOptions.followOwner = 1;
+            shotOptions.m_0008 = 1.87f;
+            shotOptions.m_0000 = 0;
+            shotOptions.m_000e = 3;
+            shotOptions.owner = index;
+            FUN_1001d8b0(index, 0x41a, shotPos, -1, -1, 0, 0, 0, &shotMatrix, &shotOptions);
+        }
+        else if (c == 0x2d)
+        {
+            motion = 0x11;
+            motionSnap = 1;
+        }
+        else if (c < 0x3d || c > 0x9a)
+        {
+            if (c == 0x9b)
+                motion = 1;
+            else if (c > 0xae)
+                finished = 1;
+        }
+        else
+            motion = 0x12;
+        c = STATE_FRAME;
+        if (c >= 0xe && c <= 0x9a)
+            slot.m_0141 = 1;
+        else if (c < 0xf)
+            DAT_10218fc0[index] = 1;
         break;
     }
     case 0xf:
         DAT_10868838[index][0] = DAT_1021bdf8[index][FIGHTER_NODE_FOOTSTEPS]->worldMatrix;
         finished = 1;
         break;
+    case 0x10:
+    {
+        // Step 0x10: the heavy shot that knocks the player back (effect on frame 1, knock-back on frame 0x15).
+        int c;
+        Node *shotNode = DAT_1021bdf8[index][FIGHTER_NODE_RIGHT_HAND];
+        model.locked = 1;
+        DAT_1020b484[index].value = 1;
+        FIGHTER_HOLD_MOTION();
+        model.targetHeading = atan2f(aim.x, aim.y) + 3.14159f;
+        c = STATE_FRAME;
+        if (c == 1)
+        {
+            Vec4 shotPos;
+            Vec4 shotHand;
+            EffectOptions shotOptions;
+            Matrix4 shotMatrix;
+            shotMatrix.SetIdentity();
+            motion = 0x17;
+            motionSnap = 1;
+            shotPos.Fill(0.0f);
+            shotHand.Copy(shotNode->worldMatrix.GetTranslation());
+            shotHand.z += 20.0f;
+            shotMatrix = RotationZ(model.heading);
+            shotMatrix.SetTranslation(shotHand);
+            shotOptions.m_0004 = slot.stats[3];
+            shotOptions.followOwner = 1;
+            shotOptions.m_0008 = 2.3f;
+            shotOptions.m_0000 = 0;
+            shotOptions.m_000e = 1;
+            shotOptions.owner = index;
+            FUN_1001d8b0(index, 0x431, shotPos, -1, -1, 0, 0, 0, &shotMatrix, &shotOptions);
+            FUN_100b9bb0(index, 0x3b, 0, 0);
+        }
+        else if (c == 0x15)
+        {
+            FUN_1016b230("82919191918264");
+            FUN_10055ee0();
+            motion = 0x18;
+            motionSnap = 1;
+        }
+        else if (c < 0x20 || c > 0xa0)
+        {
+            if (c == 0xa1)
+                motion = 1;
+            else if (c > 0xb4)
+                finished = 1;
+        }
+        else
+            motion = 0x18;
+        if (STATE_FRAME > 0 && STATE_FRAME < 0xa0)
+            slot.m_0141 = 1;
+        break;
+    }
+    case 0x11:
+    {
+        // Step 0x11: the dash. It slides with a speed that grows towards the player and ends in a burst.
+        int c;
+        float ease;
+        DAT_1020b498[index].value = 0;
+        DAT_1020b484[index].value = 1;
+        FIGHTER_HOLD_MOTION();
+        DAT_1020b47c[index].value = 1;
+        c = STATE_FRAME;
+        if (c == 0)
+        {
+            motionSnap = 1;
+            motion = 0xb;
+            DAT_10255160[index][0] = 0.0f;
+            DAT_10255160[index][1] = 0.0f;
+            FUN_100b9bb0(index, 0x37, 0, 0);
+        }
+        else if (c == 0xf)
+        {
+            Vec4 dashPos;
+            Vec4 dashHand;
+            EffectOptions dashOptions;
+            Matrix4 dashMatrix;
+            dashMatrix.SetIdentity();
+            motion = 0xc;
+            motionSnap = 1;
+            dashPos.Fill(0.0f);
+            dashHand.Copy(DAT_1021bdf8[index][FIGHTER_NODE_FOOTSTEPS]->worldMatrix.GetTranslation());
+            dashHand.z += 20.0f;
+            dashMatrix = RotationZ(model.heading);
+            dashMatrix.SetTranslation(dashHand);
+            dashOptions.m_0004 = slot.stats[3];
+            dashOptions.followOwner = 1;
+            dashOptions.m_0008 = 1.98f;
+            dashOptions.m_0000 = 0;
+            dashOptions.m_000e = 5;
+            dashOptions.owner = index;
+            FUN_1001d8b0(index, 0x435, dashPos, -1, -1, &DAT_10868838[index][0], 0, 0, &dashMatrix, &dashOptions);
+            dashMatrix = DAT_1021bdf8[index][FIGHTER_NODE_BODY]->worldMatrix;
+            FUN_1001d8b0(index, 0x443, dashPos, -1, -1, &DAT_10868838[index][1], 0, 0, &dashMatrix, &dashOptions);
+            DAT_102028d4 = 0;
+        }
+        else if (c < 0xf0)
+        {
+            motion = 0xc;
+            motionSnap = 1;
+            if (DAT_102028d4 > 0xed)
+                STATE_FRAME = 0xef;
+        }
+        else if (c == 0xf0)
+        {
+            motion = 0xd;
+            motionSnap = 1;
+            DAT_102028d4 = -1;
+        }
+        else if (c == 0xff)
+            motion = 1;
+        else if (c > 0x11c)
+            finished = 1;
+        ease = DAT_10255160[index][0];
+        if (player.x > place.x && STATE_FRAME <= 0xe0 && STATE_FRAME >= 0x1f)
+            ease = ease >= 0.0f ? ease + 0.3f : ease + 0.9f;
+        else if (place.x > player.x && STATE_FRAME <= 0xe0 && STATE_FRAME >= 0x1f)
+            ease = ease <= 0.0f ? ease - 0.3f : ease - 0.9f;
+        else
+            ease = ease * 0.9f;
+        DAT_10255160[index][0] = ease;
+        ease = DAT_10255160[index][1];
+        if (player.y > place.y && STATE_FRAME <= 0xe0 && STATE_FRAME >= 0x1f)
+            ease = ease >= 0.0f ? ease + 0.4f : ease + 1.2f;
+        else if (place.y > player.y && STATE_FRAME <= 0xe0 && STATE_FRAME >= 0x1f)
+            ease = ease <= 0.0f ? ease - 0.4f : ease - 1.2f;
+        else
+            ease = ease * 0.9f;
+        DAT_10255160[index][1] = ease;
+        if (DAT_10255160[index][0] > 13.0f)
+            DAT_10255160[index][0] = 13.0f;
+        else if (DAT_10255160[index][0] < -13.0f)
+            DAT_10255160[index][0] = -13.0f;
+        if (DAT_10255160[index][1] > 13.0f)
+            DAT_10255160[index][1] = 13.0f;
+        else if (DAT_10255160[index][1] < -13.0f)
+            DAT_10255160[index][1] = -13.0f;
+        step.x = DAT_10255160[index][0];
+        step.y = DAT_10255160[index][1];
+        DAT_10868838[index][0] = DAT_1021bdf8[index][FIGHTER_NODE_FOOTSTEPS]->worldMatrix;
+        DAT_10868838[index][0]._43 += 30.0f;
+        DAT_10868838[index][1] = DAT_1021bdf8[index][FIGHTER_NODE_BODY]->worldMatrix;
+        if (STATE_FRAME < 0xd)
+            DAT_10218fc0[index] = 1;
+        break;
+    }
     case 0x12:
         STATE_FRAME++;
         motion = 2;

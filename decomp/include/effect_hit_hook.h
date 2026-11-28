@@ -23,7 +23,7 @@ extern "C" void FUN_1003ab40(int id, int quiet);                                
 extern "C" int FUN_10057c40(int holder, Node *light, int kind);                      // switches: a strike holds the switch of `light`
 extern "C" int FUN_10057b90(int holder);                                             // switches: releases the switch of `holder`
 extern "C" int FUN_10017b10(int index, int *high, int *low);                         // splits script variable `index` into item and count
-extern "C" int FUN_10062750(const Vec4 *position, const char *model, int variant, float scale, float spin);   // shaga_spawn.cpp
+extern "C" int FUN_10062750(const Vec4 *position, const char *model, int variant, float heading, float force);   // shaga_spawn.cpp: heading below -100 = random
 
 // Character slots the hook walks (the enemies, then the first props).
 #define HIT_FIRST_ENEMY_SLOT 0x3a

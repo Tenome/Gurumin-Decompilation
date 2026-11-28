@@ -794,3 +794,15 @@ other huge drafts (Bs00x_Update, DrawLit, RunScriptFrames) for the same gap.
   rotation) of each block decide what cl merges (Keyboard_IsButtonDown). `ImmGetDefaultIMEWnd(window)` as a local before
   SendMessageA reproduces the original call-before-push order. All remaining switch-structure mismatches are in drafts that miss
   20-45% of their bytes (one body per label is exactly the missing code there).
+
+## Table-element pointer locals force extra stores (Char_Drifter, lane G3)
+- Char_Drifter matched once the swing phase was written as `DAT_10255160[index][1]` everywhere and the wrap as
+  `while (DAT_10255160[index][1] > LIMIT) DAT_10255160[index][1] -= LIMIT;`. With `float *phase = &DAT[index][1]` and
+  `if (*phase > LIMIT) do *phase -= LIMIT; while (...)` cl 13.00 stores the new value through a temporary on every
+  pass (fstp/mov/fld/mov) and computes the pointer as mov/shl/add; with the table element written out it keeps the value
+  in st0 in the loop, stores once, and folds the address into `lea esi,[edi+table+4]`. Try dropping a pointer local
+  that points into a global table before reaching for other levers, and prefer `while` to `if + do/while`.
+- Not closed (rotation or layout, see open.tsv): Route_FollowGates (declaring `result` right after `x` moves its zero
+  store as in the original but rotates route/point/parameter into other registers), CompileStatement (the original keeps
+  two DeclareFromText copies, a shared funcdef block and the call block last; if/else-if and early-return spellings all
+  put the call block after the string test), Npc_StandOnGround (the original keeps a separate `lea eax` state address).

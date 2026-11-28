@@ -93,3 +93,9 @@ Round H11 (named-local-vs-temporary rule, early-return tails, parameter reuse):
 ## Round H13
 
 - No new matches (34 of 51). EncodeBand, WriteStream, TransformLevel, InverseWaveletLevel, QuantiseBand(s) and the rest were not reworked this round.
+
+## Round H14
+
+- Inventory check (same method as H13 on sound3d): no function start is missing (every 16-aligned address after padding that is not listed sits inside a function, after loop-alignment nops, none after a ret), no gaps between listed functions and the next start, and every compared symbol of the five objects is one of the 51 listed functions. The objects also hold unlisted static helpers (LowPassSum, PutByte, CopyRowRgb, ...); the original expands them, so they are not extra functions. No module.json change.
+- EncodeStream: the three band pointers (right/bottom/diagonal) as declared in the source; the original keeps the bottom band in ebx and holds the other two as spilled offsets from it (-0xc and +0xc, computed at run time as models-ebx...) plus the heights-widths difference, in an 8-byte frame (sub esp,8 after the coder setup; ours push ecx first). All six declaration orders of the three pointers, with the increments in the same or the source order, change the length (352 or 320 bytes against 345) but not the shape: 244-271 diffs. No match.
+- EncodeBand, WriteStream, TransformLevel, InverseWaveletLevel, QuantiseBand: not changed (no new idea; behaviour harnesses not needed since no source was touched). 34 of 51.

@@ -88,6 +88,20 @@ static __forceinline void OpenGates()
     Node *node;
     switch (DAT_10c62ed0)
     {
+    case ROAM_MAP_GATE_A:
+    case ROAM_MAP_GATE_B:
+        for (int i = 0;;)
+        {
+            node = DAT_10255f08->Find("@gate", i++);
+            if (node == 0)
+                break;
+            if (strcmp(node->name, "gate") == 0)
+            {
+                node->group = 0;
+                break;
+            }
+        }
+        break;
     case ROAM_MAP_HOUSE:
         node = DAT_10255f08->Find("@020g1", 0);
         if (node != 0)
@@ -103,20 +117,6 @@ static __forceinline void OpenGates()
         node = DAT_10255f08->Find("@030g2", 0);
         if (node != 0)
             node->group = 0;
-        break;
-    case ROAM_MAP_GATE_A:
-    case ROAM_MAP_GATE_B:
-        for (int i = 0;;)
-        {
-            node = DAT_10255f08->Find("@gate", i++);
-            if (node == 0)
-                break;
-            if (strcmp(node->name, "gate") == 0)
-            {
-                node->group = 0;
-                break;
-            }
-        }
         break;
     case ROAM_MAP_YARD:
         node = DAT_10255f08->Find("@AtariBox1", 0);
@@ -144,6 +144,20 @@ static __forceinline void CloseGates()
     Node *node;
     switch (DAT_10c62ed0)
     {
+    case ROAM_MAP_GATE_A:
+    case ROAM_MAP_GATE_B:
+        for (int i = 0;;)
+        {
+            node = DAT_10255f08->Find("@gate", i++);
+            if (node == 0)
+                break;
+            if (strcmp(node->name, "gate") == 0)
+            {
+                node->group = 1;
+                break;
+            }
+        }
+        break;
     case ROAM_MAP_HOUSE:
         node = DAT_10255f08->Find("@020g1", 0);
         if (node != 0)
@@ -159,20 +173,6 @@ static __forceinline void CloseGates()
         node = DAT_10255f08->Find("@030g2", 0);
         if (node != 0)
             node->group = 2;
-        break;
-    case ROAM_MAP_GATE_A:
-    case ROAM_MAP_GATE_B:
-        for (int i = 0;;)
-        {
-            node = DAT_10255f08->Find("@gate", i++);
-            if (node == 0)
-                break;
-            if (strcmp(node->name, "gate") == 0)
-            {
-                node->group = 1;
-                break;
-            }
-        }
         break;
     case ROAM_MAP_YARD:
         node = DAT_10255f08->Find("@AtariBox1", 0);
@@ -824,14 +824,21 @@ int Npc_RoamZones(int index)
     {
         if (map == ROAM_MAP_YARD)
         {
-            if (next == 7)
-                door.Copy(gateYard7);
-            else if (next == 0xc)
-                door.Copy(gateYardC);
-            else if (next == 0x10)
+            switch (next)
+            {
+            case 0x10:
                 door.Copy(gateYard10);
-            else if (next == 0x1a)
+                break;
+            case 0x1a:
                 door.Copy(gateYard1a);
+                break;
+            case 0xc:
+                door.Copy(gateYardC);
+                break;
+            case 7:
+                door.Copy(gateYard7);
+                break;
+            }
         }
         else if (map == ROAM_MAP_HOUSE)
         {
@@ -993,25 +1000,24 @@ int Npc_RoamZones(int index)
         int counterpart = zone;
         if (map == ROAM_MAP_YARD)
         {
-            if (next == 6)
+            switch (next)
             {
-                door.Copy(gateYard7);
-                counterpart = 7;
-            }
-            else if (next == 0xb)
-            {
-                door.Copy(gateYardC);
-                counterpart = 0xc;
-            }
-            else if (next == 0xf)
-            {
+            case 0xf:
                 door.Copy(gateYard10);
                 counterpart = 0x10;
-            }
-            else if (next == 0x1c)
-            {
+                break;
+            case 0x1c:
                 door.Copy(gateYard1a);
                 counterpart = 0x1a;
+                break;
+            case 0xb:
+                door.Copy(gateYardC);
+                counterpart = 0xc;
+                break;
+            case 6:
+                door.Copy(gateYard7);
+                counterpart = 7;
+                break;
             }
         }
         else if (map == ROAM_MAP_HOUSE)

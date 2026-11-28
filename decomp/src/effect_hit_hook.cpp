@@ -37,6 +37,11 @@
 #include "wisp_caster_enemy.h"
 
 
+// Matrix4 member 0x101b0b10: the heading of the matrix's transformed y axis (the sibling of Matrix4::M_101b0a80, which uses
+// the x axis). It is declared here as a one-argument __fastcall function, which compiles to the same call (matrix in ecx):
+// one more declaration in matrix4.h shifts the stack slots of char_equip_models.cpp (FUN_100404e0) and loses its match.
+float __fastcall HeadingOfYAxis(Matrix4 *matrix);
+
 #define PROP_REACH_SQUARED 1000000.0f
 #define PROP_FLAG_LIMIT 0xf9f   // script flags below 4000 can be set
 #define COIN_1 0x51
@@ -46,6 +51,13 @@
 #define COIN_100 0x55
 #define COIN_500 0x56
 #define PI_APPROX 3.1415f
+#define REACTION_WEAK 0                  // second argument of FUN_10011aa0 for a hit on a weak point
+#define REACTION_RESIST 1                // ... for every other hit that shows a reaction
+#define PARRY_SOUND 0x338                // the clang of a parried strike
+#define TREASURE_PIECE_COUNT 5            // pieces a big chest throws
+#define TREASURE_PIECE_VARIANT 0x19       // FUN_10062750 variant of those pieces
+#define TREASURE_PIECE_HEADING_RANDOM -101.0f   // any heading below -100 means "turn at random"
+#define TREASURE_PIECE_FORCE 0.3f         // throw strength
 #define TWO_PI_APPROX 6.283f
 
 // Throws the coins of `amount` (500, 100, 50, 10, 5, 1 by denomination) from 50 units above `origin`.
@@ -87,8 +99,8 @@ static __forceinline void ThrowCoins(const Vec4 &origin, int amount)
 }
 
 // The flash of a parried strike: effect 0x8f0c is started on the player's "scop-pt" node (turned to face the hit) and
-// sound 0x338 plays at `object`.
-static __forceinline void StartParryFlash(const Vec4 &center, Matrix4 &object)
+// the sound `soundId` plays at `object`.
+static __forceinline void StartParryFlash(const Vec4 &center, Matrix4 &object, int soundId)
 {
     Matrix4 flashMatrix;
     Vec4 playerPosition;
@@ -101,7 +113,7 @@ static __forceinline void StartParryFlash(const Vec4 &center, Matrix4 &object)
         flashMatrix.SetTranslation(scop->worldMatrix.GetTranslation());
     position.Fill(0.0f);
     DAT_10daaa80.Start(0x8f0c, position, -1, 0, 0, 0, 0, &flashMatrix, 0, 0);
-    FUN_1003ad20(0x338, &object.GetTranslation(), 1.0f);
+    FUN_1003ad20(soundId, &object.GetTranslation(), 1.0f);
 }
 
 // Pushes the player back from the parry and turns the character in `slot` away from it.
@@ -121,7 +133,7 @@ static __forceinline void ParryRecoil(const Vec4 &center, int slot)
 }
 
 // A hit that did not hurt: the character in `slot` shows its reaction.
-#define SHOW_REACTION(slot) FUN_10011aa0((slot), 1)
+#define SHOW_REACTION(slot) FUN_10011aa0((slot), REACTION_RESIST)
 
 int FUN_10093cc0(float x, float y, float z, float size, EffectOptions *options)
 {
@@ -181,14 +193,14 @@ int FUN_10093cc0(float x, float y, float z, float size, EffectOptions *options)
                             if (DAT_10db6ee8[slot].m_028c > 0)
                                 DAT_10db6ee8[slot].m_028c--;
                             DAT_10f08008.Rumble(1.0f, 200);
-                            if ((options->settings[4] & STRIKE_DOUBLE) == 0)
-                                FUN_100119d0(slot, 1, 1);
-                            else
+                            if ((options->settings[4] & STRIKE_DOUBLE) != 0)
                             {
                                 FUN_100119d0(slot, 2, 1);
                                 if (DAT_10db6ee8[slot].m_028c > 0)
                                     DAT_10db6ee8[slot].m_028c--;
                             }
+                            else
+                                FUN_100119d0(slot, 1, 1);
                             if (negativeHit != 0)
                             {
                                 if (DAT_10db6ee8[slot].m_028c > 0)
@@ -254,7 +266,7 @@ int FUN_10093cc0(float x, float y, float z, float size, EffectOptions *options)
                     {
                         if ((strike & STRIKE_SWORD) != 0 && DAT_104c01a0 == 0)
                         {
-                            StartParryFlash(center, DAT_10db6ee8[slot].matrix);
+                            StartParryFlash(center, DAT_10db6ee8[slot].matrix, PARRY_SOUND);
                             ParryRecoil(center, slot);
                         }
                     }
@@ -272,14 +284,14 @@ int FUN_10093cc0(float x, float y, float z, float size, EffectOptions *options)
                             if (DAT_10db6ee8[slot].m_028c > 0)
                                 DAT_10db6ee8[slot].m_028c--;
                             DAT_10f08008.Rumble(1.0f, 200);
-                            if ((options->settings[4] & STRIKE_DOUBLE) == 0)
-                                FUN_100119d0(slot, 1, 1);
-                            else
+                            if ((options->settings[4] & STRIKE_DOUBLE) != 0)
                             {
                                 FUN_100119d0(slot, 2, 1);
                                 if (DAT_10db6ee8[slot].m_028c > 0)
                                     DAT_10db6ee8[slot].m_028c--;
                             }
+                            else
+                                FUN_100119d0(slot, 1, 1);
                             if (negativeHit != 0)
                             {
                                 if (DAT_10db6ee8[slot].m_028c > 0)
@@ -297,9 +309,6 @@ int FUN_10093cc0(float x, float y, float z, float size, EffectOptions *options)
                             sprayOrigin.Copy(DAT_10db9210.GetTranslation());
                             if (scop != 0)
                                 sprayOrigin.Copy(scop->worldMatrix.GetTranslation());
-                            for (int piece = 0; piece < 4; piece++)
-                                FUN_1000e130(sprayOrigin.x, sprayOrigin.y, sprayOrigin.z, &position, FUN_1013f880() % 2 + 0x6c,
-                                             -1);
                             if (DAT_10db6ee8[slot].m_028c == 0)
                             {
                                 FUN_1016b230("656565");
@@ -329,7 +338,7 @@ int FUN_10093cc0(float x, float y, float z, float size, EffectOptions *options)
                     {
                         if ((strike & STRIKE_SWORD) != 0 && DAT_104c01a0 == 0)
                         {
-                            StartParryFlash(center, DAT_10db6ee8[slot].matrix);
+                            StartParryFlash(center, DAT_10db6ee8[slot].matrix, PARRY_SOUND);
                             ParryRecoil(center, slot);
                         }
                     }
@@ -346,9 +355,14 @@ int FUN_10093cc0(float x, float y, float z, float size, EffectOptions *options)
                             DAT_10db6ee8[slot].m_0288 = 6;
                             if (DAT_10db6ee8[slot].m_028c > 0)
                                 DAT_10db6ee8[slot].m_028c--;
-                            if ((options->settings[4] & STRIKE_DOUBLE) != 0 && DAT_10db6ee8[slot].m_028c > 0)
-                                DAT_10db6ee8[slot].m_028c--;
-                            FUN_100119d0(slot, 1, 1);
+                            if ((options->settings[4] & STRIKE_DOUBLE) != 0)
+                            {
+                                if (DAT_10db6ee8[slot].m_028c > 0)
+                                    DAT_10db6ee8[slot].m_028c--;
+                                FUN_100119d0(slot, 2, 1);
+                            }
+                            else
+                                FUN_100119d0(slot, 1, 1);
                             DAT_10f08008.Rumble(1.0f, 200);
                             if (negativeHit != 0)
                             {
@@ -356,7 +370,7 @@ int FUN_10093cc0(float x, float y, float z, float size, EffectOptions *options)
                                 if (DAT_10db6ee8[slot].m_028c > 0)
                                     DAT_10db6ee8[slot].m_028c--;
                             }
-                            FUN_1003ad20(0x336, &DAT_10db6ee8[slot].matrix.GetTranslation(), 1.0f);
+                            FUN_1003ad20(0x339, &DAT_10db6ee8[slot].matrix.GetTranslation(), 1.0f);
                             Vec4 position = DAT_10db6ee8[slot].matrix.GetTranslation();
                             position.z += 50.0f;
                             DAT_10daaa80.Start(0x28a, position, -1, 0, 0, 0, 0, 0, 0, 0);
@@ -364,7 +378,7 @@ int FUN_10093cc0(float x, float y, float z, float size, EffectOptions *options)
                             {
                                 FUN_1016b230("656565");
                                 DAT_1021f3c0[slot] = HIT_KIND_SPARE_FB;
-                                FUN_1003ad20(0x337, &DAT_10db6ee8[slot].matrix.GetTranslation(), 1.0f);
+                                FUN_1003ad20(0x33a, &DAT_10db6ee8[slot].matrix.GetTranslation(), 1.0f);
                                 Vec4 where = DAT_10db6ee8[slot].matrix.GetTranslation();
                                 DAT_10c64ad8 += 2;
                                 FUN_1000e750();
@@ -372,7 +386,7 @@ int FUN_10093cc0(float x, float y, float z, float size, EffectOptions *options)
                                 int pieces = FUN_1013f880() % 3 + 3;
                                 while (pieces > 0)
                                 {
-                                    FUN_1000dd90(where.x, where.y, where.z + 30.0f, COIN_5);
+                                    FUN_1000dd90(where.x, where.y, where.z + 30.0f, COIN_1);
                                     pieces--;
                                 }
                                 DAT_10db6ee8[slot].SetPosition(-250000.0f, 0, 0);
@@ -383,9 +397,14 @@ int FUN_10093cc0(float x, float y, float z, float size, EffectOptions *options)
                     {
                         if ((strike & STRIKE_SWORD) != 0 && DAT_104c01a0 == 0)
                         {
-                            StartParryFlash(center, DAT_10db6ee8[slot].matrix);
+                            StartParryFlash(center, DAT_10db6ee8[slot].matrix, PARRY_SOUND);
                             FUN_10011b70(0xc, 4, 0, &center);
                             DAT_104c01a0 = 10;
+                            // The crate reads both positions like the armoured kinds do but never turns away.
+                            Vec4 playerPosition;
+                            Vec4 slotPosition;
+                            playerPosition.Copy(DAT_10db9210.GetTranslation());
+                            slotPosition.Copy(DAT_10db6ee8[slot].matrix.GetTranslation());
                             DAT_10db6ee8[slot].m_0288 = 6;
                             DAT_10f08008.Rumble(1.0f, 100);
                         }
@@ -404,14 +423,13 @@ int FUN_10093cc0(float x, float y, float z, float size, EffectOptions *options)
                             DAT_1021f3c0[slot] = HIT_KIND_POT_DONE;
                             if (negativeHit != 0)
                                 FUN_1003ab40(slot, 0);
-                            DAT_10874848.RegisterEvent(0);
+                            DAT_10874848.RegisterEvent(0x1f1);
                             DAT_10f08008.Rumble(1.8f, 100);
-                            Vec4 scale;
-                            scale.Set(DAT_10db6ee8[slot].scale.x, DAT_10db6ee8[slot].scale.y, DAT_10db6ee8[slot].scale.z,
-                                      1.0f);
+                            Vec4 scale = DAT_10db6ee8[slot].scale;
+                            scale.w = 1.0f;
                             DAT_10c64ad8 += 1;
                             FUN_1000e750();
-                            FUN_1003ad20(0x338, &DAT_10db6ee8[slot].matrix.GetTranslation(), 1.0f);
+                            FUN_1003ad20(0x33b, &DAT_10db6ee8[slot].matrix.GetTranslation(), 1.0f);
                             FUN_1003a880("O_061br.it3", where.x, where.y, where.z, 0, 0, 0,
                                          DAT_10db6ee8[slot].targetHeading * 180.0f / PI_APPROX, scale);
                             DAT_10db6ee8[slot].SetPosition(-250000.0f, 0, 0);
@@ -434,10 +452,30 @@ int FUN_10093cc0(float x, float y, float z, float size, EffectOptions *options)
                                 Vec4 chestPosition;
                                 chestPosition.Copy(position);
                                 chestPosition.z += 50.0f;
-                                for (int piece = 5; piece != 0; piece--)
+                                // Five pieces of treasure fly out, each one of ten models picked at random.
+                                for (int piece = TREASURE_PIECE_COUNT; piece != 0; piece--)
                                 {
                                     int roll = FUN_1013f880() % 10;
-                                    FUN_10062750(&chestPosition, "", roll, 0.3f, 0.0f);
+                                    if (roll == 0)
+                                        FUN_10062750(&chestPosition, "EEQ_01d.it3", TREASURE_PIECE_VARIANT, TREASURE_PIECE_HEADING_RANDOM, TREASURE_PIECE_FORCE);
+                                    else if (roll == 1)
+                                        FUN_10062750(&chestPosition, "EEQ_04d.it3", TREASURE_PIECE_VARIANT, TREASURE_PIECE_HEADING_RANDOM, TREASURE_PIECE_FORCE);
+                                    else if (roll == 2)
+                                        FUN_10062750(&chestPosition, "EEQ_05d.it3", TREASURE_PIECE_VARIANT, TREASURE_PIECE_HEADING_RANDOM, TREASURE_PIECE_FORCE);
+                                    else if (roll == 3)
+                                        FUN_10062750(&chestPosition, "EEQ_06d.it3", TREASURE_PIECE_VARIANT, TREASURE_PIECE_HEADING_RANDOM, TREASURE_PIECE_FORCE);
+                                    else if (roll == 4)
+                                        FUN_10062750(&chestPosition, "EEQ_12d.it3", TREASURE_PIECE_VARIANT, TREASURE_PIECE_HEADING_RANDOM, TREASURE_PIECE_FORCE);
+                                    else if (roll == 5)
+                                        FUN_10062750(&chestPosition, "EEQ_13d.it3", TREASURE_PIECE_VARIANT, TREASURE_PIECE_HEADING_RANDOM, TREASURE_PIECE_FORCE);
+                                    else if (roll == 6)
+                                        FUN_10062750(&chestPosition, "EEQ_13bd.it3", TREASURE_PIECE_VARIANT, TREASURE_PIECE_HEADING_RANDOM, TREASURE_PIECE_FORCE);
+                                    else if (roll == 7)
+                                        FUN_10062750(&chestPosition, "EEQ_04bd.it3", TREASURE_PIECE_VARIANT, TREASURE_PIECE_HEADING_RANDOM, TREASURE_PIECE_FORCE);
+                                    else if (roll == 8)
+                                        FUN_10062750(&chestPosition, "EEQ_05bd.it3", TREASURE_PIECE_VARIANT, TREASURE_PIECE_HEADING_RANDOM, TREASURE_PIECE_FORCE);
+                                    else if (roll == 9)
+                                        FUN_10062750(&chestPosition, "EEQ_06bd.it3", TREASURE_PIECE_VARIANT, TREASURE_PIECE_HEADING_RANDOM, TREASURE_PIECE_FORCE);
                                 }
                             }
                             item = 0;
@@ -597,45 +635,50 @@ int FUN_10093cc0(float x, float y, float z, float size, EffectOptions *options)
                                     if (e == ELEMENT_FIRE && (DAT_10daaae8[slot].m_0143 & 1) != 0)
                                     {
                                         damage *= 2;
-                                        SHOW_REACTION(slot);
+                                        FUN_10011aa0(slot, REACTION_WEAK);
                                         reacted = 1;
                                     }
                                     else if (e == ELEMENT_ICE && (DAT_10daaae8[slot].m_0143 & 4) != 0)
                                     {
                                         damage *= 2;
-                                        SHOW_REACTION(slot);
+                                        FUN_10011aa0(slot, REACTION_WEAK);
                                         reacted = 1;
                                     }
                                     else if (e == ELEMENT_THUNDER && (DAT_10daaae8[slot].m_0143 & 2) != 0)
                                     {
                                         damage *= 2;
-                                        SHOW_REACTION(slot);
+                                        FUN_10011aa0(slot, REACTION_WEAK);
                                         reacted = 1;
                                     }
                                     else if (e == ELEMENT_BLAST && (DAT_10daaae8[slot].m_0143 & 8) != 0)
                                     {
                                         damage *= 2;
-                                        SHOW_REACTION(slot);
+                                        FUN_10011aa0(slot, REACTION_WEAK);
                                         reacted = 1;
                                     }
-                                    else if ((e == ELEMENT_FIRE && (DAT_10daaae8[slot].m_0144 & 1) != 0) ||
-                                             (e == ELEMENT_ICE && (DAT_10daaae8[slot].m_0144 & 4) != 0) ||
-                                             (e == ELEMENT_THUNDER && (DAT_10daaae8[slot].m_0144 & 2) != 0))
+                                    else if (e == ELEMENT_FIRE && (DAT_10daaae8[slot].m_0144 & 1) != 0)
                                     {
-                                        SHOW_REACTION(slot);
+                                        FUN_10011aa0(slot, REACTION_RESIST);
+                                        reacted = 1;
+                                    }
+                                    else if (e == ELEMENT_ICE && (DAT_10daaae8[slot].m_0144 & 4) != 0)
+                                    {
+                                        FUN_10011aa0(slot, REACTION_RESIST);
+                                        reacted = 1;
+                                    }
+                                    else if (e == ELEMENT_THUNDER && (DAT_10daaae8[slot].m_0144 & 2) != 0)
+                                    {
+                                        FUN_10011aa0(slot, REACTION_RESIST);
                                         reacted = 1;
                                     }
                                     else if (e == ELEMENT_BLAST && (DAT_10daaae8[slot].m_0144 & 8) != 0)
                                     {
                                         damage /= 2;
-                                        SHOW_REACTION(slot);
+                                        FUN_10011aa0(slot, REACTION_RESIST);
                                         reacted = 1;
                                     }
                                     if (DAT_104686b0[slot] == 0 && options->m_000e != ELEMENT_BLAST &&
-                                        options->settings[5] == 0 && (options->owner == 999 || options->owner == 9999) &&
-                                        (DAT_10c655f0 == 0xc || DAT_10c655f0 == 0xb || DAT_10c655f0 == 8 ||
-                                         (DAT_104c02c8 & 0x3000000) == 0x3000000 || (DAT_104c02c8 & 0x2000000) != 0 ||
-                                         (DAT_104c02c8 & 0x1000000) != 0))
+                                        options->settings[5] == 0 && (options->owner == 999 || options->owner == 9999))
                                     {
                                         if (DAT_10c655f0 == 0xc)
                                             damage = (int)((double)damage * 5.5);
@@ -647,7 +690,7 @@ int FUN_10093cc0(float x, float y, float z, float size, EffectOptions *options)
                                             damage = (int)((double)damage * 3.0);
                                         else if ((DAT_104c02c8 & 0x2000000) != 0)
                                             damage = (int)((double)damage * 2.0);
-                                        else
+                                        else if ((DAT_104c02c8 & 0x1000000) != 0)
                                             damage = (int)((double)damage * 1.5);
                                     }
                                 }
@@ -678,15 +721,15 @@ int FUN_10093cc0(float x, float y, float z, float size, EffectOptions *options)
                                     if (options->settings[5] == 1)
                                         fromPoint.Copy(DAT_10db9210.GetTranslation());
                                     Vec4 slotPosition = DAT_10db6ee8[slot].matrix.GetTranslation();
-                                    float facing = (float)atan2((double)(slotPosition.x - fromPoint.x),
-                                                                (double)(slotPosition.y - fromPoint.y));
-                                    float diff = facing - DAT_10db6ee8[slot].heading;
+                                    float diff = (float)atan2((double)(slotPosition.x - fromPoint.x),
+                                                              (double)(slotPosition.y - fromPoint.y));
+                                    diff = diff - DAT_10db6ee8[slot].heading;
                                     while (diff > PI_APPROX)
                                         diff -= TWO_PI_APPROX;
                                     while (diff < -PI_APPROX)
                                         diff += TWO_PI_APPROX;
                                     if (options->settings[7] == 0 && DAT_10daaae8[slot].twoHanded == 1 &&
-                                        diff < 0.78537f && diff >= -0.78537f)
+                                        diff <= 0.785375f && diff >= -0.785375f)
                                     {
                                         SHOW_REACTION(slot);
                                         damage = 0;
@@ -695,7 +738,7 @@ int FUN_10093cc0(float x, float y, float z, float size, EffectOptions *options)
                                         if ((options->settings[4] & STRIKE_SWORD) != 0 && options->settings[5] == 1 &&
                                             DAT_104c01a0 == 0)
                                         {
-                                            StartParryFlash(center, DAT_10db6ee8[slot].matrix);
+                                            StartParryFlash(center, DAT_10db6ee8[slot].matrix, 0x33c);
                                             if (DAT_1042d9e8[slot] != 0 || DAT_10c66cc0 != 2 || DAT_10c635f8 != 2)
                                                 FUN_10011b70(0xc, 4, 0, &center);
                                             DAT_104c01a0 = 10;
@@ -711,7 +754,7 @@ int FUN_10093cc0(float x, float y, float z, float size, EffectOptions *options)
                                         if ((options->settings[4] & STRIKE_SWORD) != 0 && options->settings[5] == 1 &&
                                             DAT_104c01a0 == 0)
                                         {
-                                            StartParryFlash(center, DAT_10db6ee8[slot].matrix);
+                                            StartParryFlash(center, DAT_10db6ee8[slot].matrix, 0x33d);
                                             if (DAT_1042d9e8[slot] != 0 || DAT_10c66cc0 != 2 || DAT_10c635f8 != 2)
                                                 FUN_10011b70(0xc, 4, 0, &center);
                                             DAT_104c01a0 = 10;
@@ -781,7 +824,7 @@ int FUN_10093cc0(float x, float y, float z, float size, EffectOptions *options)
                                         {
                                             if (options->settings[5] == 1 && DAT_104c01a0 == 0)
                                             {
-                                                StartParryFlash(center, DAT_10db6ee8[slot].matrix);
+                                                StartParryFlash(center, DAT_10db6ee8[slot].matrix, 0x33e);
                                                 if (DAT_1042d9e8[slot] != 0 || DAT_10c66cc0 != 2 || DAT_10c635f8 != 2)
                                                     FUN_10011b70(0xc, 4, 0, &center);
                                                 DAT_104c01a0 = 10;
@@ -1136,7 +1179,7 @@ int FUN_10093cc0(float x, float y, float z, float size, EffectOptions *options)
                     {
                         if (DAT_104c01a0 == 0)
                         {
-                            StartParryFlash(center, DAT_1020af20[prop]->matrix);
+                            StartParryFlash(center, DAT_1020af20[prop]->matrix, PARRY_SOUND);
                             FUN_10011b70(0xc, 4, 0, &center);
                             DAT_104c01a0 = 10;
                             DAT_10f08008.Rumble(1.0f, 100);
@@ -1182,9 +1225,8 @@ int FUN_10093cc0(float x, float y, float z, float size, EffectOptions *options)
                                 FUN_1016b230("656565");
                             FUN_1003ad20(0x337, &DAT_1020af20[prop]->matrix.GetTranslation(), 1.0f);
                             Vec4 where = DAT_1020af20[prop]->matrix.GetTranslation();
-                            // The original calls Matrix4 member 0x101b0b10 (another heading of the matrix, atan2 of a transformed axis); matrix4.h does
-                            // not declare it yet, so the sibling M_101b0a80 stands in for it.
-                            float yaw = DAT_1020af20[prop]->matrix.M_101b0a80() + 1.57075f;
+                            // The broken model turns to the prop's own heading (the y axis of its matrix) plus a quarter turn.
+                            float yaw = HeadingOfYAxis(&DAT_1020af20[prop]->matrix) + 1.57075f;
                             char name[0x100];
                             sprintf(name, "ksk%02d.it3", DAT_1021d0b8[prop]);
                             Vec4 tint;

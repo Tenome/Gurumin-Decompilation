@@ -287,18 +287,14 @@ int Char_Drifter(int index)
                                     DAT_10db6ee8[index].matrix.m[14]);
     DAT_10db6ee8[index].shadowOpacity = opacity;
     float speed = delta.Length();
-    float *phase = &DAT_10255160[index][1];
     if (DAT_1020b430[index].state == DRIFT_STATE_LINE)
-        *phase += speed * DRIFT_PHASE_LINE;
+        DAT_10255160[index][1] += speed * DRIFT_PHASE_LINE;
     else
-        *phase += speed * DRIFT_PHASE_ORBIT;
-    if (*phase > DRIFT_PHASE_LIMIT)
-    {
-        do
-            *phase -= DRIFT_PHASE_LIMIT;
-        while (*phase > DRIFT_PHASE_LIMIT);
-    }
-    DAT_1021bdf8[index][0]->matrix = RotationX(-*phase) * TranslationMatrix(DAT_10868838[index][0].m[12],
+        DAT_10255160[index][1] += speed * DRIFT_PHASE_ORBIT;
+    // Wrap the swing phase (written through the table, not a pointer local: a pointer makes cl store each pass)
+    while (DAT_10255160[index][1] > DRIFT_PHASE_LIMIT)
+        DAT_10255160[index][1] -= DRIFT_PHASE_LIMIT;
+    DAT_1021bdf8[index][0]->matrix = RotationX(-DAT_10255160[index][1]) * TranslationMatrix(DAT_10868838[index][0].m[12],
                                                                           DAT_10868838[index][0].m[13],
                                                                           DAT_10868838[index][0].m[14]);
     return 0;
