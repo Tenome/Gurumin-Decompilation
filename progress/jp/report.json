@@ -1,6 +1,6 @@
 {
  "measures": {
-  "fuzzy_match_percent": 52.5989,
+  "fuzzy_match_percent": 52.6543,
   "total_code": "1825755",
   "matched_code": "451268",
   "matched_code_percent": 24.7168,
@@ -8367,7 +8367,7 @@
   {
    "name": "app/enemy_fighter",
    "measures": {
-    "fuzzy_match_percent": 26.4543,
+    "fuzzy_match_percent": 30.5602,
     "total_code": "24296",
     "matched_code": "0",
     "matched_code_percent": 0.0,
@@ -8392,14 +8392,14 @@
     {
      "name": ".text",
      "size": "24296",
-     "fuzzy_match_percent": 26.4543
+     "fuzzy_match_percent": 30.5602
     }
    ],
    "functions": [
     {
      "name": "?Enemy_UpdateFighter@@YAHH@Z",
      "size": "24296",
-     "fuzzy_match_percent": 26.4543,
+     "fuzzy_match_percent": 30.5602,
      "metadata": {
       "virtual_address": "269212368"
      }
@@ -28219,7 +28219,7 @@
   {
    "name": "packs/bmp_pack",
    "measures": {
-    "fuzzy_match_percent": 42.6111,
+    "fuzzy_match_percent": 42.7456,
     "total_code": "11271",
     "matched_code": "2776",
     "matched_code_percent": 24.6296,
@@ -28244,7 +28244,7 @@
     {
      "name": ".text",
      "size": "11271",
-     "fuzzy_match_percent": 42.6111
+     "fuzzy_match_percent": 42.7456
     }
    ],
    "functions": [
@@ -28315,7 +28315,7 @@
     {
      "name": "?QuantiseBand@@YAXPAF00HHHHHPAUBandModel@@@Z",
      "size": "1954",
-     "fuzzy_match_percent": 55.0521,
+     "fuzzy_match_percent": 55.3646,
      "metadata": {
       "virtual_address": "268442064"
      }
@@ -28339,7 +28339,7 @@
     {
      "name": "?EncodeBand@@YAHPBGPAEHPAHPAUPlaneModel@@@Z",
      "size": "737",
-     "fuzzy_match_percent": 18.3424,
+     "fuzzy_match_percent": 18.6141,
      "metadata": {
       "virtual_address": "268453184"
      }
@@ -28347,7 +28347,7 @@
     {
      "name": "?WriteStream@@YAHPBE0PBH1HH1PBULevelModelSet@@PAEPAH@Z",
      "size": "907",
-     "fuzzy_match_percent": 6.4773,
+     "fuzzy_match_percent": 7.2545,
      "metadata": {
       "virtual_address": "268441024"
      }

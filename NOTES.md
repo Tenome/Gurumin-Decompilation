@@ -806,3 +806,10 @@ other huge drafts (Bs00x_Update, DrawLit, RunScriptFrames) for the same gap.
   store as in the original but rotates route/point/parameter into other registers), CompileStatement (the original keeps
   two DeclareFromText copies, a shared funcdef block and the call block last; if/else-if and early-return spellings all
   put the call block after the string test), Npc_StandOnGround (the original keeps a separate `lea eax` state address).
+- J1 sweep (all APP.dll functions at 70-99.9 % with a table-element pointer local, and the reverse spelling): the lever
+  applies only where the pointer changes what cl keeps in st0 across a loop store (Char_Drifter). Everywhere else
+  dropping or adding the pointer gave byte-identical or worse code: record loops (`MessageText *m = &T[i]`, `CharLink *link`,
+  `EffectLight *light`, `MapRegion` per-loop pointers, route-point and route-row pointers) fold to the same
+  `[base+index+offset]` addressing whichever way they are spelled, and a pointer that is original (Regions_Update, the
+  MarkKilled event walk, DrawQuad-style record loops) costs 100-500 bytes of diff when removed or generalised.
+  Do not retry it on those walls; their residue is register choice or stack-slot order.

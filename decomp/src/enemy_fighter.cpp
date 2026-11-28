@@ -38,6 +38,7 @@
 #include "path_walk.h"
 #include "field_item_menu.h"
 #include "dodge_golem.h"
+#include "math_float.h"
 
 #define FIGHTER_TWIN 2                    // the twin model and slot record sit two entries on
 #define FIGHTER_FIRST_SLOT 0x3a
@@ -61,6 +62,10 @@
 #define FIGHTER_VOICE_FLAG 0xf79          // script flag: the long voice set
 
 #define W(n) DAT_1020b430[index].words[n]
+#define MODEL DAT_10db6ee8[index]                         // the fighter's model
+#define TWIN DAT_10db6ee8[index + FIGHTER_TWIN]            // its twin model
+#define SLOT DAT_10daaae8[index]                           // the fighter's slot record
+#define TWIN_SLOT DAT_10daaae8[index + FIGHTER_TWIN]       // its twin's slot record
 #define STATE_FRAME W(FIGHTER_WORD_FRAME)
 #define STATE_STEP W(FIGHTER_WORD_STEP)
 
@@ -88,15 +93,7 @@ static __forceinline void Fighter_Swing(int index, int swingEffect, int trailEff
 }
 
 // Plays one of the fighter's grunts: the long voice set when script flag 0xf79 is set, else the short one.
-static __forceinline void Fighter_Grunt(int index)
-{
-    int voice;
-    if (DAT_10874848.TestScriptFlag(FIGHTER_VOICE_FLAG) == 0)
-        voice = FUN_1013f880() % 3 + 0x34;
-    else
-        voice = FUN_1013f880() % 6 + 0x31;
-    FUN_100b9bb0(index, voice, 0, 0);
-}
+#define Fighter_Grunt(index)     do     {         int voice;         if (DAT_10874848.TestScriptFlag(FIGHTER_VOICE_FLAG) == 0)             voice = FUN_1013f880() % 3 + 0x34;         else             voice = FUN_1013f880() % 6 + 0x31;         FUN_100b9bb0(index, voice, 0, 0);     } while (0)
 
 // Picks one of the strike steps at random (never step 0xf more often than one time in 200).
 static __forceinline int Fighter_RandomStrike(int index, int fatigueLimit)
@@ -120,91 +117,81 @@ static __forceinline int Fighter_RandomStrike(int index, int fatigueLimit)
 // fighter's defeat sequence runs).
 int Enemy_UpdateFighter(int index)
 {
-    AnimModel &model = DAT_10db6ee8[index];
-    AnimModel &twin = DAT_10db6ee8[index + FIGHTER_TWIN];
-    CharSlot &slot = DAT_10daaae8[index];
-    CharSlot &twinSlot = DAT_10daaae8[index + FIGHTER_TWIN];
-    Vec4 player, place, aim, step, hand, effectPos;
-    Matrix4 matrix;
-    EffectOptions options;
-    int motion = -1;
-    int motionSnap = 0;
     int finished = 0;
-    int blink = 0;
     int category;
     int roll;
     int phase;
     float distance;
 
-    if (slot.stats[FIGHTER_STAGGER_STAT] == 100 && STATE_STEP != FIGHTER_STEP_STAGGER)
+    if (SLOT.stats[FIGHTER_STAGGER_STAT] == 100 && STATE_STEP != FIGHTER_STEP_STAGGER)
     {
         STATE_STEP = FIGHTER_STEP_STAGGER;
         STATE_FRAME = 0;
     }
-    twinSlot.stats[STAT_BUSY] = 1;
-    twinSlot.m_0141 = 1;
-    twin.m_0294 = 1;
-    twin.mode = 1;
+    TWIN_SLOT.stats[STAT_BUSY] = 1;
+    TWIN_SLOT.m_0141 = 1;
+    TWIN.m_0294 = 1;
+    TWIN.mode = 1;
     DAT_10210d30[index + FIGHTER_TWIN] = 0;
     DAT_1021f9c0[index + FIGHTER_TWIN] = 0;
     DAT_10255a88[index + FIGHTER_TWIN] = 0;
-    twin.targetHeading = model.heading;
-    twin.heading = model.heading;
-    if (model.root != 0)
-        model.root->M_10194730(0x20, 0x400);
-    if (model.motionFrame < 0)
-    {
-        twin.m_0294 = 0;
-        if (model.motion->blending != 0)
-            twin.PlayMotion(model.motion->nextLayer, 0, 5, 1.0f);
-    }
+    TWIN.targetHeading = MODEL.heading;
+    TWIN.heading = MODEL.heading;
+    if (TWIN.root != 0)
+        TWIN.root->M_10194730(0x20, 0x400);
+    if (MODEL.motionFrame > -1)
+        TWIN.motionFrame = MODEL.motionFrame;
     else
-        twin.motionFrame = model.motionFrame;
+    {
+        TWIN.m_0294 = 0;
+        if (MODEL.motion->blending != 0)
+            TWIN.PlayMotion(MODEL.motion->nextLayer, 0, 5, 1.0f);
+    }
 
     phase = DAT_1020b4a8[index].value;
-    if (phase == 0)
-    {
-        twinSlot.m_0141 = 1;
-        twinSlot.stats[STAT_HEALTH] = twinSlot.stats[STAT_MAX_HEALTH];
-        twin.alpha = 0.0f;
-    }
-    else
+    if (phase != 0)
     {
         if (index == FIGHTER_FIRST_SLOT)
             DAT_10daaae8[0x3c].stats[STAT_BUSY] = 0;
         if (phase == 1)
-            twinSlot.stats[STAT_HEALTH] = slot.stats[STAT_HEALTH];
-        slot.stats[STAT_HEALTH] = twinSlot.stats[STAT_HEALTH];
-        twinSlot.stats[STAT_VALUE_4] = slot.stats[STAT_VALUE_4];
-        twinSlot.m_0141 = 0;
+            TWIN_SLOT.stats[STAT_HEALTH] = SLOT.stats[STAT_HEALTH];
+        SLOT.stats[STAT_HEALTH] = TWIN_SLOT.stats[STAT_HEALTH];
+        TWIN_SLOT.stats[STAT_VALUE_4] = SLOT.stats[STAT_VALUE_4];
+        TWIN_SLOT.m_0141 = 0;
         DAT_102550e0[index] = DAT_102550e0[index + FIGHTER_TWIN];
         if (phase < FIGHTER_SWAP_STEPS)
         {
+            MODEL.alpha = (float)(FIGHTER_SWAP_STEPS - phase) / 7.0f;
             DAT_1020b4a8[index].value = phase + 1;
-            model.alpha = (float)(FIGHTER_SWAP_STEPS - phase) / 7.0f;
-            twin.alpha = (float)phase / 7.0f;
+            TWIN.alpha = (float)phase / 7.0f;
         }
         else if (phase == FIGHTER_SWAP_STEPS)
         {
-            model.alpha = 0.0f;
-            twin.alpha = 1.0f;
+            MODEL.alpha = 0.0f;
+            TWIN.alpha = 1.0f;
             if (DAT_10210d30[index] != 0 && W(14) != 0)
                 DAT_1020b4a8[index].value = FIGHTER_SWAP_DONE;
         }
         else if (phase < 0xf)
         {
+            TWIN.alpha = (float)(0xf - phase) / 7.0f;
             DAT_1020b4a8[index].value = phase + 1;
-            twin.alpha = (float)(0xf - phase) / 7.0f;
-            model.alpha = (float)(phase - 8) / 7.0f;
+            MODEL.alpha = (float)(phase - 8) / 7.0f;
         }
-        else if (phase != FIGHTER_SWAP_DONE)
-        {
-            model.alpha = 1.0f;
-            DAT_1020b4a8[index].value = 0;
-            twin.alpha = 0.0f;
-        }
+        else if (phase == FIGHTER_SWAP_DONE)
+            MODEL.alpha = 0.0f;
         else
-            model.alpha = 0.0f;
+        {
+            MODEL.alpha = 1.0f;
+            DAT_1020b4a8[index].value = 0;
+            TWIN.alpha = 0.0f;
+        }
+    }
+    else
+    {
+        TWIN_SLOT.m_0141 = 1;
+        TWIN_SLOT.stats[STAT_HEALTH] = TWIN_SLOT.stats[STAT_MAX_HEALTH];
+        TWIN.alpha = 0.0f;
     }
 
     if (DAT_103153b0[index] < DAT_103153b0[index + FIGHTER_TWIN])
@@ -219,7 +206,7 @@ int Enemy_UpdateFighter(int index)
     roll = DAT_1020b4b0[index].value;
     if (roll == 0)
         DAT_1020b4b0[index].value = DAT_103153b0[index];
-    else if (roll < DAT_103153b0[index])
+    else if (DAT_103153b0[index] > roll)
     {
         if (roll < 0)
         {
@@ -229,8 +216,8 @@ int Enemy_UpdateFighter(int index)
         }
         else
         {
-            DAT_103153b0[index + FIGHTER_TWIN] = (short)(roll - 1);
-            DAT_103153b0[index] = (short)(roll - 1);
+            DAT_103153b0[index + FIGHTER_TWIN] = (short)(DAT_1020b4b0[index].value - 1);
+            DAT_103153b0[index] = (short)(DAT_1020b4b0[index].value - 1);
         }
     }
     else if (roll < 0)
@@ -240,6 +227,10 @@ int Enemy_UpdateFighter(int index)
     else
         DAT_1020b4b0[index].value = -120;
 
+    Vec4 defeatPos;
+    int motion = -1;
+    int motionSnap = 0;
+    int blink = 0;
     if (index != FIGHTER_FIRST_SLOT && DAT_10210d30[index] != 0)
     {
         if (DAT_1020b4a4[index].value != 0)
@@ -249,37 +240,37 @@ int Enemy_UpdateFighter(int index)
         DAT_1020b4a4[index].value = 1;
         if (phase != 0 && phase < 8)
             DAT_1020b4a8[index].value = 0xf - phase;
-        if (slot.stats[STAT_VALUE_4] < 0)
-            slot.stats[STAT_VALUE_4] = DAT_1020b48c[index].value;
+        if (SLOT.stats[STAT_VALUE_4] < 0)
+            SLOT.stats[STAT_VALUE_4] = DAT_1020b48c[index].value;
         return 0;
     }
 
     DAT_1020b4a4[index].value = 0;
     if (index > FIGHTER_FIRST_SLOT)
-        slot.stats[STAT_BUSY] = 1;
+        SLOT.stats[STAT_BUSY] = 1;
     if (index < FIGHTER_FIRST_SLOT)
     {
-        slot.stats[2] = 0;
+        SLOT.stats[2] = 0;
         DAT_10210d30[index] = 1;
-        model.SetPosition(-200000.0f, 0.0f, 0.0f);
+        MODEL.SetPosition(-200000.0f, 0.0f, 0.0f);
     }
     DAT_1020b484[index].value = 0;
-    if (model.matrix._41 < -10000.0f)
+    if (MODEL.matrix._41 < -10000.0f)
         return 1;
     if ((DAT_104bfdf0 != 0 || DAT_104c0135 != 0 || DAT_104bfe1c != 0) && DAT_1020b480[index].value == 0)
     {
-        if (model.m_0294 == 0)
+        if (MODEL.m_0294 == 0)
         {
-            Playback *playback = model.motion;
-            model.m_0294 = 1;
+            Playback *playback = MODEL.motion;
+            MODEL.m_0294 = 1;
             DAT_1020e138[index] = playback->blending == 0 ? playback->layer : -2;
             DAT_10253a58[index] = playback->nextLayer;
-            DAT_1042dba8[index] = model.motionFrame;
+            DAT_1042dba8[index] = MODEL.motionFrame;
         }
         return 1;
     }
-    if (model.m_0294 != 0)
-        model.m_0294 = 0;
+    if (MODEL.m_0294 != 0)
+        MODEL.m_0294 = 0;
     DAT_1020b480[index].value = 0;
     if (index == FIGHTER_FIRST_SLOT)
         DAT_104c0110 = index;
@@ -294,9 +285,9 @@ int Enemy_UpdateFighter(int index)
         roll = DAT_10874848.TestScriptFlag(flagBase);
         if (flagBase < 4000 && flagBase != 0)
             DAT_10c62edc[flagBase] = roll | (1 << ((index - FIGHTER_FIRST_SLOT) & 0x1f));
-        slot.m_0141 = 1;
-        slot.stats[3] = 0;
-        slot.stats[STAT_BUSY] = 1;
+        SLOT.m_0141 = 1;
+        SLOT.stats[3] = 0;
+        SLOT.stats[STAT_BUSY] = 1;
         DAT_10db6ee8[index + 1].m_17e8 = 1;
         DAT_10db6ee8[88].m_17e8 = 1;
         DAT_10db6ee8[89].m_17e8 = 1;
@@ -311,12 +302,12 @@ int Enemy_UpdateFighter(int index)
         if (counter == 1)
         {
             FUN_1000ec70(0xf, 1.0f, 1.0f, 1.0f, 1.0f);
-            place.Copy(model.matrix.GetTranslation());
-            place.z += 50.0f;
-            FUN_1001d8b0(index, 0x33, place, -1, -1, 0, 0, 0, 0, 0);
-            model.PlayMotion(0x19, 1, 5, 1.0f);
-            model.mode = 0;
-            twin.mode = 0;
+            defeatPos.Copy(MODEL.matrix.GetTranslation());
+            defeatPos.z += 50.0f;
+            FUN_1001d8b0(index, 0x33, defeatPos, -1, -1, 0, 0, 0, 0, 0);
+            MODEL.PlayMotion(0x19, 1, 5, 1.0f);
+            MODEL.mode = 0;
+            TWIN.mode = 0;
             DAT_10db6ee8[88].mode = 0;
             DAT_10db6ee8[89].mode = 0;
             DAT_10db6ee8[88].m_17e8 = 1;
@@ -333,29 +324,29 @@ int Enemy_UpdateFighter(int index)
         }
         else if (counter < 1 && counter % 10 == 0)
         {
-            place.Copy(model.matrix.GetTranslation());
-            place.z += 50.0f;
-            FUN_1001d8b0(index, 0x2580, place, -1, -1, 0, 0, 0, 0, 0);
-            FUN_1001d8b0(index, 0x2580, place, -1, -1, 0, 0, 0, 0, 0);
-            FUN_1001d8b0(index, 0x2580, place, -1, -1, 0, 0, 0, 0, 0);
-            FUN_1001d8b0(index, 0x2580, place, -1, -1, 0, 0, 0, 0, 0);
-            FUN_1001d8b0(index, 0x2580, place, -1, -1, 0, 0, 0, 0, 0);
+            defeatPos.Copy(MODEL.matrix.GetTranslation());
+            defeatPos.z += 50.0f;
+            FUN_1001d8b0(index, 0x2580, defeatPos, -1, -1, 0, 0, 0, 0, 0);
+            FUN_1001d8b0(index, 0x2580, defeatPos, -1, -1, 0, 0, 0, 0, 0);
+            FUN_1001d8b0(index, 0x2580, defeatPos, -1, -1, 0, 0, 0, 0, 0);
+            FUN_1001d8b0(index, 0x2580, defeatPos, -1, -1, 0, 0, 0, 0, 0);
+            FUN_1001d8b0(index, 0x2580, defeatPos, -1, -1, 0, 0, 0, 0, 0);
         }
         roll = DAT_1020b4ac[index].value;
         if (roll != 0)
         {
             if (roll < 0xf)
-                twin.alpha = (float)(0xf - roll) / 15.0f;
+                TWIN.alpha = (float)(0xf - roll) / 15.0f;
             else if (roll == 0xf)
             {
-                twin.alpha = 0.0f;
-                twin.SetPosition(0.0f, 2850.0f, 1100.0f);
+                TWIN.alpha = 0.0f;
+                TWIN.SetPosition(0.0f, 2850.0f, 1100.0f);
             }
             else if (roll < 0x1e)
-                twin.alpha = (float)(roll - 0xf) / 15.0f;
+                TWIN.alpha = (float)(roll - 0xf) / 15.0f;
             else
             {
-                twin.alpha = 1.0f;
+                TWIN.alpha = 1.0f;
                 DAT_1020b4ac[index].value = -1;
             }
             DAT_1020b4ac[index].value++;
@@ -367,10 +358,10 @@ int Enemy_UpdateFighter(int index)
         }
         else if (W(FIGHTER_WORD_DEFEAT_FRAMES) == 300)
         {
-            DAT_10874848.MarkKilled(slot.routeRecord);
+            DAT_10874848.MarkKilled(SLOT.routeRecord);
             FUN_1000ec70(0xf, 1.0f, 1.0f, 1.0f, 1.0f);
-            model.SetPosition(-200000.0f, 0.0f, 0.0f);
-            twin.SetPosition(-200000.0f, 0.0f, 0.0f);
+            MODEL.SetPosition(-200000.0f, 0.0f, 0.0f);
+            TWIN.SetPosition(-200000.0f, 0.0f, 0.0f);
             DAT_10db6ee8[88].SetPosition(-200000.0f, 0.0f, 0.0f);
             DAT_10db6ee8[89].SetPosition(-200000.0f, 0.0f, 0.0f);
             DAT_104c00c8 = 0;
@@ -380,7 +371,7 @@ int Enemy_UpdateFighter(int index)
         }
         if (W(14) == 0)
         {
-            model.PlayMotion(2, 0, 5, 1.0f);
+            MODEL.PlayMotion(2, 0, 5, 1.0f);
             FUN_10065b10(index, 0x2d1, 1, 0);
             if (DAT_104bfe78 == 0)
                 W(14) = 1;
@@ -394,23 +385,23 @@ int Enemy_UpdateFighter(int index)
                     roll = 7;
                 DAT_1020b4a8[index].value = roll;
             }
-            DAT_10db6ee8[88].targetHeading = model.targetHeading;
-            DAT_10db6ee8[89].targetHeading = model.targetHeading;
-            DAT_10db6ee8[88].heading = model.heading;
-            DAT_10db6ee8[89].heading = model.heading;
+            DAT_10db6ee8[88].targetHeading = MODEL.targetHeading;
+            DAT_10db6ee8[89].targetHeading = MODEL.targetHeading;
+            DAT_10db6ee8[88].heading = MODEL.heading;
+            DAT_10db6ee8[89].heading = MODEL.heading;
             W(FIGHTER_WORD_DEFEAT_FRAMES) = -30;
             DAT_10255160[index][0] = (DAT_118e69e8 - DAT_118e6cb8).Length();
-            if (model.root != 0)
-                model.root->M_101946b0(0, 0xffffffff);
-            if (twin.root != 0)
-                twin.root->M_101946b0(0, 0xffffffff);
+            if (MODEL.root != 0)
+                MODEL.root->M_101946b0(0, 0xffffffff);
+            if (TWIN.root != 0)
+                TWIN.root->M_101946b0(0, 0xffffffff);
             if (DAT_10db6ee8[88].root != 0)
                 DAT_10db6ee8[88].root->M_101946b0(0, 0xffffffff);
             if (DAT_10db6ee8[89].root != 0)
                 DAT_10db6ee8[89].root->M_101946b0(0, 0xffffffff);
             DAT_104c00c8 = 1;
             DAT_10453008[index] = -10001;
-            slot.stats[3] = 0;
+            SLOT.stats[3] = 0;
             DAT_10db6ee8[88].alpha = 0.0f;
             DAT_10db6ee8[89].alpha = 0.0f;
         }
@@ -420,16 +411,16 @@ int Enemy_UpdateFighter(int index)
             if (counter < 0xb4)
             {
                 float left = (float)(0xb4 - counter);
-                twin.alpha = (left * left) / 14400.0f;
+                TWIN.alpha = (left * left) / 14400.0f;
             }
             else
             {
-                model.m_17e8 = 1;
-                model.m_0294 = 1;
-                model.motionFrame = DAT_10db6ee8[88].motionFrame;
-                model.alpha = 0.0f;
-                twin.m_17e8 = 1;
-                twin.alpha = 0.0f;
+                MODEL.m_17e8 = 1;
+                MODEL.m_0294 = 1;
+                MODEL.motionFrame = DAT_10db6ee8[88].motionFrame;
+                MODEL.alpha = 0.0f;
+                TWIN.m_17e8 = 1;
+                TWIN.alpha = 0.0f;
             }
         }
         if (counter >= 0x3d && counter < 0x8c)
@@ -437,12 +428,12 @@ int Enemy_UpdateFighter(int index)
             int bob = 100 - counter;
             if (bob < 0)
                 bob = -bob;
-            model.SetPosition(model.matrix._41, model.matrix._42, ((float)(0x28 - bob) * 5.0f) / 40.0f + model.matrix._43);
+            MODEL.SetPosition(MODEL.matrix._41, MODEL.matrix._42, ((float)(0x28 - bob) * 5.0f) / 40.0f + MODEL.matrix._43);
         }
         else if (counter >= 0x8c)
         {
-            model.SetPosition(model.matrix._41, model.matrix._42, model.matrix._43);
-            model.m_17e8 = 1;
+            MODEL.SetPosition(MODEL.matrix._41, MODEL.matrix._42, MODEL.matrix._43);
+            MODEL.m_17e8 = 1;
         }
         if (W(FIGHTER_WORD_DEFEAT_FRAMES) == 0x3c)
         {
@@ -479,7 +470,7 @@ int Enemy_UpdateFighter(int index)
                         roll = DAT_10874848.TestScriptFlag(0x1a4);
                         if (roll != 0)
                         {
-                            DAT_10db6ee8[DAT_10874848.TestScriptFlag(0x1a4)].SetPosition(-100000.0f - model.matrix._41, model.matrix._42, model.matrix._43);
+                            DAT_10db6ee8[DAT_10874848.TestScriptFlag(0x1a4)].SetPosition(-100000.0f - MODEL.matrix._41, MODEL.matrix._42, MODEL.matrix._43);
                             DAT_10c6356c = 100000;
                             DAT_10c63588 = 7;
                             Script_ValueCommand(0x753f, 0x4b);
@@ -532,25 +523,25 @@ int Enemy_UpdateFighter(int index)
         }
         DAT_10db6ee8[88].m_0294 = 1;
         DAT_10db6ee8[89].m_0294 = 1;
-        DAT_10db6ee8[88].motionFrame = model.motionFrame;
+        DAT_10db6ee8[88].motionFrame = MODEL.motionFrame;
         W(FIGHTER_WORD_DEFEAT_FRAMES)++;
-        DAT_10db6ee8[89].motionFrame = model.motionFrame;
-        DAT_10db6ee8[88].SetPosition(model.matrix._41, model.matrix._42, model.matrix._43);
+        DAT_10db6ee8[89].motionFrame = MODEL.motionFrame;
+        DAT_10db6ee8[88].SetPosition(MODEL.matrix._41, MODEL.matrix._42, MODEL.matrix._43);
         if (DAT_104bfe80 < 2)
             DAT_10db6ee8[89].SetPosition(-200000.0f, 0.0f, 0.0f);
         else
-            DAT_10db6ee8[89].SetPosition(model.matrix._41, model.matrix._42, model.matrix._43);
+            DAT_10db6ee8[89].SetPosition(MODEL.matrix._41, MODEL.matrix._42, MODEL.matrix._43);
         DAT_10db6ee8[89].alpha = DAT_10db6ee8[89].scale.w;
         DAT_10db6ee8[88].alpha = DAT_10db6ee8[88].scale.w;
 
-        aim.Fill(0.0f);
-        aim.x += 950.0f;
-        aim.y += 200.0f;
-        aim.RotateZ(-(atan2f(DAT_10868818.x - DAT_10da9150.x, DAT_10868818.y - DAT_10da9150.y) + FIGHTER_PI) -
+        defeatPos.Fill(0.0f);
+        defeatPos.x += 950.0f;
+        defeatPos.y += 200.0f;
+        defeatPos.RotateZ(-(FUN_10001f80(DAT_10868818.x - DAT_10da9150.x, DAT_10868818.y - DAT_10da9150.y) + FIGHTER_PI) -
                     (float)(W(FIGHTER_WORD_DEFEAT_FRAMES) + 0x1e) * (float)(W(FIGHTER_WORD_DEFEAT_FRAMES) + 0x1e) * 3e-05f -
                     0.04363f);
-        DAT_10edbd48.Copy(model.matrix.GetTranslation());
-        DAT_10866d98.Copy(DAT_10edbd48 + aim * 1.3f);
+        DAT_10edbd48.Copy(MODEL.matrix.GetTranslation());
+        DAT_10866d98.Copy(DAT_10edbd48 + defeatPos * 1.3f);
         if (W(FIGHTER_WORD_DEFEAT_FRAMES) < 0xa1)
         {
             float left = (float)(0xa0 - W(FIGHTER_WORD_DEFEAT_FRAMES));
@@ -567,9 +558,9 @@ int Enemy_UpdateFighter(int index)
         else
         {
             DAT_10255160[index][0] = (distance - DAT_10255160[index][0]) * 0.3f + DAT_10255160[index][0];
-            aim.Copy(DAT_10866d98 - DAT_10edbd48);
-            aim.Normalized3();
-            DAT_10866d98.Copy(DAT_10edbd48 + aim * DAT_10255160[index][0]);
+            defeatPos.Copy(DAT_10866d98 - DAT_10edbd48);
+            defeatPos.Normalized3();
+            DAT_10866d98.Copy(DAT_10edbd48 + defeatPos * DAT_10255160[index][0]);
         }
         DAT_1020344c = 1.0f;
         DAT_1101dddc = 0.0f;
@@ -589,7 +580,7 @@ int Enemy_UpdateFighter(int index)
         DAT_1020b49c[index].value = roll - 1;
     if (DAT_102550e0[index] == 0)
     {
-        model.locked = 0;
+        MODEL.locked = 0;
         DAT_1020b490[index].value = 0;
         roll = index;
     }
@@ -599,23 +590,28 @@ int Enemy_UpdateFighter(int index)
             DAT_10daaae8[FIGHTER_FIRST_SLOT].stats[STAT_HEALTH] < DAT_10daaae8[FIGHTER_FIRST_SLOT].stats[STAT_MAX_HEALTH] / 2)
             DAT_1020c314 = 1;
         blink = 0;
-        if (DAT_1020b494[index].value == 1 && slot.stats[STAT_HEALTH] < slot.stats[STAT_MAX_HEALTH] / 2 &&
+        if (DAT_1020b494[index].value == 1 && SLOT.stats[STAT_HEALTH] < SLOT.stats[STAT_MAX_HEALTH] / 2 &&
             index == FIGHTER_FIRST_SLOT &&
             (DAT_10210d30[0x3d] > 0 || DAT_10db6ee8[61].matrix._41 < -50000.0f || DAT_10210d30[0x40] > 0 ||
              DAT_10db6ee8[64].matrix._41 < -50000.0f))
         {
             // The first fighter, hurt to half, calls a second fighter in beside the player.
-            Vec4 spot, ring;
+            // Vec4 locals in the original's order; `arenaCentre` and `fighterPos` are set and never read.
+            Vec4 player, ring, spot, probe, hit, arenaCentre, fighterPos;
             float radius = 300.0f;
             int tries = 0;
+            int side = 0;
             int clone;
             DAT_1020c31c = 0xd2;
+            fighterPos.Copy(DAT_10db6ee8[FIGHTER_FIRST_SLOT].matrix.GetTranslation());
+            fighterPos.z = 0.0f;
             player.Copy(DAT_10db6ee8[0].matrix.GetTranslation());
-            spot.Copy(player);
+            arenaCentre.y = 2850.0f;
+            arenaCentre.z = 0.0f;
             for (;;)
             {
                 ring.Fill(0.0f);
-                switch (tries & 3)
+                switch (side)
                 {
                 case 0:
                     ring.y = radius;
@@ -628,36 +624,63 @@ int Enemy_UpdateFighter(int index)
                     ring.y = -radius;
                 }
                 tries++;
-                if ((tries & 3) == 0 && tries > 3)
+                side = tries % 4;
+                if (side == 0 && tries >= 4)
                     radius += 100.0f;
-                ring.RotateZ(-model.heading);
-                spot.Copy(player + ring);
-                if (DAT_10255f08 != 0)
+                ring.RotateZ(-DAT_10db6ee8[0].heading);
+                spot.Copy(ring + player);
+                probe.Copy(spot);
+                spot.z = 1100.0f;
+                probe.z = 0.0f;
+                if (DAT_10255f08 != 0 && DAT_10255f08->Collide(0, 4, &probe, &spot, &hit) != 0)
                 {
-                    Vec4 high, ground, hit;
-                    high.Copy(spot);
-                    high.z = 1100.0f;
-                    if (DAT_10255f08->Collide(0, 4, &place, &high, &hit) != 0)
-                        continue;
+                    probe.Copy(spot);
+                    spot.x = 0.0f;
+                    spot.y = 2850.0f;
+                    spot.z = 1100.0f;
+                    if ((probe - spot).Length2D() <= 300.0f)
+                    {
+                        ring.Copy(probe);
+                        break;
+                    }
+                    hit.Copy(probe - spot);
+                    hit.Normalized3();
+                    hit.Copy(hit * 45.0f);
+                    probe.Copy(probe + hit);
+                    spot.Copy(probe);
+                    probe.z = 0.0f;
+                    if (DAT_10255f08->Collide(0, 4, &probe, &spot, &hit) != 0)
+                    {
+                        ring.Copy(probe);
+                        break;
+                    }
                 }
-                break;
+                if (tries > 10)
+                {
+                    ring.x = 0.0f;
+                    ring.y = 2850.0f;
+                    break;
+                }
+                ring.z = 0.0f;
             }
-            spot.z = 1050.0f;
-            clone = FUN_10050510(spot.x, spot.y, 1040.0f, 0, 10);
+            ring.z = 1050.0f;
+            clone = FUN_10050510(ring.x, ring.y, ring.z, 0, 10);
             if (clone > 0)
             {
                 int word;
                 for (word = 0; word < 16; word++)
                     DAT_1020b430[clone + 1].words[word] = 0;
+                Matrix4 matrix;
                 matrix.SetIdentity();
-                matrix.SetTranslation(spot);
-                options.m_0000 = 0;
+                matrix.SetTranslation(ring);
+                ring.Fill(0.0f);
+                EffectOptions options;
                 options.followOwner = 1;
-                FUN_1001d8b0(FIGHTER_FIRST_SLOT, 0x3f4, spot, -1, -1, 0, 0, 0, &matrix, &options);
-                FUN_1001d8b0(FIGHTER_FIRST_SLOT, 0x6d1, spot, -1, -1, 0, 0, 0, &matrix, &options);
-                FUN_1001d8b0(FIGHTER_FIRST_SLOT, 0x6d1, spot, -1, -1, 0, 0, 0, &matrix, &options);
-                FUN_1001d8b0(FIGHTER_FIRST_SLOT, 0x6d1, spot, -1, -1, 0, 0, 0, &matrix, &options);
-                FUN_1001d8b0(FIGHTER_FIRST_SLOT, 0x6d2, spot, -1, -1, 0, 0, 0x28, &matrix, &options);
+                FUN_1001d8b0(FIGHTER_FIRST_SLOT, 0x3f4, ring, -1, -1, 0, 0, 0, &matrix, &options);
+                FUN_1001d8b0(FIGHTER_FIRST_SLOT, 0x6d1, ring, -1, -1, 0, 0, 0, &matrix, &options);
+                FUN_1001d8b0(FIGHTER_FIRST_SLOT, 0x6d1, ring, -1, -1, 0, 0, 0, &matrix, &options);
+                FUN_1001d8b0(FIGHTER_FIRST_SLOT, 0x6d1, ring, -1, -1, 0, 0, 0, &matrix, &options);
+                FUN_1001d8b0(FIGHTER_FIRST_SLOT, 0x6d2, ring, -1, -1, 0, 0, 0x28, &matrix, &options);
                 if (DAT_10db6ee8[clone].root->Find("scop-pt", 0) == 0)
                     FUN_10012450(clone, 1, "scop.it3");
                 if (DAT_10db6ee8[clone + FIGHTER_TWIN].root->Find("scop-pt", 0) == 0)
@@ -668,7 +691,7 @@ int Enemy_UpdateFighter(int index)
                 DAT_1021f940[FIGHTER_FIRST_SLOT] = 0x1e;
                 DAT_1020c314 = 2;
                 DAT_10db6ee8[clone].heading =
-                    atan2f(DAT_10db6ee8[0].matrix._41 - DAT_10db6ee8[clone].matrix._41,
+                    FUN_10001f80(DAT_10db6ee8[0].matrix._41 - DAT_10db6ee8[clone].matrix._41,
                            DAT_10db6ee8[0].matrix._42 - DAT_10db6ee8[clone].matrix._42) - FIGHTER_PI;
                 DAT_10db6ee8[clone].targetHeading = DAT_10db6ee8[clone].heading;
                 DAT_1020b430[clone].words[FIGHTER_WORD_GUARD_FRAMES] = 0x4b;
@@ -682,55 +705,55 @@ int Enemy_UpdateFighter(int index)
         }
         if (DAT_1020b494[index].value != 0)
             DAT_1020b494[index].value = 2;
-        if (DAT_1020b47c[index].value == 0)
+        if (DAT_1020b47c[index].value != 0)
         {
-            if (DAT_102550e0[index] == 6)
+            if (DAT_1020b474[index].value != MODEL.motion->layer)
             {
-                if (DAT_1020b470[index].value != 0 && DAT_1020b474[index].value != model.motion->layer)
-                {
-                    model.motionFrame = DAT_1020b478[index].value;
-                    model.PlayMotion(DAT_1020b474[index].value, 1, 0, 1.0f);
-                    model.motion->layer = DAT_1020b474[index].value;
-                    model.motion->frame = model.motionFrame;
-                    model.motion->m_0004 = (float)model.motionFrame;
-                    model.motion->Advance();
-                    model.motion->Advance();
-                    model.motion->Advance();
-                }
-            }
-            else if (DAT_102550e0[index] > 6 && DAT_1020b470[index].value == 0)
-            {
-                int guard;
-                if (STATE_STEP < 6 || STATE_STEP > 0xb)
-                    guard = FUN_1013f880() % 10 + 1;
-                else
-                {
-                    W(FIGHTER_WORD_FRAME) = -2;
-                    guard = FUN_1013f880() % 5 + 5;
-                }
-                roll = DAT_1020b490[index].value;
-                W(FIGHTER_WORD_GUARD_FRAMES) = guard;
-                if ((6 - roll) * 2 < (int)DAT_102550e0[index])
-                {
-                    roll++;
-                    DAT_1020b490[index].value = roll;
-                    guard = (6 - roll) * 2;
-                    DAT_102550e0[index] = guard < 1 ? 0 : (unsigned char)guard;
-                    if (DAT_102550e0[index] < 7)
-                        DAT_102550e0[index] = 7;
-                }
-                if (DAT_102550e0[index] < DAT_102550e2[index])
-                    DAT_102550e2[index] = DAT_102550e0[index];
-                return 0;
+                MODEL.motionFrame = DAT_1020b478[index].value;
+                MODEL.PlayMotion(DAT_1020b474[index].value, 1, 0, 1.0f);
+                MODEL.motion->layer = DAT_1020b474[index].value;
+                MODEL.motion->frame = MODEL.motionFrame;
+                MODEL.motion->m_0004 = (float)MODEL.motionFrame;
             }
         }
-        else if (DAT_1020b474[index].value != model.motion->layer)
+        else if (DAT_102550e0[index] == 6)
         {
-            model.motionFrame = DAT_1020b478[index].value;
-            model.PlayMotion(DAT_1020b474[index].value, 1, 0, 1.0f);
-            model.motion->layer = DAT_1020b474[index].value;
-            model.motion->frame = model.motionFrame;
-            model.motion->m_0004 = (float)model.motionFrame;
+            if (DAT_1020b470[index].value != 0 && DAT_1020b474[index].value != MODEL.motion->layer)
+            {
+                MODEL.motionFrame = DAT_1020b478[index].value;
+                MODEL.PlayMotion(DAT_1020b474[index].value, 1, 0, 1.0f);
+                MODEL.motion->layer = DAT_1020b474[index].value;
+                MODEL.motion->frame = MODEL.motionFrame;
+                MODEL.motion->m_0004 = (float)MODEL.motionFrame;
+                MODEL.motion->Advance();
+                MODEL.motion->Advance();
+                MODEL.motion->Advance();
+            }
+        }
+        else if (DAT_102550e0[index] > 6 && DAT_1020b470[index].value == 0)
+        {
+            int guard;
+            if (STATE_STEP < 6 || STATE_STEP > 0xb)
+                guard = FUN_1013f880() % 10 + 1;
+            else
+            {
+                W(FIGHTER_WORD_FRAME) = -2;
+                guard = FUN_1013f880() % 5 + 5;
+            }
+            roll = DAT_1020b490[index].value;
+            W(FIGHTER_WORD_GUARD_FRAMES) = guard;
+            if ((6 - roll) * 2 < (int)DAT_102550e0[index])
+            {
+                roll++;
+                DAT_1020b490[index].value = roll;
+                guard = (6 - roll) * 2;
+                DAT_102550e0[index] = guard < 1 ? 0 : (unsigned char)guard;
+                if (DAT_102550e0[index] < 7)
+                    DAT_102550e0[index] = 7;
+            }
+            if (DAT_102550e0[index] < DAT_102550e2[index])
+                DAT_102550e2[index] = DAT_102550e0[index];
+            return 0;
         }
         if ((6 - DAT_1020b490[index].value) * 2 < (int)DAT_102550e0[index])
         {
@@ -742,15 +765,15 @@ int Enemy_UpdateFighter(int index)
         roll = index;
         if (blink != 0)
             FUN_100b9bb0(index, FUN_1013f880() % 3 + 0x31, 0, 0);
-        else if (slot.held == 0)
+        else if (SLOT.held == 0)
         {
             DAT_10874848.TestScriptFlag(FIGHTER_VOICE_FLAG);
             FUN_100b9bb0(index, (FUN_1013f880() & 1) + 0x3c, 0, 0);
         }
     }
-    if (DAT_10210b30[index] != 0 || (W(FIGHTER_WORD_HEALTH_MARK) != 0 && W(FIGHTER_WORD_HEALTH_MARK) != slot.stats[STAT_HEALTH]))
+    if (DAT_10210b30[index] != 0 || (W(FIGHTER_WORD_HEALTH_MARK) != 0 && W(FIGHTER_WORD_HEALTH_MARK) != SLOT.stats[STAT_HEALTH]))
     {
-        int health = slot.stats[STAT_HEALTH];
+        int health = SLOT.stats[STAT_HEALTH];
         int mark = W(FIGHTER_WORD_HEALTH_MARK);
         DAT_10210b30[index] = 0;
         if (health < mark)
@@ -764,22 +787,22 @@ int Enemy_UpdateFighter(int index)
     {
         if (roll < 0x14)
         {
-            slot.stats[STAT_HEALTH] += roll;
+            SLOT.stats[STAT_HEALTH] += roll;
             DAT_1020b488[index].value = 0;
         }
         else
         {
-            slot.stats[STAT_HEALTH] += 0x14;
+            SLOT.stats[STAT_HEALTH] += 0x14;
             DAT_1020b488[index].value = roll - 0x14;
         }
-        if (DAT_1020b430[index].state < slot.stats[STAT_HEALTH])
-            slot.stats[STAT_HEALTH] = DAT_1020b430[index].state;
-        W(FIGHTER_WORD_HEALTH_MARK) = slot.stats[STAT_HEALTH];
+        if (DAT_1020b430[index].state < SLOT.stats[STAT_HEALTH])
+            SLOT.stats[STAT_HEALTH] = DAT_1020b430[index].state;
+        W(FIGHTER_WORD_HEALTH_MARK) = SLOT.stats[STAT_HEALTH];
     }
     DAT_1020b470[index].value = 0;
     DAT_1020b47c[index].value = 0;
     DAT_1020b480[index].value = 0;
-    slot.m_0141 = 0;
+    SLOT.m_0141 = 0;
     blink = 0;
     if (index > FIGHTER_FIRST_SLOT)
     {
@@ -788,7 +811,7 @@ int Enemy_UpdateFighter(int index)
         {
             if (roll > -0xf)
             {
-                model.alpha = (float)(roll - 1) / -15.0f;
+                MODEL.alpha = (float)(roll - 1) / -15.0f;
                 blink = 1;
                 DAT_1020b4a0[index].value = roll - 1;
                 FUN_1000ec70(0xf, 0.3f, 0.3f, 0.3f, 1.0f);
@@ -796,14 +819,14 @@ int Enemy_UpdateFighter(int index)
             else if (roll == -0xf)
             {
                 DAT_1020b4a0[index].value = -0x10;
-                model.alpha = 1.0f;
-                slot.m_0141 = 0;
+                MODEL.alpha = 1.0f;
+                SLOT.m_0141 = 0;
                 FUN_1000ec70(0xf, 1.0f, 1.0f, 1.0f, 1.0f);
             }
         }
         else
         {
-            model.alpha = 0.0f;
+            MODEL.alpha = 0.0f;
             blink = 1;
             DAT_1020b4a0[index].value = roll - 1;
             FUN_1000ec70(0xf, 0.3f, 0.3f, 0.3f, 1.0f);
@@ -812,14 +835,14 @@ int Enemy_UpdateFighter(int index)
     if (DAT_1020b430[index].state == 0)
     {
         // First frame: record the health, load the twin models of the first fighter and find the bones.
-        twinSlot.kind = -CHAR_FIGHTER_KIND;
+        TWIN_SLOT.kind = -CHAR_FIGHTER_KIND;
         DAT_1020b4b0[index].value = 0;
-        model.SetPosition(model.matrix._41, model.matrix._42, model.matrix._43);
-        twin.alpha = 0.0f;
+        MODEL.SetPosition(MODEL.matrix._41, MODEL.matrix._42, MODEL.matrix._43);
+        TWIN.alpha = 0.0f;
         if (DAT_10c62ed0 == 0x25e)
             Scene_RunCommand(0x753d, 0xc351, "fall_atari_ue");
-        DAT_1020b430[index].state = slot.stats[STAT_HEALTH];
-        W(FIGHTER_WORD_HEALTH_MARK) = slot.stats[STAT_HEALTH];
+        DAT_1020b430[index].state = SLOT.stats[STAT_HEALTH];
+        W(FIGHTER_WORD_HEALTH_MARK) = SLOT.stats[STAT_HEALTH];
         W(FIGHTER_WORD_STEP) = 0;
         W(2) = 0;
         W(FIGHTER_WORD_FRAME) = 0;
@@ -841,32 +864,33 @@ int Enemy_UpdateFighter(int index)
         }
         else
             W(FIGHTER_WORD_GUARD_FRAMES) = 0x4b;
-        DAT_1020b48c[index].value = slot.stats[STAT_VALUE_4];
+        DAT_1020b48c[index].value = SLOT.stats[STAT_VALUE_4];
         DAT_1020b454[index].value = 0;
-        DAT_1021bdf8[index][FIGHTER_NODE_BODY] = model.root->Find("scop-pt", 0);
+        DAT_1021bdf8[index][FIGHTER_NODE_BODY] = MODEL.root->Find("scop-pt", 0);
         while (DAT_1021bdf8[index][FIGHTER_NODE_BODY] == 0)
         {
             FUN_10012450(index, 1, "scop.it3");
-            DAT_1021bdf8[index][FIGHTER_NODE_BODY] = model.root->Find("scop-pt", 0);
+            DAT_1021bdf8[index][FIGHTER_NODE_BODY] = MODEL.root->Find("scop-pt", 0);
         }
-        if (model.root->Find("scop-pt", 0) == 0)
+        if (MODEL.root->Find("scop-pt", 0) == 0)
             FUN_10012450(index + FIGHTER_TWIN, 1, "scop.it3");
-        DAT_1021bdf8[index][FIGHTER_NODE_LEFT_TOE] = model.root->Find("Bip01 L Toe0", 0);
-        DAT_1021bdf8[index][FIGHTER_NODE_LEFT_HAND] = model.root->Find("Bip01 L Hand", 0);
-        DAT_1021bdf8[index][FIGHTER_NODE_RIGHT_TOE] = model.root->Find("Bip01 R Toe0", 0);
-        DAT_1021bdf8[index][FIGHTER_NODE_FOOTSTEPS] = model.root->Find("Bip01 Footsteps", 0);
-        DAT_1021bdf8[index][FIGHTER_NODE_RIGHT_HAND] = model.root->Find("Bip01 R Hand", 0);
+        DAT_1021bdf8[index][FIGHTER_NODE_LEFT_TOE] = MODEL.root->Find("Bip01 L Toe0", 0);
+        DAT_1021bdf8[index][FIGHTER_NODE_LEFT_HAND] = MODEL.root->Find("Bip01 L Hand", 0);
+        DAT_1021bdf8[index][FIGHTER_NODE_RIGHT_TOE] = MODEL.root->Find("Bip01 R Toe0", 0);
+        DAT_1021bdf8[index][FIGHTER_NODE_FOOTSTEPS] = MODEL.root->Find("Bip01 Footsteps", 0);
+        DAT_1021bdf8[index][FIGHTER_NODE_RIGHT_HAND] = MODEL.root->Find("Bip01 R Hand", 0);
     }
 
+    Vec4 player, place, aim, step;
     player.Copy(DAT_10db6ee8[0].matrix.GetTranslation());
-    place.Copy(model.matrix.GetTranslation());
+    place.Copy(MODEL.matrix.GetTranslation());
     aim.Copy(Vec3_Normalized(&(player - place)));
     distance = (player - place).Length2D();
     step.Fill(0.0f);
-    slot.m_0141 = 0;
+    SLOT.m_0141 = 0;
 
-#define FIGHTER_FACE_PLAYER() (model.targetHeading = atan2f(aim.x, aim.y) + 3.14159f)
-#define FIGHTER_STEP_FORWARD(speed) (step.y = (speed), step.RotateZ(FIGHTER_PI - model.heading))
+#define FIGHTER_FACE_PLAYER() (MODEL.targetHeading = FUN_10001f80(aim.x, aim.y) + 3.14159f)
+#define FIGHTER_STEP_FORWARD(speed) (step.y = (speed), step.RotateZ(FIGHTER_PI - MODEL.heading))
 #define FIGHTER_HOLD_MOTION() \
     do \
     { \
@@ -874,10 +898,10 @@ int Enemy_UpdateFighter(int index)
         DAT_1020b470[index].value = 1; \
         if (DAT_102550e0[index] == 0) \
         { \
-            if (model.motion->blending == 0) \
+            if (MODEL.motion->blending == 0) \
             { \
-                DAT_1020b474[index].value = model.motion->layer; \
-                DAT_1020b478[index].value = model.motionFrame; \
+                DAT_1020b474[index].value = MODEL.motion->layer; \
+                DAT_1020b478[index].value = MODEL.motionFrame; \
             } \
             else \
             { \
@@ -891,7 +915,7 @@ int Enemy_UpdateFighter(int index)
     {
     case 0:
         // Step 0: the back-step. Hops backwards with the first frames of the motion.
-        if (model.m_238c == 1)
+        if (MODEL.m_238c == 1)
         {
             if (W(FIGHTER_WORD_SIDE) == 0)
             {
@@ -906,15 +930,15 @@ int Enemy_UpdateFighter(int index)
             motionSnap = 1;
             break;
         }
-        if (model.m_238c != 1)
+        if (MODEL.m_238c != 1)
         {
             FIGHTER_STEP_FORWARD(-24.0f);
-            model.targetHeading = model.heading;
+            MODEL.targetHeading = MODEL.heading;
         }
         if (STATE_FRAME == 3)
         {
-            model.m_238c = 1;
-            model.AddMotionSpeed(48.0f);
+            MODEL.m_238c = 1;
+            MODEL.AddMotionSpeed(48.0f);
             FUN_10065b10(index, 0x182, 1, 0);
         }
         if (STATE_FRAME < 0x25)
@@ -923,7 +947,7 @@ int Enemy_UpdateFighter(int index)
             break;
         }
         motion = 1;
-        if (model.m_238c == 1)
+        if (MODEL.m_238c == 1)
             finished = 1;
         break;
     case 1:
@@ -938,7 +962,7 @@ int Enemy_UpdateFighter(int index)
         step.Copy(player + aim * distance - place);
         step.z = 0.0f;
         step.Copy(step.Normalized3() * 24.0f);
-        model.targetHeading = atan2f(step.x, step.y) + 3.14159f;
+        MODEL.targetHeading = FUN_10001f80(step.x, step.y) + 3.14159f;
         motion = 0;
         if (((STATE_FRAME < 0x3d || index != FIGHTER_FIRST_SLOT) && STATE_FRAME < 0x5b) || FUN_1013f880() % 3 != 0)
         {
@@ -949,7 +973,7 @@ int Enemy_UpdateFighter(int index)
         break;
     case 2:
         // Step 2: the slow lunge forward.
-        if (model.m_238c == 1)
+        if (MODEL.m_238c == 1)
         {
             if (W(FIGHTER_WORD_SIDE) == 0)
             {
@@ -963,15 +987,15 @@ int Enemy_UpdateFighter(int index)
             motion = 1;
             break;
         }
-        if (model.m_238c != 1)
+        if (MODEL.m_238c != 1)
         {
             FIGHTER_STEP_FORWARD(16.0f);
-            model.targetHeading = model.heading;
+            MODEL.targetHeading = MODEL.heading;
         }
         if (STATE_FRAME == 6)
         {
-            model.m_238c = 1;
-            model.AddMotionSpeed(48.0f);
+            MODEL.m_238c = 1;
+            MODEL.AddMotionSpeed(48.0f);
             FUN_10065b10(index, 0x182, 1, 0);
         }
         if (STATE_FRAME < 0x28)
@@ -980,12 +1004,12 @@ int Enemy_UpdateFighter(int index)
             break;
         }
         motion = 1;
-        if (model.m_238c == 1)
+        if (MODEL.m_238c == 1)
             finished = 1;
         break;
     case 3:
         // Step 3: walks towards the player until it is far or blocked.
-        model.targetHeading = atan2f(aim.x, aim.y);
+        MODEL.targetHeading = FUN_10001f80(aim.x, aim.y);
         FIGHTER_STEP_FORWARD(22.0f);
         motion = 0;
         if (distance > 700.0f || W(FIGHTER_WORD_BLOCKED) != 0)
@@ -993,7 +1017,7 @@ int Enemy_UpdateFighter(int index)
         break;
     case 4:
         // Step 4: backs away from the player until it is near or blocked.
-        model.targetHeading = atan2f(aim.x, aim.y) + 3.14159f;
+        MODEL.targetHeading = FUN_10001f80(aim.x, aim.y) + 3.14159f;
         FIGHTER_STEP_FORWARD(22.0f);
         motion = 0;
         if (W(FIGHTER_WORD_BLOCKED) != 0 || distance < 200.0f)
@@ -1001,7 +1025,7 @@ int Enemy_UpdateFighter(int index)
         break;
     case 5:
         // Step 5: the fast lunge forward.
-        if (model.m_238c == 1)
+        if (MODEL.m_238c == 1)
         {
             if (W(FIGHTER_WORD_SIDE) == 0)
             {
@@ -1015,15 +1039,15 @@ int Enemy_UpdateFighter(int index)
             motion = 1;
             break;
         }
-        if (model.m_238c != 1)
+        if (MODEL.m_238c != 1)
         {
             FIGHTER_STEP_FORWARD(32.0f);
-            model.targetHeading = model.heading;
+            MODEL.targetHeading = MODEL.heading;
         }
         if (STATE_FRAME == 6)
         {
-            model.m_238c = 1;
-            model.AddMotionSpeed(48.0f);
+            MODEL.m_238c = 1;
+            MODEL.AddMotionSpeed(48.0f);
             FUN_10065b10(index, 0x182, 1, 0);
         }
         if (STATE_FRAME < 0x28)
@@ -1032,7 +1056,7 @@ int Enemy_UpdateFighter(int index)
             break;
         }
         motion = 1;
-        if (model.m_238c == 1)
+        if (MODEL.m_238c == 1)
             finished = 1;
         break;
     case 6:
@@ -1044,7 +1068,7 @@ int Enemy_UpdateFighter(int index)
             Fighter_Grunt(index);
         motion = 5;
         if (c < 6)
-            model.targetHeading = atan2f(aim.x, aim.y) + 3.14159f;
+            MODEL.targetHeading = FUN_10001f80(aim.x, aim.y) + 3.14159f;
         if (c >= 7 && c < 0x19)
             FIGHTER_STEP_FORWARD(12.0f);
         if (c >= 0x1d)
@@ -1058,7 +1082,7 @@ int Enemy_UpdateFighter(int index)
         if (c == 5)
         {
             DAT_10218fc0[index] = 1;
-            model.heading = atan2f(aim.x, aim.y) + 3.14159f;
+            MODEL.heading = FUN_10001f80(aim.x, aim.y) + 3.14159f;
             break;
         }
         if (c >= 0x1d)
@@ -1075,7 +1099,7 @@ int Enemy_UpdateFighter(int index)
             Fighter_Grunt(index);
         motion = 6;
         if (c < 6)
-            model.targetHeading = atan2f(aim.x, aim.y) + 3.14159f;
+            MODEL.targetHeading = FUN_10001f80(aim.x, aim.y) + 3.14159f;
         if (c >= 7 && c < 0x2a)
             FIGHTER_STEP_FORWARD(12.0f);
         if (c >= 0x2c)
@@ -1089,7 +1113,7 @@ int Enemy_UpdateFighter(int index)
         if (c == 5)
         {
             DAT_10218fc0[index] = 1;
-            model.heading = atan2f(aim.x, aim.y) + 3.14159f;
+            MODEL.heading = FUN_10001f80(aim.x, aim.y) + 3.14159f;
             break;
         }
         if (c >= 0x2c)
@@ -1106,7 +1130,7 @@ int Enemy_UpdateFighter(int index)
             Fighter_Grunt(index);
         motion = 7;
         if (c < 6)
-            model.targetHeading = atan2f(aim.x, aim.y) + 3.14159f;
+            MODEL.targetHeading = FUN_10001f80(aim.x, aim.y) + 3.14159f;
         if (c < 0x10)
             FIGHTER_STEP_FORWARD(12.0f);
         if (c >= 0x1d)
@@ -1120,7 +1144,7 @@ int Enemy_UpdateFighter(int index)
         if (c == 5)
         {
             DAT_10218fc0[index] = 1;
-            model.heading = atan2f(aim.x, aim.y) + 3.14159f;
+            MODEL.heading = FUN_10001f80(aim.x, aim.y) + 3.14159f;
             break;
         }
         if (c >= 0x1d)
@@ -1137,7 +1161,7 @@ int Enemy_UpdateFighter(int index)
             Fighter_Grunt(index);
         motion = 8;
         if (c < 5)
-            model.targetHeading = atan2f(aim.x, aim.y) + 3.14159f;
+            MODEL.targetHeading = FUN_10001f80(aim.x, aim.y) + 3.14159f;
         if (c < 0xf)
             FIGHTER_STEP_FORWARD(12.0f);
         if (c >= 0xe)
@@ -1151,7 +1175,7 @@ int Enemy_UpdateFighter(int index)
         if (c == 4)
         {
             DAT_10218fc0[index] = 1;
-            model.heading = atan2f(aim.x, aim.y) + 3.14159f;
+            MODEL.heading = FUN_10001f80(aim.x, aim.y) + 3.14159f;
             break;
         }
         if (c >= 0xe)
@@ -1166,7 +1190,7 @@ int Enemy_UpdateFighter(int index)
         DAT_1020b484[index].value = 1;
         motion = 9;
         if (c < 5)
-            model.targetHeading = atan2f(aim.x, aim.y) + 3.14159f;
+            MODEL.targetHeading = FUN_10001f80(aim.x, aim.y) + 3.14159f;
         if (c < 0x16)
             FIGHTER_STEP_FORWARD(12.0f);
         if (c >= 0x16)
@@ -1182,7 +1206,7 @@ int Enemy_UpdateFighter(int index)
         if (c == 5)
         {
             DAT_10218fc0[index] = 1;
-            model.heading = atan2f(aim.x, aim.y) + 3.14159f;
+            MODEL.heading = FUN_10001f80(aim.x, aim.y) + 3.14159f;
             break;
         }
         if (c >= 0x16)
@@ -1199,7 +1223,7 @@ int Enemy_UpdateFighter(int index)
             Fighter_Grunt(index);
         motion = 10;
         if (c < 6)
-            model.targetHeading = atan2f(aim.x, aim.y) + 3.14159f;
+            MODEL.targetHeading = FUN_10001f80(aim.x, aim.y) + 3.14159f;
         if (c >= 7 && c < 0x1e)
             FIGHTER_STEP_FORWARD(12.0f);
         if (c >= 0x2c)
@@ -1219,7 +1243,7 @@ int Enemy_UpdateFighter(int index)
         if (c == 5)
         {
             DAT_10218fc0[index] = 1;
-            model.heading = atan2f(aim.x, aim.y) + 3.14159f;
+            MODEL.heading = FUN_10001f80(aim.x, aim.y) + 3.14159f;
             break;
         }
         if (c >= 0x2c)
@@ -1232,10 +1256,10 @@ int Enemy_UpdateFighter(int index)
         // Step 0xc: the first ranged shot (hand effect on frame 1, hold, finish on frame 0xaa).
         int c;
         Node *shotNode = DAT_1021bdf8[index][FIGHTER_NODE_RIGHT_HAND];
-        model.locked = 1;
+        MODEL.locked = 1;
         DAT_1020b484[index].value = 1;
         FIGHTER_HOLD_MOTION();
-        model.targetHeading = atan2f(aim.x, aim.y) + 3.14159f;
+        MODEL.targetHeading = FUN_10001f80(aim.x, aim.y) + 3.14159f;
         c = STATE_FRAME;
         if (c == 1)
         {
@@ -1249,9 +1273,9 @@ int Enemy_UpdateFighter(int index)
             shotPos.Fill(0.0f);
             shotHand.Copy(shotNode->worldMatrix.GetTranslation());
             shotHand.z += 35.0f;
-            shotMatrix = RotationZ(model.heading);
+            shotMatrix = RotationZ(MODEL.heading);
             shotMatrix.SetTranslation(shotHand);
-            shotOptions.m_0004 = slot.stats[3];
+            shotOptions.m_0004 = SLOT.stats[3];
             shotOptions.followOwner = 1;
             shotOptions.m_0008 = 1.35f;
             shotOptions.m_0000 = 0;
@@ -1275,7 +1299,7 @@ int Enemy_UpdateFighter(int index)
         else
             motion = 0xf;
         if (STATE_FRAME > 0 && STATE_FRAME < 0x96)
-            slot.m_0141 = 1;
+            SLOT.m_0141 = 1;
         break;
     }
     case 0xd:
@@ -1285,7 +1309,7 @@ int Enemy_UpdateFighter(int index)
         Node *shotNode = DAT_1021bdf8[index][FIGHTER_NODE_RIGHT_HAND];
         DAT_1020b484[index].value = 1;
         FIGHTER_HOLD_MOTION();
-        model.targetHeading = atan2f(aim.x, aim.y) + 3.14159f;
+        MODEL.targetHeading = FUN_10001f80(aim.x, aim.y) + 3.14159f;
         c = STATE_FRAME;
         if (c < 0x79 && c > 0x3c && c % 10 == 0)
         {
@@ -1299,9 +1323,9 @@ int Enemy_UpdateFighter(int index)
             spot.z += (float)(FUN_1013f880() % 100) + 50.0f;
             spot.x += (float)(FUN_1013f880() % 300) - 150.0f;
             spot.y += (float)(FUN_1013f880() % 300) - 150.0f;
-            rainMatrix = RotationX(-0.0525f) * RotationZ(atan2f(player.x - spot.x, player.y - spot.y) + FIGHTER_PI);
+            rainMatrix = RotationX(-0.0525f) * RotationZ(FUN_10001f80(player.x - spot.x, player.y - spot.y) + FIGHTER_PI);
             rainMatrix.SetTranslation(spot);
-            rainOptions.m_0004 = slot.stats[3];
+            rainOptions.m_0004 = SLOT.stats[3];
             rainOptions.followOwner = 1;
             rainOptions.m_0008 = 1.44f;
             rainOptions.m_0000 = 0;
@@ -1322,7 +1346,7 @@ int Enemy_UpdateFighter(int index)
             shotPos.Fill(0.0f);
             shotHand.Copy(shotNode->worldMatrix.GetTranslation());
             shotHand.z += 19.0f;
-            shotMatrix = RotationZ(model.heading);
+            shotMatrix = RotationZ(MODEL.heading);
             shotMatrix.SetTranslation(shotHand);
             shotOptions.m_0004 = 0;
             shotOptions.followOwner = 1;
@@ -1347,7 +1371,7 @@ int Enemy_UpdateFighter(int index)
         else
             motion = 0x14;
         if (STATE_FRAME > 0 && STATE_FRAME < 0xb5)
-            slot.m_0141 = 1;
+            SLOT.m_0141 = 1;
         break;
     }
     case 0xe:
@@ -1355,10 +1379,10 @@ int Enemy_UpdateFighter(int index)
         // Step 0xe: the charged shot (charge on frame 0, shot on frame 0xf, the second shot on frame 0x3c).
         int c;
         Node *shotNode = DAT_1021bdf8[index][FIGHTER_NODE_RIGHT_HAND];
-        model.locked = 1;
+        MODEL.locked = 1;
         DAT_1020b484[index].value = 1;
         FIGHTER_HOLD_MOTION();
-        model.targetHeading = atan2f(aim.x, aim.y) + 3.14159f;
+        MODEL.targetHeading = FUN_10001f80(aim.x, aim.y) + 3.14159f;
         c = STATE_FRAME;
         if (c == 0)
         {
@@ -1375,7 +1399,7 @@ int Enemy_UpdateFighter(int index)
             shotPos.Fill(0.0f);
             shotHand.Copy(shotNode->worldMatrix.GetTranslation());
             shotHand.z += 19.0f;
-            shotMatrix = RotationZ(model.heading);
+            shotMatrix = RotationZ(MODEL.heading);
             shotMatrix.SetTranslation(shotHand);
             shotOptions.m_0004 = 0;
             shotOptions.followOwner = 1;
@@ -1397,9 +1421,9 @@ int Enemy_UpdateFighter(int index)
             shotPos.Fill(0.0f);
             shotHand.Copy(shotNode->worldMatrix.GetTranslation());
             shotHand.z += 19.0f;
-            shotMatrix = RotationZ(model.heading);
+            shotMatrix = RotationZ(MODEL.heading);
             shotMatrix.SetTranslation(shotHand);
-            shotOptions.m_0004 = slot.stats[3];
+            shotOptions.m_0004 = SLOT.stats[3];
             shotOptions.followOwner = 1;
             shotOptions.m_0008 = 1.87f;
             shotOptions.m_0000 = 0;
@@ -1423,7 +1447,7 @@ int Enemy_UpdateFighter(int index)
             motion = 0x12;
         c = STATE_FRAME;
         if (c >= 0xe && c <= 0x9a)
-            slot.m_0141 = 1;
+            SLOT.m_0141 = 1;
         else if (c < 0xf)
             DAT_10218fc0[index] = 1;
         break;
@@ -1437,10 +1461,10 @@ int Enemy_UpdateFighter(int index)
         // Step 0x10: the heavy shot that knocks the player back (effect on frame 1, knock-back on frame 0x15).
         int c;
         Node *shotNode = DAT_1021bdf8[index][FIGHTER_NODE_RIGHT_HAND];
-        model.locked = 1;
+        MODEL.locked = 1;
         DAT_1020b484[index].value = 1;
         FIGHTER_HOLD_MOTION();
-        model.targetHeading = atan2f(aim.x, aim.y) + 3.14159f;
+        MODEL.targetHeading = FUN_10001f80(aim.x, aim.y) + 3.14159f;
         c = STATE_FRAME;
         if (c == 1)
         {
@@ -1454,9 +1478,9 @@ int Enemy_UpdateFighter(int index)
             shotPos.Fill(0.0f);
             shotHand.Copy(shotNode->worldMatrix.GetTranslation());
             shotHand.z += 20.0f;
-            shotMatrix = RotationZ(model.heading);
+            shotMatrix = RotationZ(MODEL.heading);
             shotMatrix.SetTranslation(shotHand);
-            shotOptions.m_0004 = slot.stats[3];
+            shotOptions.m_0004 = SLOT.stats[3];
             shotOptions.followOwner = 1;
             shotOptions.m_0008 = 2.3f;
             shotOptions.m_0000 = 0;
@@ -1482,7 +1506,7 @@ int Enemy_UpdateFighter(int index)
         else
             motion = 0x18;
         if (STATE_FRAME > 0 && STATE_FRAME < 0xa0)
-            slot.m_0141 = 1;
+            SLOT.m_0141 = 1;
         break;
     }
     case 0x11:
@@ -1515,9 +1539,9 @@ int Enemy_UpdateFighter(int index)
             dashPos.Fill(0.0f);
             dashHand.Copy(DAT_1021bdf8[index][FIGHTER_NODE_FOOTSTEPS]->worldMatrix.GetTranslation());
             dashHand.z += 20.0f;
-            dashMatrix = RotationZ(model.heading);
+            dashMatrix = RotationZ(MODEL.heading);
             dashMatrix.SetTranslation(dashHand);
-            dashOptions.m_0004 = slot.stats[3];
+            dashOptions.m_0004 = SLOT.stats[3];
             dashOptions.followOwner = 1;
             dashOptions.m_0008 = 1.98f;
             dashOptions.m_0000 = 0;
@@ -1586,18 +1610,18 @@ int Enemy_UpdateFighter(int index)
         finished = 1;
         break;
     case 0x15:
-        slot.m_0141 = 1;
+        SLOT.m_0141 = 1;
         roll = STATE_FRAME;
         if (roll < 0xf)
-            model.alpha = (float)(0xf - roll) / 15.0f;
+            MODEL.alpha = (float)(0xf - roll) / 15.0f;
         else if (roll == 0xf)
         {
             motion = 2;
             aim.Set(0.0f, 2850.0f, 1100.0f, 0.0f);
-            model.SetPosition((aim - player).Length2D() <= 100.0f ? -300.0f : 0.0f, 2850.0f, 1100.0f);
-            slot.stats[FIGHTER_STAGGER_STAT] = 0;
+            MODEL.SetPosition((aim - player).Length2D() <= 100.0f ? -300.0f : 0.0f, 2850.0f, 1100.0f);
+            SLOT.stats[FIGHTER_STAGGER_STAT] = 0;
             DAT_10daaa80.RemoveOwnedBy(index);
-            model.alpha = 0.0f;
+            MODEL.alpha = 0.0f;
             FUN_100b9bb0(index, 0x3e, 0, 1);
         }
         else
@@ -1605,14 +1629,14 @@ int Enemy_UpdateFighter(int index)
             motion = 2;
             if (roll > 0x1d)
             {
-                model.alpha = 1.0f;
-                slot.stats[FIGHTER_STAGGER_STAT] = 0;
-                slot.m_0141 = 0;
+                MODEL.alpha = 1.0f;
+                SLOT.stats[FIGHTER_STAGGER_STAT] = 0;
+                SLOT.m_0141 = 0;
                 STATE_STEP = 0x13;
                 finished = 1;
             }
             else
-                model.alpha = (float)(roll - 0xf) / 15.0f;
+                MODEL.alpha = (float)(roll - 0xf) / 15.0f;
         }
         break;
     default:
@@ -1629,7 +1653,7 @@ int Enemy_UpdateFighter(int index)
             goto pick_random_step;
         if (finished == 0)
             goto move_and_animate;
-        healthPercent = (slot.stats[STAT_HEALTH] * 100) / DAT_1020b430[index].state;
+        healthPercent = (SLOT.stats[STAT_HEALTH] * 100) / DAT_1020b430[index].state;
         DAT_1020b498[index].value++;
         roll = STATE_STEP;
         DAT_1020b480[index].value = 0;
@@ -1705,10 +1729,10 @@ int Enemy_UpdateFighter(int index)
                     // Too close: look behind it for room to back off.
                     Vec4 spot, from, to, hit;
                     int gapBehind = 0;
-                    DAT_11b002c0 = model.collisionFilter;
+                    DAT_11b002c0 = MODEL.collisionFilter;
                     spot.Copy(place);
                     to.Set(0.0f, 200.0f, 0.0f, 0.0f);
-                    to.RotateZ(FIGHTER_PI - atan2f(aim.x, aim.y));
+                    to.RotateZ(FIGHTER_PI - FUN_10001f80(aim.x, aim.y));
                     from.Copy(place + to);
                     from.z = 1500.0f;
                     spot.z = 0.0f;
@@ -1720,7 +1744,7 @@ int Enemy_UpdateFighter(int index)
                         DAT_10255f08->RayCast(0, 4, 0x4000000, &spot, &from, &hit, 0) != 0)
                     {
                         to.Set(0.0f, -400.0f, 0.0f, 0.0f);
-                        to.RotateZ(FIGHTER_PI - atan2f(aim.x, aim.y));
+                        to.RotateZ(FIGHTER_PI - FUN_10001f80(aim.x, aim.y));
                         from.Copy(place + to);
                         if (DAT_10255f08 == 0 || DAT_10255f08->RayCast(0, 4, 0x4000000, &spot, &from, &hit, 0) == 0)
                         {
@@ -1834,7 +1858,7 @@ int Enemy_UpdateFighter(int index)
         STATE_STEP = 0x13;
         STATE_FRAME = 0;
         motion = 1;
-        if (W(FIGHTER_WORD_GUARD_FRAMES) == 0 && model.m_0294 == 0)
+        if (W(FIGHTER_WORD_GUARD_FRAMES) == 0 && MODEL.m_0294 == 0)
         {
         pick_random_step:
             DAT_1020b480[index].value = 0;
@@ -1850,7 +1874,7 @@ int Enemy_UpdateFighter(int index)
 move_and_animate:
     step.z += 30.0f;
     STATE_FRAME++;
-    if (model.IsClearOfMapLimited(&step) == 0 || (STATE_STEP < 5 && model.IsClearAny(&step) == 0))
+    if (MODEL.IsClearOfMapLimited(&step) == 0 || (STATE_STEP < 5 && MODEL.IsClearAny(&step) == 0))
     {
         W(FIGHTER_WORD_BLOCKED) = 1;
         step.z -= 30.0f;
@@ -1876,28 +1900,29 @@ move_and_animate:
     if (DAT_104bfdf0 != 0 || DAT_104c0135 != 0 || DAT_104bfe1c != 0)
         DAT_102024ac = index;
     roll = DAT_1020b48c[index].value;
-    slot.stats[STAT_VALUE_4] = roll;
-    slot.held = 1;
-    if ((slot.m_0141 == 0 || STATE_STEP == FIGHTER_STEP_STAGGER) && DAT_103153b0[index] == 0 &&
+    SLOT.stats[STAT_VALUE_4] = roll;
+    SLOT.held = 1;
+    if ((SLOT.m_0141 == 0 || STATE_STEP == FIGHTER_STEP_STAGGER) && DAT_103153b0[index] == 0 &&
         DAT_1020b4a8[index].value == FIGHTER_SWAP_STEPS)
         DAT_1020b4a8[index].value = 8;
     if (DAT_10874848.TestScriptFlag(0x1c7) == 1 && DAT_103153b0[index] == 0)
     {
-        if (slot.m_0141 == 0 || STATE_STEP == FIGHTER_STEP_STAGGER || blink != 0)
+        if (SLOT.m_0141 == 0 || STATE_STEP == FIGHTER_STEP_STAGGER || blink != 0)
         {
-            slot.held = 0;
-            slot.stats[STAT_VALUE_4] = roll / 3;
+            SLOT.held = 0;
+            SLOT.stats[STAT_VALUE_4] = roll / 3;
         }
         goto count_flash;
     }
-    if (DAT_103153b0[index] != 0 || (slot.m_0141 != 0 && STATE_STEP != FIGHTER_STEP_STAGGER && blink == 0))
+    if (DAT_103153b0[index] != 0 || (SLOT.m_0141 != 0 && STATE_STEP != FIGHTER_STEP_STAGGER && blink == 0))
     {
         if (DAT_1020b4a8[index].value == 0)
             DAT_1020b4a8[index].value = 1;
-        slot.stats[STAT_VALUE_4] = DAT_10874848.TestScriptFlag(0x1c7) == 1 ? -8 : 0;
-        slot.held = 0;
+        SLOT.stats[STAT_VALUE_4] = DAT_10874848.TestScriptFlag(0x1c7) == 1 ? -8 : 0;
+        SLOT.held = 0;
         if (DAT_1020b46c[index].value == 0)
         {
+            Vec4 hand;
             EffectOptions flash;
             flash.followOwner = 1;
             flash.owner = index;
@@ -1906,7 +1931,7 @@ move_and_animate:
         }
         DAT_1020b46c[index].value++;
         if (STATE_STEP != 0x11 || index == FIGHTER_FIRST_SLOT)
-            slot.m_0141 = 0;
+            SLOT.m_0141 = 0;
     }
     else if (DAT_1020b46c[index].value > 0)
         DAT_1020b46c[index].value++;
@@ -1915,8 +1940,8 @@ count_flash:
         DAT_1020b46c[index].value = 0;
     if (motion >= 0)
     {
-        model.PlayMotion(motion, 0, motionSnap != 0 ? 0 : 5, 1.0f);
-        if (DAT_1020b470[index].value != 0 && DAT_1020b474[index].value != model.motion->layer)
+        MODEL.PlayMotion(motion, 0, motionSnap != 0 ? 0 : 5, 1.0f);
+        if (DAT_1020b470[index].value != 0 && DAT_1020b474[index].value != MODEL.motion->layer)
         {
             DAT_1020b470[index].value = 0;
             DAT_1020b47c[index].value = 0;
@@ -1927,41 +1952,42 @@ count_flash:
     }
     if (DAT_1020b484[index].value != 0)
     {
+        Vec4 effectPos;
         EffectOptions trail;
         trail.followOwner = 1;
         FUN_1001d8b0(index, 0x6a8, effectPos, -1, -1, 0, 0, 0, &DAT_1021bdf8[index][FIGHTER_NODE_RIGHT_HAND]->worldMatrix, &trail);
     }
-    slot.m_0141 = blink != 0;
+    SLOT.m_0141 = blink != 0;
     {
-        float turn = model.heading - model.targetHeading;
+        float turn = MODEL.heading - MODEL.targetHeading;
         while (turn > FIGHTER_PI)
             turn -= FIGHTER_TWO_PI;
         while (turn < -FIGHTER_PI)
             turn += FIGHTER_TWO_PI;
         if (fabsf(turn) < 0.5f || step.Length2D() < 4.0f)
         {
-            if (model.spinAngle < 0.0f)
+            if (MODEL.spinAngle < 0.0f)
             {
-                model.spinAngle += 0.05f;
-                if (model.spinAngle > 0.0f)
-                    model.spinAngle = 0.0f;
+                MODEL.spinAngle += 0.05f;
+                if (MODEL.spinAngle > 0.0f)
+                    MODEL.spinAngle = 0.0f;
             }
-            else if (model.spinAngle > 0.0f)
+            else if (MODEL.spinAngle > 0.0f)
             {
-                model.spinAngle -= 0.05f;
-                if (model.spinAngle < 0.0f)
-                    model.spinAngle = 0.0f;
+                MODEL.spinAngle -= 0.05f;
+                if (MODEL.spinAngle < 0.0f)
+                    MODEL.spinAngle = 0.0f;
             }
         }
         else if (turn >= 0.0f)
         {
-            if (model.spinAngle > -0.3f)
-                model.spinAngle -= 0.05f;
+            if (MODEL.spinAngle > -0.3f)
+                MODEL.spinAngle -= 0.05f;
         }
-        else if (model.spinAngle < 0.3f)
-            model.spinAngle += 0.05f;
+        else if (MODEL.spinAngle < 0.3f)
+            MODEL.spinAngle += 0.05f;
     }
     if (DAT_1020b4a8[index].value != 0)
-        slot.m_0141 = 1;
+        SLOT.m_0141 = 1;
     return 0;
 }

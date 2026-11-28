@@ -506,8 +506,8 @@ void QuantiseBand(short *planeA, short *planeB, short *planeC, int width, int he
     scale *= QUANT_DIVISOR_PER_SCALE;  // from here on scale is the quantiser divisor (step), not the strength
     int roundOffset = (scale - 1) / 2;
     int reconstructionOffset = (quality - 1) / 2;
-    int errorSumA = 0, errorSumB = 0, errorSumC = 0;
     int countA = 0, countB = 0, countC = 0;
+    int errorSumA = 0, errorSumB = 0, errorSumC = 0;
 
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
@@ -747,13 +747,13 @@ int EncodeBand(const unsigned short *words, unsigned char *out, int count, int *
     int magnitudeStep = zeroRatio << 8;
     g_coderHigh = g_coderMax;
     unsigned int probability = (((estimate >> 1) - estimate) - 0x8000) / (estimate + 0x10000) + 1;
-    offset = ((estimate & 0xffff) * offset + 0x8000 >> 16) + (estimate >> 16) * offset;
+    offset = (estimate >> 16) * offset + ((estimate & 0xffff) * offset + 0x8000 >> 16);
     g_outputByte = 0;
     g_outputBitMask = 1;
     g_coderLow = 0;
     g_coderPending = 0;
-    int consumed = 0;
     int position = 0;
+    int consumed = 0;
     int zeroRun = 0;
     if (probability > 0xfffe)
         probability = 0xfffe;
@@ -781,9 +781,7 @@ int EncodeBand(const unsigned short *words, unsigned char *out, int count, int *
                     zeros--;
                 } while (zeros != 0);
             }
-            if (level == 0) {
-                EncodeBit(0, probability, out);
-            } else {
+            if (level != 0) {
                 for (unsigned int ones = level & 0x7ff; ones != 0; ones--)
                     EncodeBit(1, probability, out);
                 EncodeBit(0, probability, out);
@@ -795,11 +793,16 @@ int EncodeBand(const unsigned short *words, unsigned char *out, int count, int *
                 probability = (((estimate >> 1) - estimate) - 0x8000) / (estimate + 0x10000) + 1;
                 if (probability > 0xfffe)
                     probability = 0xfffe;
+            } else {
+                EncodeBit(0, probability, out);
             }
         }
     }
     g_coderPending += g_coderPrecision;
-    EmitBit(g_coderHalf <= g_coderLow, out);
+    if (g_coderLow < g_coderHalf)
+        EmitBit(0, out);
+    else
+        EmitBit(1, out);
     if (g_outputBitMask > 1) {
         out[g_outputLength] = g_outputByte;
         g_outputLength++;
@@ -811,26 +814,21 @@ int EncodeBand(const unsigned short *words, unsigned char *out, int count, int *
 
 // Appends one byte; *length is the index of the last byte written (so it starts at 0 after the first byte).
 // Callers reduce wider values with % 256 themselves. (WriteStream)
-__forceinline void PutByte(unsigned char *out, int *length, unsigned char value)
-{
-    out[++*length] = value;
-}
+// The Put* helpers are macros on purpose: their value arguments (widths[0], heights[0]) are re-read from memory at each
+// use, as in the original, because a store through the unsigned char out pointer may alias them.
+#define PutByte(out, length, value) (out[++*(length)] = (unsigned char)(value))
 
 // Appends a 16-bit little-endian value. (WriteStream)
-__forceinline void PutWord(unsigned char *out, int *length, int value)
-{
-    PutByte(out, length, value % 256);
-    PutByte(out, length, value / 256 % 256);
-}
+#define PutWord(out, length, value) \
+    (PutByte(out, length, (value) % 256), \
+     PutByte(out, length, (value) / 256 % 256))
 
 // Appends a 32-bit little-endian value. (WriteStream)
-__forceinline void PutLong(unsigned char *out, int *length, int value)
-{
-    PutByte(out, length, value % 256);
-    PutByte(out, length, value / 256 % 256);
-    PutByte(out, length, value / 65536 % 256);
-    PutByte(out, length, value / 65536 / 256 % 256);
-}
+#define PutLong(out, length, value) \
+    (PutByte(out, length, (value) % 256), \
+     PutByte(out, length, (value) / 256 % 256), \
+     PutByte(out, length, (value) / 65536 % 256), \
+     PutByte(out, length, (value) / 65536 / 256 % 256))
 
 // Writes the compressed file into out: signature "HPC@" 3,0, quality, width, height, level count, two zero bytes,
 // stream length, the band models (scale byte, then zeroRatio, escapeRatio and bias when the scale is non-zero),
